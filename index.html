@@ -96,18 +96,42 @@
     const H = canvas.height;   // 도화지 세로 (600)
 
     // =====================================================================
+    // 1-1. 픽셀아트 그림 불러오기 (assets 폴더, Kenney "Tiny Dungeon" CC0)
+    //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
+    //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
+    // =====================================================================
+    const SPRITE_NAMES = ["knight", "ghost", "bat", "cyclops", "spider", "wizard", "crab"];
+    const SPRITES = {};
+    for (const name of SPRITE_NAMES) {
+      const sprite = { ready: false, normal: new Image(), white: null };
+      sprite.normal.onload = () => {
+        // 흰색 실루엣 만들기: 그림을 그린 뒤, 그림이 있는 부분만 흰색으로 덮음
+        const c = document.createElement("canvas");
+        c.width = sprite.normal.width;
+        c.height = sprite.normal.height;
+        const cctx = c.getContext("2d");
+        cctx.drawImage(sprite.normal, 0, 0);
+        cctx.globalCompositeOperation = "source-in";
+        cctx.fillStyle = "#fff";
+        cctx.fillRect(0, 0, c.width, c.height);
+        sprite.white = c;
+        sprite.ready = true;
+      };
+      sprite.normal.src = `assets/${name}.png`;
+      SPRITES[name] = sprite;
+    }
+    ctx.imageSmoothingEnabled = false;   // 픽셀아트를 키워도 뿌옇게 번지지 않게
+
+    // =====================================================================
     // 2. 게임 규칙 숫자들 (여기 값만 바꿔도 난이도 조절 가능)
     //    ※ 강화로 바뀌는 값은 "기본값"이고, 실제로는 player 안의 값을 씀
     // =====================================================================
     const PLAYER_SPEED = 220;        // 플레이어 기본 속도 (1초에 몇 픽셀)
     const PLAYER_RADIUS = 14;        // 플레이어 원의 반지름
     const PLAYER_MAX_HP = 100;       // 기본 최대 체력
-    const HIT_DAMAGE = 10;           // 적에게 닿으면 깎이는 체력
     const INVINCIBLE_TIME = 0.5;     // 맞은 뒤 무적 시간 (초)
 
-    const ENEMY_SPEED = 60;          // 적 속도
-    const ENEMY_RADIUS = 12;         // 적 원의 반지름
-    const ENEMY_HP = 2;              // 적 체력
+    // ※ 적의 속도·체력·피해는 아래 2-3번 구역 ENEMY_TYPES 표에 있음
     const SPAWN_START = 1.0;         // 처음 적 생성 간격 (초)
     const SPAWN_MIN = 0.3;           // 최소 생성 간격 (초)
 
@@ -117,9 +141,11 @@
     // --- 경험치 / 레벨 ---
     const GEM_RADIUS = 6;            // 경험치 구슬 크기
     const PICKUP_RADIUS = 40;        // 구슬을 빨아들이는 거리 (기본값)
-    const XP_PER_GEM = 1;            // 구슬 하나당 경험치
-    const XP_BASE = 5;               // 1레벨 → 2레벨 필요 경험치
-    const XP_GROWTH = 3;             // 레벨마다 늘어나는 필요 경험치
+    // 필요 경험치 = XP_BASE + XP_GROWTH × (레벨-1) + XP_CURVE × (레벨-1)²
+    //   → 10, 16, 24, 34, 46, 60 ... 갈수록 가파르게 늘어남
+    const XP_BASE = 10;              // 1레벨 → 2레벨 필요 경험치
+    const XP_GROWTH = 5;             // 레벨마다 늘어나는 양
+    const XP_CURVE = 1;              // 레벨이 높을수록 더 가파르게 만드는 값
     const WEAPON_MAX_LEVEL = 5;      // 무기 최대 레벨
     const GEM_PULL_SPEED = 150;      // 구슬이 끌려오기 시작할 때 속도 (px/초)
     const GEM_PULL_ACCEL = 900;      // 끌려오는 구슬이 1초마다 빨라지는 양
@@ -196,11 +222,14 @@
           return list;
         },
         draw(w) {
-          ctx.fillStyle = "#a8dadc";
+          ctx.fillStyle = "#caf0f8";            // 내 공격은 전부 하늘·흰색 계열
+          ctx.strokeStyle = "#48cae4";
+          ctx.lineWidth = 2;
           for (const pos of this.positions(w)) {
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, this.orbRadius, 0, Math.PI * 2);
             ctx.fill();
+            ctx.stroke();
           }
         },
       },
@@ -244,7 +273,7 @@
         },
         update(w, dt) { if (w.flash > 0) w.flash -= dt; },
         draw(w) {
-          ctx.fillStyle = w.flash > 0 ? "rgba(190, 120, 255, 0.35)" : "rgba(190, 120, 255, 0.12)";
+          ctx.fillStyle = w.flash > 0 ? "rgba(120, 200, 255, 0.35)" : "rgba(120, 200, 255, 0.12)";
           ctx.beginPath();
           ctx.arc(player.x, player.y, this.getRadius(w), 0, Math.PI * 2);
           ctx.fill();
@@ -293,13 +322,65 @@
     ];
 
     // =====================================================================
+    // 2-3. 적 종류 목록 (플레이어 레벨 1부터 순서대로 등장, 6종이 끝나면 다시 처음부터 순환)
+    //   shape    : 그림 파일 이름 (assets 폴더의 ghost.png, bat.png ... 확장자 빼고 적음)
+    //   color    : 죽을 때 튀는 파편 색 (그림과 비슷한 색으로 맞춤)
+    //   r        : 크기(반지름)    speed : 속도    hp : 체력    damage : 닿으면 깎는 체력
+    //   xp       : 죽을 때 떨어뜨리는 구슬의 경험치
+    //   behavior : 행동 방식 (chase 곧장 다가옴, ranged 멀리서 탄환 발사, charger 주기적으로 돌진)
+    //   splitInto: 죽을 때 갈라져 나오는 작은 적 수
+    // =====================================================================
+    const ENEMY_TYPES = [
+      { key: "basic",    name: "유령",     shape: "ghost",    color: "#d8dee9", r: 14, speed: 60,  hp: 2, damage: 10, xp: 1, behavior: "chase" },
+      { key: "rusher",   name: "박쥐",     shape: "bat",      color: "#c8793f", r: 12, speed: 110, hp: 1, damage: 8,  xp: 1, behavior: "chase" },
+      { key: "tank",     name: "외눈 거인", shape: "cyclops",  color: "#f0a860", r: 20, speed: 40,  hp: 4, damage: 15, xp: 3, behavior: "chase" },
+      { key: "splitter", name: "거미",     shape: "spider",   color: "#b5651d", r: 14, speed: 65,  hp: 3, damage: 10, xp: 2, behavior: "chase", splitInto: 2 },
+      { key: "shooter",  name: "마법사",   shape: "wizard",   color: "#9b5de5", r: 13, speed: 70,  hp: 3, damage: 8,  xp: 3, behavior: "ranged" },
+      { key: "charger",  name: "붉은 게",  shape: "crab",     color: "#e63946", r: 18, speed: 50,  hp: 4, damage: 15, xp: 4, behavior: "charger" },
+    ];
+
+    const OLD_ENEMY_CHANCE = 0.3;        // 이전 레벨의 적이 섞여 나올 확률 (나머지 70%는 현재 레벨의 적)
+
+    // --- 레벨 보정: 플레이어 레벨이 1 오를 때마다 새로 나오는 적이 이만큼 강해짐 ---
+    const ENEMY_HP_PER_LEVEL = 0.10;     // 체력 +10%
+    const ENEMY_SPEED_PER_LEVEL = 0.03;  // 속도 +3%
+    const ENEMY_SPEED_CAP = 1.6;         // 속도는 최대 1.6배까지만
+    const ENEMY_DAMAGE_PER_LEVEL = 0.05; // 피해 +5%
+
+    // --- 원거리형 ---
+    const SHOOTER_RANGE = 220;           // 이 거리까지만 다가오고 멈춤
+    const SHOOTER_INTERVAL = 2.0;        // 탄환 발사 간격 (초)
+    const ENEMY_BULLET_SPEED = 180;      // 적 탄환 속도
+    const ENEMY_BULLET_RADIUS = 5;       // 적 탄환 크기
+
+    // --- 돌격대장: 걷기 → 멈춰서 번쩍 → 돌진 을 반복 ---
+    const CHARGER_WALK_TIME = 3.0;       // 걷는 시간 (초)
+    const CHARGER_WINDUP_TIME = 0.5;     // 돌진 전 멈춰서 번쩍이는 시간
+    const CHARGER_DASH_TIME = 0.4;       // 돌진 시간
+    const CHARGER_DASH_SPEED = 300;      // 돌진 속도
+
+    const SHOW_BANNER = true;            // 화면 위 "새로운 적" 안내 문구를 띄울지 (false로 바꾸면 꺼짐)
+    const BANNER_TIME = 2.5;             // 안내 문구가 보이는 시간 (초)
+
+    // --- 이펙트 (보기 좋으라고 넣는 연출, 게임 규칙에는 영향 없음) ---
+    const HIT_FLASH_TIME = 0.08;         // 맞은 적이 흰색으로 번쩍이는 시간 (초)
+    const HIT_SPARKS = 3;                // 맞을 때 튀는 불꽃 수
+    const DEATH_PARTICLES = 10;          // 죽을 때 퍼지는 파편 수
+    const PARTICLE_MAX = 300;            // 화면에 동시에 있을 수 있는 파편 최대 수 (너무 많으면 느려짐)
+    const BULLET_TRAIL = 0.04;           // 탄환 꼬리 길이 (초 단위: 이 시간 동안 날아온 거리만큼)
+
+    // =====================================================================
     // 3. 게임이 기억해야 할 것들 (상태)
     // =====================================================================
     let player;        // 플레이어 정보 (위치, 체력, 레벨, 무기 등)
     let enemies;       // 적 목록
+    let pendingSpawns; // 이번 프레임에 새로 생긴 적 (분열형의 자식). 프레임 끝에 enemies에 합침
+    let enemyBullets;  // 원거리형 적이 쏜 탄환 목록
+    let banner;        // 화면 위 안내 문구 { text, life }
     let bullets;       // 발사체 목록 (탄환, 창, 폭탄 모두 여기)
     let gems;          // 경험치 구슬 목록
-    let effects;       // 폭발 같은 잠깐 보이는 연출 목록
+    let effects;       // 폭발·고리 같은 잠깐 보이는 연출 목록
+    let particles;     // 작은 파편 목록 (피격 불꽃, 처치 파편)
     let stats;         // 생존 시간, 처치 수
     let state;         // "playing", "levelup", "gameover"
     let spawnTimer;    // 다음 적 생성까지 남은 시간
@@ -319,6 +400,7 @@
         hp: PLAYER_MAX_HP,
         maxHp: PLAYER_MAX_HP,
         invincible: 0,            // 남은 무적 시간
+        facingLeft: false,        // 왼쪽을 보고 있는지 (그림 좌우 뒤집기용)
         // --- 강화로 바뀌는 값들 ---
         speed: PLAYER_SPEED,
         damage: 1,
@@ -329,14 +411,18 @@
         // --- 레벨 ---
         level: 1,
         xp: 0,
-        xpNeed: XP_BASE,
+        xpNeed: xpNeedFor(1),
         // --- 무기: 시작은 기본 탄환만 ---
         weapons: [{ type: "bullet", level: 1, timer: 0 }],
       };
       enemies = [];
+      pendingSpawns = [];
+      enemyBullets = [];
+      banner = null;
       bullets = [];
       gems = [];
       effects = [];
+      particles = [];
       stats = { time: 0, kills: 0 };
       state = "playing";
       spawnTimer = SPAWN_START;
@@ -375,22 +461,118 @@
       else if (side === 2) { x = -margin;           y = Math.random() * H; }
       else                 { x = W + margin;        y = Math.random() * H; }
 
-      enemies.push({ id: nextEnemyId++, x, y, r: ENEMY_RADIUS, hp: ENEMY_HP, cd: {} });
+      enemies.push(makeEnemy(pickEnemyType(), x, y));
     }
 
-    // 경험치 구슬 떨어뜨리기 (적이 죽은 자리에)
-    function spawnGem(x, y) {
-      gems.push({ x, y, r: GEM_RADIUS });
+    // 지금 플레이어 레벨의 "주력" 적 종류 (6종이 끝나면 다시 처음부터)
+    function currentEnemyType() {
+      return ENEMY_TYPES[(player.level - 1) % ENEMY_TYPES.length];
+    }
+
+    // 이번에 나올 적 종류 고르기: 70% 현재 종류, 30% 이전에 나왔던 종류
+    function pickEnemyType() {
+      const current = currentEnemyType();
+      const unlocked = ENEMY_TYPES.slice(0, Math.min(player.level, ENEMY_TYPES.length));
+      const olds = unlocked.filter((t) => t !== current);
+      if (olds.length > 0 && Math.random() < OLD_ENEMY_CHANCE) {
+        return olds[Math.floor(Math.random() * olds.length)];
+      }
+      return current;
+    }
+
+    // 적 하나 만들기: 종류 표의 값에 레벨 보정을 곱함
+    //   isChild = true 면 분열형에서 갈라져 나온 작은 적
+    function makeEnemy(type, x, y, isChild = false) {
+      const lv = player.level - 1;
+      const cycle = Math.floor(lv / ENEMY_TYPES.length);   // 6종을 몇 바퀴 돌았는지
+      const speedMul = Math.min(1 + ENEMY_SPEED_PER_LEVEL * lv, ENEMY_SPEED_CAP);
+      const hpMul = 1 + ENEMY_HP_PER_LEVEL * lv;
+      const damageMul = 1 + ENEMY_DAMAGE_PER_LEVEL * lv;
+
+      const e = {
+        id: nextEnemyId++,
+        type: type.key,
+        x, y,
+        shape: type.shape,
+        color: type.color,
+        behavior: type.behavior,
+        r: type.r,
+        speed: type.speed * speedMul,
+        hp: Math.max(1, Math.round(type.hp * hpMul)),   // 반올림 (약한 적이 초반부터 2배로 튼튼해지지 않게)
+        damage: Math.round(type.damage * damageMul),
+        xp: type.xp * (cycle + 1),          // 한 바퀴 돌 때마다 경험치 2배, 3배...
+        splitInto: type.splitInto || 0,
+        cd: {},                             // 무기별 재타격 대기시간
+      };
+
+      if (isChild) {
+        // 분열형의 자식: 작고 약하지만 빠름, 더 이상 갈라지지 않음
+        e.r = Math.round(type.r / 2);
+        e.hp = Math.max(1, Math.round(1 * hpMul));
+        e.speed *= 1.4;
+        e.xp = 1 * (cycle + 1);
+        e.splitInto = 0;
+      }
+      if (e.behavior === "ranged")  e.shootTimer = SHOOTER_INTERVAL;
+      if (e.behavior === "charger") { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+      return e;
+    }
+
+    // 파편 뿌리기: (x, y)에서 count개가 사방으로 튀어 나감
+    function spawnParticles(x, y, color, count, speed) {
+      for (let i = 0; i < count; i++) {
+        if (particles.length >= PARTICLE_MAX) return;    // 너무 많으면 더 안 만듦
+        const angle = Math.random() * Math.PI * 2;
+        const v = speed * (0.4 + Math.random() * 0.6);    // 파편마다 속도를 조금씩 다르게
+        const life = 0.25 + Math.random() * 0.2;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * v,
+          vy: Math.sin(angle) * v,
+          size: 2 + Math.random() * 2,
+          color,
+          life, maxLife: life,
+        });
+      }
+    }
+
+    // 경험치 구슬 떨어뜨리기 (적이 죽은 자리에). value = 이 구슬의 경험치
+    function spawnGem(x, y, value = 1) {
+      const r = GEM_RADIUS + (value >= 2 ? 2 : 0) + (value >= 4 ? 1 : 0);   // 값진 구슬은 조금 큼
+      gems.push({ x, y, r, value });
+    }
+
+    // 레벨업에 필요한 경험치 (레벨이 높을수록 가파르게 늘어남)
+    function xpNeedFor(level) {
+      const n = level - 1;
+      return XP_BASE + XP_GROWTH * n + XP_CURVE * n * n;
     }
 
     // 적에게 피해 주기. 죽으면 처치 수 +1, 구슬 떨어뜨림 (모든 무기가 이 함수를 씀)
     function damageEnemy(e, dmg) {
       if (e.dead) return;
       e.hp -= dmg;
+
+      // 피격 이펙트: 흰색으로 번쩍 + 작은 불꽃
+      e.hitFlash = HIT_FLASH_TIME;
+      spawnParticles(e.x, e.y, "#ffffff", HIT_SPARKS, 120);
+
       if (e.hp <= 0) {
         e.dead = true;
         stats.kills += 1;
-        spawnGem(e.x, e.y);
+        spawnGem(e.x, e.y, e.xp);
+
+        // 처치 이펙트: 적 색깔 파편이 사방으로 퍼짐 + 바깥으로 퍼지는 고리
+        spawnParticles(e.x, e.y, e.color, DEATH_PARTICLES, 180);
+        effects.push({ kind: "ring", x: e.x, y: e.y, r: e.r, color: e.color, life: 0.25, maxLife: 0.25 });
+
+        // 분열형: 죽은 자리 양옆에 작은 적이 갈라져 나옴
+        // (적 목록을 도는 중일 수 있어서 바로 넣지 않고 pendingSpawns에 모아둠)
+        for (let i = 0; i < e.splitInto; i++) {
+          const angle = (Math.PI * 2 * i) / e.splitInto + Math.random();
+          const type = ENEMY_TYPES.find((t) => t.key === e.type);
+          pendingSpawns.push(makeEnemy(type, e.x + Math.cos(angle) * 14, e.y + Math.sin(angle) * 14, true));
+        }
       }
     }
 
@@ -474,6 +656,7 @@
       if (keys["a"] || keys["arrowleft"])  mx -= 1;
       if (keys["d"] || keys["arrowright"]) mx += 1;
 
+      if (mx !== 0) player.facingLeft = mx < 0;   // 마지막으로 움직인 좌우 방향을 바라봄
       if (mx !== 0 || my !== 0) {
         // 대각선일 때 속도가 빨라지지 않게 길이를 1로 맞춤
         const len = Math.hypot(mx, my);
@@ -496,14 +679,58 @@
         spawnTimer = SPAWN_START - (SPAWN_START - SPAWN_MIN) * progress;
       }
 
-      // --- 적 이동: 플레이어 쪽으로 + 무기별 재타격 대기시간 줄이기 ---
+      // --- 적 이동 (행동 방식별) + 무기별 재타격 대기시간 줄이기 ---
       for (const e of enemies) {
         const dx = player.x - e.x;
         const dy = player.y - e.y;
         const len = Math.hypot(dx, dy) || 1;
-        e.x += (dx / len) * ENEMY_SPEED * dt;
-        e.y += (dy / len) * ENEMY_SPEED * dt;
+        const dirX = dx / len;    // 플레이어 쪽 방향 (길이 1)
+        const dirY = dy / len;
+
+        if (e.behavior === "ranged") {
+          // 원거리형: 일정 거리까지만 다가오고, 가까워지면 멈춰서 탄환을 쏨
+          if (len > SHOOTER_RANGE) {
+            e.x += dirX * e.speed * dt;
+            e.y += dirY * e.speed * dt;
+          }
+          const onScreen = e.x > 0 && e.x < W && e.y > 0 && e.y < H;
+          if (onScreen) e.shootTimer -= dt;
+          if (e.shootTimer <= 0) {
+            enemyBullets.push({
+              x: e.x, y: e.y,
+              vx: dirX * ENEMY_BULLET_SPEED, vy: dirY * ENEMY_BULLET_SPEED,
+              r: ENEMY_BULLET_RADIUS,
+              damage: e.damage,
+            });
+            e.shootTimer = SHOOTER_INTERVAL;
+          }
+        } else if (e.behavior === "charger") {
+          // 돌격대장: 걷기(walk) → 멈춰서 번쩍(windup) → 돌진(dash) 반복
+          e.modeTimer -= dt;
+          if (e.mode === "walk") {
+            e.x += dirX * e.speed * dt;
+            e.y += dirY * e.speed * dt;
+            if (e.modeTimer <= 0) {
+              e.mode = "windup";
+              e.modeTimer = CHARGER_WINDUP_TIME;
+              e.dashX = dirX;       // 이 순간의 방향으로 돌진 (그 사이 피하면 빗나감)
+              e.dashY = dirY;
+            }
+          } else if (e.mode === "windup") {
+            if (e.modeTimer <= 0) { e.mode = "dash"; e.modeTimer = CHARGER_DASH_TIME; }
+          } else {
+            e.x += e.dashX * CHARGER_DASH_SPEED * dt;
+            e.y += e.dashY * CHARGER_DASH_SPEED * dt;
+            if (e.modeTimer <= 0) { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+          }
+        } else {
+          // 기본(chase): 플레이어 쪽으로 곧장
+          e.x += dirX * e.speed * dt;
+          e.y += dirY * e.speed * dt;
+        }
+
         for (const k in e.cd) if (e.cd[k] > 0) e.cd[k] -= dt;
+        if (e.hitFlash > 0) e.hitFlash -= dt;
       }
 
       // --- 무기 발동 ---
@@ -550,20 +777,54 @@
       }
       bullets = bullets.filter((b) => !b.dead);
       enemies = enemies.filter((e) => !e.dead);
+      if (pendingSpawns.length > 0) {          // 분열형에서 갈라져 나온 적 합치기
+        enemies = enemies.concat(pendingSpawns);
+        pendingSpawns = [];
+      }
 
-      // --- 폭발 연출 시간 줄이기 ---
+      // --- 폭발·고리 연출 시간 줄이기 ---
       for (const f of effects) f.life -= dt;
       effects = effects.filter((f) => f.life > 0);
+
+      // --- 파편 이동: 날아가면서 점점 느려지고 사라짐 ---
+      for (const p of particles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        p.life -= dt;
+      }
+      particles = particles.filter((p) => p.life > 0);
 
       // --- 충돌: 적 ↔ 플레이어 ---
       if (player.invincible <= 0) {
         for (const e of enemies) {
           if (circlesTouch(e, player)) {
-            player.hp -= HIT_DAMAGE;
+            player.hp -= e.damage;
             player.invincible = INVINCIBLE_TIME;
             break;               // 한 프레임에 한 번만 맞음
           }
         }
+      }
+
+      // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
+      for (const b of enemyBullets) {
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (circlesTouch(b, player)) {
+          b.dead = true;
+          if (player.invincible <= 0) {
+            player.hp -= b.damage;
+            player.invincible = INVINCIBLE_TIME;
+          }
+        }
+      }
+      enemyBullets = enemyBullets.filter((b) => !b.dead && b.x > -40 && b.x < W + 40 && b.y > -40 && b.y < H + 40);
+
+      // --- 안내 문구 시간 줄이기 ---
+      if (banner) {
+        banner.life -= dt;
+        if (banner.life <= 0) banner = null;
       }
 
       // --- 구슬 끌어당기기 + 줍기 ---
@@ -586,7 +847,7 @@
         // 플레이어 몸에 닿으면 획득
         if (circlesTouch(player, g)) {
           g.dead = true;
-          player.xp += XP_PER_GEM;
+          player.xp += g.value;
         }
       }
       gems = gems.filter((g) => !g.dead);
@@ -610,20 +871,39 @@
     function draw() {
       ctx.clearRect(0, 0, W, H);   // 이전 프레임 지우기
 
-      // 경험치 구슬 (초록 점, 끌려오는 중이면 밝은 초록)
+      // 경험치 구슬 (초록 마름모 + 흰 테두리, 끌려오는 중이면 밝은 초록)
       for (const g of gems) {
+        const s = g.r * 1.3;
         ctx.fillStyle = g.speed > 0 ? "#7dffb0" : "#2ecc71";
+        ctx.strokeStyle = "#eafff2";
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+        ctx.moveTo(g.x, g.y - s);
+        ctx.lineTo(g.x + s * 0.75, g.y);
+        ctx.lineTo(g.x, g.y + s);
+        ctx.lineTo(g.x - s * 0.75, g.y);
+        ctx.closePath();
         ctx.fill();
+        ctx.stroke();
       }
 
-      // 폭발 연출 (주황 원이 점점 옅어짐)
+      // 연출: 폭발(주황 원이 점점 옅어짐) / 처치 고리(바깥으로 퍼지며 옅어짐)
       for (const f of effects) {
-        ctx.fillStyle = `rgba(255, 140, 0, ${0.5 * (f.life / f.maxLife)})`;
-        ctx.beginPath();
-        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        ctx.fill();
+        const t = f.life / f.maxLife;          // 1 → 0 으로 줄어듦
+        if (f.kind === "ring") {
+          ctx.globalAlpha = t;
+          ctx.strokeStyle = f.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r + (1 - t) * 22, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else {
+          ctx.fillStyle = `rgba(144, 224, 239, ${0.55 * t})`;   // 폭발도 하늘색 (내 공격)
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       // 발사체 (종류별로 모양 다름)
@@ -638,19 +918,46 @@
           ctx.lineTo(b.x + (b.vx / len) * 15, b.y + (b.vy / len) * 15);
           ctx.stroke();
         } else {
-          ctx.fillStyle = b.kind === "bomb" ? "#ff8c00" : "#ffd60a";
+          // 꼬리: 날아온 방향으로 짧고 옅은 선
+          const color = b.kind === "bomb" ? "#ffffff" : "#7df9ff";   // 폭탄=흰색, 탄환=밝은 하늘색
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = b.r * 1.5;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(b.x - b.vx * BULLET_TRAIL, b.y - b.vy * BULLET_TRAIL);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.lineCap = "butt";
+
+          ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // 적 (빨간 원)
-      ctx.fillStyle = "#e63946";
-      for (const e of enemies) {
+      // 적 (종류별로 모양·색이 다름)
+      for (const e of enemies) drawEnemy(e);
+
+      // 파편 (작은 네모, 시간이 지나면 옅어짐)
+      for (const p of particles) {
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+
+      // 적 탄환 (빨간 점, 흰 테두리 — 빨강 = 위험)
+      for (const b of enemyBullets) {
+        ctx.fillStyle = "#ff1744";
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
       }
 
       // 플레이어에 붙어 있는 무기 (오라, 회전 구체)
@@ -659,12 +966,30 @@
         if (def.draw) def.draw(w);
       }
 
-      // 플레이어 (파란 원, 무적 중엔 깜빡임)
+      // 플레이어 (기사 그림, 무적 중엔 깜빡임)
       const blink = player.invincible > 0 && Math.floor(player.invincible * 20) % 2 === 0;
-      ctx.fillStyle = blink ? "#a8dadc" : "#4a90e2";
+      // 캐릭터를 감싸는 파란 고리: 회색 유령들 사이에서도 내 캐릭터를 바로 찾을 수 있게
+      ctx.fillStyle = "rgba(74, 144, 226, 0.30)";
+      ctx.strokeStyle = "#6fb6ff";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.arc(player.x, player.y, player.r * 1.55, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+      const drewKnight = drawSprite("knight", player.x, player.y, player.r * SPRITE_SCALE, {
+        flip: player.facingLeft,
+        white: blink,                      // 무적 중엔 흰색으로 깜빡임
+      });
+      if (!drewKnight) {
+        // 그림을 못 불러왔을 때: 예전처럼 파란 원
+        ctx.fillStyle = blink ? "#a8dadc" : "#4a90e2";
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
 
       // 체력바 (왼쪽 위)
       const barW = 200, barH = 16, barX = 16, barY = 16;
@@ -694,6 +1019,15 @@
       const weaponLine = player.weapons.map((w) => `${WEAPONS[w.type].name} Lv${w.level}`).join(" · ");
       ctx.fillText(weaponLine, barX, xpY + 28);
 
+      // 안내 문구 (화면 위 가운데, 서서히 사라짐)
+      if (banner) {
+        ctx.fillStyle = `rgba(255, 214, 10, ${Math.min(banner.life, 1)})`;
+        ctx.font = "bold 22px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(banner.text, W / 2, 90);
+        ctx.textAlign = "left";
+      }
+
       // 생존 시간, 처치 수 (오른쪽 위)
       ctx.fillStyle = "#fff";
       ctx.font = "18px sans-serif";
@@ -701,6 +1035,57 @@
       ctx.fillText(`생존 시간: ${stats.time.toFixed(1)}초`, W - 16, 30);
       ctx.fillText(`처치: ${stats.kills}`, W - 16, 54);
       ctx.textAlign = "left";
+    }
+
+    // ---------------------------------------------------------------------
+    // 픽셀아트 그림 그리기
+    //   판정(맞는 범위)은 여전히 반지름 r 인 원이고, 그림은 그 위에 얹는 "겉모습"일 뿐
+    // ---------------------------------------------------------------------
+    const SPRITE_SCALE = 1.35;   // 그림 크기 = 반지름 × 이 값 × 2 (그림 가장자리에 여백이 있어서 조금 크게)
+
+    // 그림 하나 그리기. 그렸으면 true, 그림이 준비 안 됐으면 false
+    //   half  : 그림 절반 크기 (가운데에서 가장자리까지)
+    //   flip  : 좌우 뒤집기      white : 흰색 실루엣으로 그리기 (맞았을 때)
+    function drawSprite(name, x, y, half, { flip = false, white = false } = {}) {
+      const sprite = SPRITES[name];
+      if (!sprite || !sprite.ready) return false;
+      const img = white ? sprite.white : sprite.normal;
+      const size = Math.round(half * 2);
+
+      ctx.save();
+      ctx.translate(Math.round(x), Math.round(y));
+      if (flip) ctx.scale(-1, 1);
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+      return true;
+    }
+
+    // 적 하나 그리기
+    function drawEnemy(e) {
+      // 붉은 게(돌격대장)는 돌진 직전에 흰색으로 번쩍임 (피하라는 신호)
+      const flashing = e.mode === "windup" && Math.floor(e.modeTimer * 16) % 2 === 0;
+      const hit = e.hitFlash > 0;                       // 방금 맞았으면 흰색으로 번쩍
+      const white = flashing || hit;
+
+      // 살아 있는 느낌: 위아래로 살짝 들썩임 (박쥐는 빠르게 파닥파닥)
+      const bobSpeed = e.shape === "bat" ? 18 : 7;
+      const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12;
+
+      const drew = drawSprite(e.shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
+        flip: player.x < e.x,              // 플레이어가 있는 쪽을 바라봄
+        white,
+      });
+
+      if (!drew) {
+        // 그림을 못 불러왔을 때: 단색 원 + 검은 테두리
+        ctx.fillStyle = white ? "#fff" : e.color;
+        ctx.strokeStyle = "#111";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
     }
 
     // =====================================================================
@@ -735,7 +1120,7 @@
     function levelUp() {
       player.level += 1;
       player.xp -= player.xpNeed;
-      player.xpNeed = XP_BASE + XP_GROWTH * (player.level - 1);
+      player.xpNeed = xpNeedFor(player.level);
       state = "levelup";
 
       // 카드 후보 만들기: 능력치 강화 + 무기 카드
@@ -771,7 +1156,12 @@
       const picks = pool.slice(0, player.choices);
 
       // 카드 버튼 만들기
-      levelText.textContent = `Lv.${player.level} 도달! 하나를 고르세요`;
+      // 이 레벨부터 주력으로 나올 적 안내 (7레벨부터는 같은 종류가 더 강해져서 다시 나옴)
+      const newEnemy = currentEnemyType();
+      const enemyNote = player.level > ENEMY_TYPES.length
+        ? `더 강해진 적: ${newEnemy.name}`
+        : `새로운 적: ${newEnemy.name}`;
+      levelText.textContent = `Lv.${player.level} 도달! ${enemyNote}`;
       choicesBox.innerHTML = "";
       for (const card of picks) {
         const btn = document.createElement("button");
@@ -780,6 +1170,7 @@
         btn.addEventListener("click", () => {
           card.apply();
           levelupBox.style.display = "none";
+          if (SHOW_BANNER) banner = { text: enemyNote, life: BANNER_TIME };   // 재개 직후 화면 위에 잠깐 안내
           resumeGame();
         });
         choicesBox.appendChild(btn);
