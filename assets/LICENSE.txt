@@ -65,3 +65,16 @@ License: Creative Commons Zero (CC0)
 
 원본 위치 (roguelikeSheet_transparent.png 열, 행 — 0부터 셈):
   flower.png = 열 30, 행 9 (보라 꽃. 빈 여백을 잘라 10x10 으로 가운데 정렬)
+
+
+바닥 아이템 그림:
+  item_wipe.png   = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 38, 행 11 (해골. 전멸 아이템)
+  item_freeze.png = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 28, 행 12 (눈꽃. 얼음색 #7DF9FF 으로 칠함. 빙결 아이템)
+  item_magnet.png = 직접 찍은 16x16 픽셀아트 (말굽자석. Kenney 팩에 자석 모양이 없어서 1-Bit Pack 의 빨강·흰색에 맞춰 만듦)
+  회복 아이템은 potion_green.png (위 Tiny Dungeon tile_0114) 을 씀
+  ※ potion_red / potion_blue / potion_grey.png 는 이제 게임에서 쓰지 않음
+
+
+운석 무기 그림 (예전 '날아오는 가구'의 table.png / chair.png 를 대체. 두 파일은 삭제함):
+  rock.png  = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 54, 행 21 (회색 바위. 여백을 잘라 16x16 가운데 정렬)
+  rock2.png = 같은 시트 열 56, 행 21
