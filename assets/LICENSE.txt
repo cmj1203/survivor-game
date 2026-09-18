@@ -9,3 +9,59 @@ http://creativecommons.org/publicdomain/zero/1.0/
   ghost.png   = tile_0121    bat.png    = tile_0120    cyclops.png = tile_0109
   spider.png  = tile_0122    wizard.png = tile_0084    crab.png    = tile_0110
   knight.png  = tile_0096 (플레이어)
+  floor_plain.png = tile_0000   floor_holes.png = tile_0012   floor_pebbles.png = tile_0024 (바닥)
+  chest.png = tile_0089 (닫힌 상자)   chest_open.png = tile_0091 (열린 상자)
+  mimic.png = tile_0092 (미믹)
+  potion_red.png = tile_0115   potion_green.png = tile_0114   potion_blue.png = tile_0116   potion_grey.png = tile_0113 (바닥 아이템)
+  wall.png = tile_0057 (맵 경계 돌담)
+  dagger.png = tile_0103   axe.png = tile_0118   spear.png = tile_0131   firebomb.png = tile_0127   staff.png = tile_0130   shield.png = tile_0101 (내 무기와 보유 목록 아이콘)
+  hammer.png = tile_0117   shield_throw.png = tile_0102   cleaver.png = tile_0105   wand.png = tile_0129   sword.png = tile_0104 (내 무기)
+
+
+패시브 아이템 아이콘(passive_*.png)은 Kenney의 "1-Bit Pack" 색 입힌 판(colored-transparent.png)에서 가져왔습니다.
+https://kenney.nl/assets/1-bit-pack
+License: Creative Commons Zero (CC0)
+
+원본 위치 (타일시트 열, 행 — 0부터 셈):
+  passive_might.png = 열 34, 행 18 (힘)
+  passive_armor.png = 열 37, 행 1 (갑옷)
+  passive_maxhp.png = 열 40, 행 10 (튼튼함)
+  passive_regen.png = 열 43, 행 11 (회복)
+  passive_cooldown.png = 열 45, 행 5 (빠른 공격)
+  passive_area.png = 열 31, 행 11 (촛대)
+  passive_projspeed.png = 열 41, 행 1 (팔보호대)
+  passive_duration.png = 열 33, 행 15 (주문서)
+  passive_amount.png = 열 45, 행 12 (복제기)
+  passive_move.png = 열 39, 행 0 (날개)
+  passive_magnet.png = 열 46, 행 6 (자석)
+  passive_luck.png = 열 46, 행 13 (클로버)
+  passive_growth.png = 열 44, 행 2 (왕관)
+  passive_curse.png = 열 34, 행 12 (해골)
+  passive_revival.png = 열 41, 행 12 (부활)
+  passive_choices.png = 열 26, 행 16 (선택의 폭)
+  table.png = tile_0072   chair.png = tile_0073   bigsword.png = tile_0106 (2·3단계 무기)
+
+무기 아이콘 (Kenney "1-Bit Pack" CC0, colored-transparent_packed.png 에서 잘라 한 가지 색으로 칠함):
+  w_aura.png = 열 28, 행 12 (번개 오라)
+  w_firewand.png = 열 44, 행 3 (화염 지팡이)
+  w_rune.png = 열 46, 행 6 (마법 구슬)
+  w_lightning.png = 열 36, 행 11 (낙뢰)
+  w_pentagram.png = 열 29, 행 12 (별의 문양)
+  w_clock.png = 열 40, 행 12 (빙결 광선)
+  w_bracelet.png = 열 44, 행 6 (삼연발 마법탄)
+  w_shadow.png = 열 26, 행 11 (그림자 발톱)
+  w_flames.png = 열 28, 행 11 (화염 방사)
+  w_bomb.png = 열 43, 행 6 (폭탄)
+
+도움말(?) 버튼 아이콘 (Kenney "1-Bit Pack" CC0, monochrome-transparent_packed.png 에서 잘라 금색으로 칠함):
+  help.png = 열 38, 행 13 (네모 안 물음표)
+
+꽃가루 아이콘 w_petal.png 는 Kenney "Roguelike/RPG pack" (CC0, roguelikeSheet_transparent.png) 열 30, 행 9 보라 꽃 타일을 분홍으로 바꾼 것입니다.
+
+
+식인꽃(flower.png)은 Kenney의 "Roguelike/RPG Pack" 에서 가져왔습니다.
+https://kenney.nl/assets/roguelike-rpg-pack
+License: Creative Commons Zero (CC0)
+
+원본 위치 (roguelikeSheet_transparent.png 열, 행 — 0부터 셈):
+  flower.png = 열 30, 행 9 (보라 꽃. 빈 여백을 잘라 10x10 으로 가운데 정렬)

@@ -16,8 +16,12 @@
       color: #fff;
     }
     canvas {
-      background: #1e1e2e;          /* 게임 도화지 배경: 어두운 남색 */
+      background: #1e1e2e;          /* 게임 도화지 배경: 어두운 남색 (바닥 그림이 안 불러와졌을 때 보임) */
       display: block;
+      /* 브라우저 창이 게임 화면보다 작을 때만, 비율을 유지한 채 줄어들게 함 */
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
     }
     /* 팝업 창 공통: 평소엔 숨겨두고(display:none) 필요할 때 보여줌(flex) */
     .popup {
@@ -47,23 +51,131 @@
     /* 레벨업 카드 (3~5장): 세로로 쌓임 */
     #choices { display: flex; flex-direction: column; gap: 8px; width: 320px; }
     .card {
-      padding: 12px 16px;
+      padding: 12px 16px 12px 72px;                   /* 왼쪽 72px 은 무기 그림 자리 */
+      min-height: 60px;
       font-size: 16px;
       cursor: pointer;
       border: 2px solid #4a90e2;
       border-radius: 6px;
-      background: #1e1e2e;
+      background-color: #1e1e2e;
+      /* 무기 그림은 자바스크립트에서 background-image 로 넣음 (levelUp → showCards 참고) */
+      background-repeat: no-repeat;
+      background-position: 14px center;
+      background-size: 44px 44px;
+      image-rendering: pixelated;                     /* 픽셀아트를 키워도 뿌옇게 번지지 않게 */
       color: #fff;
       text-align: left;
     }
-    .card:hover { background: #2e3a55; }
+    .card:hover { background-color: #2e3a55; }
     .card small { display: block; color: #aaa; margin-top: 4px; font-size: 13px; }
     .card.weapon-new { border-color: #ffd60a; }     /* 새 무기 카드는 노란 테두리 */
+    .card.passive-new { border-color: #2ecc71; }    /* 새 패시브 아이템 카드는 초록 테두리 */
+
+    /* 보물 상자 창 */
+    #chestBox { border-color: #ffd60a; min-width: 320px; }
+    #clearBox { border-color: #ffd60a; }
+    #clearBox h1 { color: #ffd60a; font-size: 40px; }
+    #clearText { margin: 0; line-height: 1.7; }
+
+    /* 게임 화면 틀: 안에 든 ? 버튼이 "브라우저 창"이 아니라 "게임 화면" 구석을 기준으로 놓이게 함 */
+    #stage { position: relative; line-height: 0; }
+
+    /* ? 버튼 (게임 화면 안 왼쪽 위 구석, 픽셀아트 그림) */
+    #helpBtn {
+      position: absolute; top: 12px; left: 16px; z-index: 10;
+      width: 48px; height: 48px; padding: 0; border: 0; background: transparent;
+      cursor: pointer;
+    }
+    #helpBtn img {
+      width: 48px; height: 48px; display: block;
+      image-rendering: pixelated;
+      filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8));
+    }
+    #helpBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
+
+    /* 도움말 창: 조합표 + 무기 설명 */
+    #helpBox { width: 760px; max-height: 88vh; padding: 20px 28px; gap: 8px; z-index: 20; }   /* 레벨업·상자 창보다 위에 뜨게 */
+    #helpBox h1 { font-size: 26px; }
+    .help-tabs { display: flex; gap: 8px; }
+    .help-tab { padding: 6px 16px; border: 2px solid #4a90e2; border-radius: 6px; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; }
+    .help-tab.active { background: #4a90e2; }
+    #helpList { width: 100%; overflow-y: auto; max-height: 62vh; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+    .combo {                                          /* 조합표 한 줄: [무기] + [패시브] → [진화] */
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px; border: 2px solid rgba(255,255,255,0.25); border-radius: 6px; background: #1e1e2e; font-size: 14px;
+    }
+    .combo .piece { display: flex; align-items: center; gap: 6px; min-width: 150px; }
+    .combo .piece.dim { opacity: 0.35; }             /* 아직 없는 것은 흐리게 */
+    .combo .piece img { width: 30px; height: 30px; image-rendering: pixelated; }
+    .combo .arrow { color: #aaa; }
+    .combo .result { flex: 1; }
+    .combo .result small { display: block; color: #aaa; font-size: 12px; }
+    .combo.ready { border-color: #ffd60a; }           /* 조건이 갖춰짐: 다음 상자에서 진화 */
+    .combo.done { border-color: #ff8c42; }            /* 이미 진화함 */
+    .combo .tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #ffd60a; color: #111; font-weight: bold; }
+    .combo.done .tag { background: #ff8c42; }
+    .help-close { align-self: center; }
+
+    /* 사탕 상자: 무기 고르기 창 */
+    #candyBox { width: 720px; max-height: 88vh; padding: 20px 28px; }
+    #candyList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; overflow-y: auto; max-height: 60vh; }
+    #candyList .card { padding: 8px 10px 8px 52px; min-height: 48px; font-size: 14px; background-position: 8px center; background-size: 36px 36px; }
+    #candyList .card small { font-size: 11px; }
+    #chestSlot { margin: 0; font-size: 22px; font-weight: bold; color: #ffd60a; min-height: 30px; }   /* 룰렛 글씨 */
+    #chestList { display: flex; flex-direction: column; gap: 6px; width: 320px; }
+    .gain {                                           /* 강화 결과 한 줄 (왼쪽에 무기 그림) */
+      padding: 8px 14px 8px 52px;
+      min-height: 30px;
+      background-repeat: no-repeat;
+      background-position: 12px center;
+      background-size: 30px 30px;
+      image-rendering: pixelated;
+      border: 2px solid #ffd60a;
+      border-radius: 6px;
+      background-color: #1e1e2e;
+      text-align: left;
+      font-size: 15px;
+    }
+    .gain small { display: block; color: #aaa; margin-top: 2px; font-size: 12px; }
+    .gain.evolved { border-color: #ff8c42; background-color: #2a1a10; }   /* 진화 결과 줄은 주황 테두리 */
+    .ok-button {
+      padding: 10px 28px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #ffd60a;
+      color: #111;
+      font-weight: bold;
+    }
+    .ok-button:disabled { opacity: 0.35; cursor: default; }
   </style>
 </head>
 <body>
   <!-- 게임이 그려지는 도화지 -->
-  <canvas id="game" width="800" height="600"></canvas>
+  <div id="stage">
+    <canvas id="game" width="1280" height="720"></canvas>
+    <!-- ? 버튼: 무기 조합(진화)표와 무기 설명을 보여주는 도움말 (H 키로도 열림) -->
+    <button id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
+  </div>
+
+  <div id="helpBox" class="popup">
+    <h1>도움말</h1>
+    <div class="help-tabs">
+      <button class="help-tab active" data-tab="combo">무기 조합 (진화)</button>
+      <button class="help-tab" data-tab="weapons">무기 설명</button>
+      <button class="help-tab" data-tab="passives">아이템 설명</button>
+    </div>
+    <div id="helpList"></div>
+    <button id="helpClose" class="ok-button help-close">닫기 (H)</button>
+  </div>
+
+  <!-- 사탕 상자: 원하는 무기를 직접 고르는 창 -->
+  <div id="candyBox" class="popup">
+    <h1>사탕 상자</h1>
+    <p>원하는 무기를 하나 고르세요</p>
+    <div id="candyList"></div>
+  </div>
 
   <!-- 게임오버 창 (체력이 0이 되면 나타남) -->
   <div id="gameover" class="popup">
@@ -72,9 +184,24 @@
     <button id="restart">다시 시작</button>
   </div>
 
+  <!-- 클리어 창 (마지막 보스를 잡으면 나타남) -->
+  <div id="clearBox" class="popup">
+    <h1>클리어!</h1>
+    <p id="clearText"></p>
+    <button id="clearRestart" class="ok-button">다시 시작</button>
+  </div>
+
   <!-- 레벨업 창 (경험치가 차면 나타남, 카드 3장 중 하나 선택) -->
+  <!-- 보물 상자 창 (엘리트를 잡고 상자를 열면 나타남. 룰렛이 돈 뒤 강화 결과를 보여줌) -->
+  <div id="chestBox" class="popup">
+    <h1>보물 상자!</h1>
+    <p id="chestSlot"></p>
+    <div id="chestList"></div>
+    <button id="chestOk" class="ok-button">받기</button>
+  </div>
+
   <div id="levelup" class="popup">
-    <h1>레벨 업!</h1>
+    <h1 id="levelTitle">레벨 업!</h1>
     <p id="levelText"></p>
     <div id="choices"></div>
   </div>
@@ -89,18 +216,75 @@
     const resultText = document.getElementById("result");
     const restartBtn = document.getElementById("restart");
     const levelupBox = document.getElementById("levelup");
+    const levelTitle = document.getElementById("levelTitle");
     const levelText = document.getElementById("levelText");
     const choicesBox = document.getElementById("choices");
+    const chestBox = document.getElementById("chestBox");
+    const chestSlot = document.getElementById("chestSlot");
+    const chestList = document.getElementById("chestList");
+    const chestOk = document.getElementById("chestOk");
+    const clearBox = document.getElementById("clearBox");
+    const clearText = document.getElementById("clearText");
+    const clearRestart = document.getElementById("clearRestart");
+    const helpBtn = document.getElementById("helpBtn");
+    const helpBox = document.getElementById("helpBox");
+    const helpList = document.getElementById("helpList");
+    const helpClose = document.getElementById("helpClose");
+    const candyBox = document.getElementById("candyBox");
+    const candyList = document.getElementById("candyList");
 
-    const W = canvas.width;    // 도화지 가로 (800)
-    const H = canvas.height;   // 도화지 세로 (600)
+    const W = canvas.width;    // 화면(도화지) 가로 (1280) ← 크기를 바꾸려면 위쪽 <canvas> 태그의 숫자를 고치면 됨
+    const H = canvas.height;   // 화면(도화지) 세로 (720)
+
+    // =====================================================================
+    // 1-0. 큰 맵과 카메라
+    //   맵(월드)은 화면보다 훨씬 크고, 카메라가 플레이어를 화면 가운데에 두고 따라다님
+    //   → 게임 안의 모든 위치(플레이어, 적, 발사체 ...)는 "월드 좌표"이고,
+    //     그릴 때만 카메라 위치만큼 옮겨서(ctx.translate) 화면에 보이는 부분을 그림
+    // =====================================================================
+    const WORLD_W = 3840;      // 맵 가로 (화면의 3배)
+    const WORLD_H = 2160;      // 맵 세로 (화면의 3배)
+    const WALL_SIZE = 48;      // 맵 경계 돌담 두께 (장식용. 실제로 못 나가게 막는 건 좌표 제한)
+
+    const cam = { x: 0, y: 0 };   // 카메라 왼쪽 위 모서리의 월드 좌표
+
+    // 카메라를 플레이어 가운데로. 맵 가장자리에서는 멈춰서 맵 밖(검은 곳)이 안 보이게
+    function updateCamera() {
+      cam.x = Math.max(0, Math.min(WORLD_W - W, player.x - W / 2));
+      cam.y = Math.max(0, Math.min(WORLD_H - H, player.y - H / 2));
+    }
+
+    // (x, y) 가 지금 화면(카메라 사각형) 안에 있는지. margin 만큼 여유를 둠
+    function inView(x, y, margin = 0) {
+      return x > cam.x - margin && x < cam.x + W + margin && y > cam.y - margin && y < cam.y + H + margin;
+    }
+
+    // 화면(카메라 사각형) 바깥 가장자리의 무작위 위치 (적·엘리트 생성용)
+    //   맵 경계 밖은 안 되므로, 맵 안에 들어오는 변만 골라서 씀
+    function randomEdgePosition(margin) {
+      const candidates = [
+        { x: cam.x + Math.random() * W, y: cam.y - margin },          // 위
+        { x: cam.x + Math.random() * W, y: cam.y + H + margin },      // 아래
+        { x: cam.x - margin,            y: cam.y + Math.random() * H },// 왼쪽
+        { x: cam.x + W + margin,        y: cam.y + Math.random() * H },// 오른쪽
+      ].filter((p) => p.x >= 0 && p.x <= WORLD_W && p.y >= 0 && p.y <= WORLD_H);
+      if (candidates.length === 0) return { x: cam.x + Math.random() * W, y: cam.y - margin };   // 맵이 화면보다 작을 때 (안 생김)
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
 
     // =====================================================================
     // 1-1. 픽셀아트 그림 불러오기 (assets 폴더, Kenney "Tiny Dungeon" CC0)
     //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
     //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
     // =====================================================================
-    const SPRITE_NAMES = ["knight", "ghost", "bat", "cyclops", "spider", "wizard", "crab"];
+    const SPRITE_NAMES = ["knight", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_red", "potion_green", "potion_blue", "potion_grey",
+                          "dagger", "axe", "spear", "firebomb", "staff", "shield",
+                          "hammer", "shield_throw", "cleaver", "wand", "sword", "table", "chair", "bigsword",
+                          "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_bracelet", "w_shadow", "w_petal", "w_flames", "w_bomb",
+                          // 패시브 아이템 아이콘 (Kenney "1-Bit Pack" CC0)
+                          "passive_might", "passive_armor", "passive_maxhp", "passive_regen", "passive_cooldown", "passive_area",
+                          "passive_projspeed", "passive_duration", "passive_amount", "passive_move", "passive_magnet", "passive_luck",
+                          "passive_growth", "passive_curse", "passive_revival", "passive_choices"];
     const SPRITES = {};
     for (const name of SPRITE_NAMES) {
       const sprite = { ready: false, normal: new Image(), white: null };
@@ -123,20 +307,115 @@
     ctx.imageSmoothingEnabled = false;   // 픽셀아트를 키워도 뿌옇게 번지지 않게
 
     // =====================================================================
+    // 1-2. 던전 바닥 배경: 처음에 한 번만 큰 그림으로 만들어 두고, 매 프레임 그 한 장만 그림
+    //   (타일 수백 장을 매번 그리면 느려지므로)
+    // =====================================================================
+    const FLOOR_PLAIN = "floor_plain";                        // 민무늬 바닥 (대부분)
+    const FLOOR_EXTRAS = ["floor_holes", "floor_pebbles"];    // 구멍·자갈 바닥 (가끔 섞임)
+    const FLOOR_TILE_SIZE = 48;      // 바닥 타일 한 칸 크기 (16픽셀 그림을 3배로)
+    const FLOOR_EXTRA_CHANCE = 0.10; // 구멍·자갈 무늬가 나올 확률
+    const FLOOR_EXTRA_ALPHA = 0.30;  // 구멍·자갈 무늬의 진하기 (너무 또렷하면 물체처럼 보여서 옅게 얹음)
+    const BG_DIM = 0.62;             // 바닥을 어둡게 누르는 정도 (0~1). 올리면 공격·이펙트가 더 잘 보임
+
+    let background = null;           // 완성된 배경 그림 (준비 전에는 null → 단색 배경이 보임)
+    let vignetteLayer = null;        // 화면 가장자리를 어둡게 하는 막 (화면 크기, 한 번만 만듦)
+    const floorImages = {};
+    let floorLoaded = 0;
+    for (const name of [FLOOR_PLAIN, ...FLOOR_EXTRAS, "wall"]) {
+      const img = new Image();
+      img.onload = () => {
+        floorLoaded += 1;
+        if (floorLoaded === 2 + FLOOR_EXTRAS.length) buildBackground();   // 전부 불러와지면 배경 만들기
+      };
+      img.src = `assets/${name}.png`;
+      floorImages[name] = img;
+    }
+
+    function buildBackground() {
+      const c = document.createElement("canvas");
+      c.width = WORLD_W;
+      c.height = WORLD_H;
+      const b = c.getContext("2d");
+      b.imageSmoothingEnabled = false;
+
+      // (1) 바닥 타일 깔기: 민무늬 + 가끔 옅은 구멍·자갈 무늬 + 바둑판 음영
+      for (let y = 0; y < WORLD_H; y += FLOOR_TILE_SIZE) {
+        for (let x = 0; x < WORLD_W; x += FLOOR_TILE_SIZE) {
+          b.drawImage(floorImages[FLOOR_PLAIN], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
+
+          // 가끔 구멍·자갈 무늬를 민무늬 위에 옅게 얹음
+          if (Math.random() < FLOOR_EXTRA_CHANCE) {
+            const name = FLOOR_EXTRAS[Math.floor(Math.random() * FLOOR_EXTRAS.length)];
+            b.globalAlpha = FLOOR_EXTRA_ALPHA;
+            b.drawImage(floorImages[name], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
+            b.globalAlpha = 1;
+          }
+
+          // 바둑판처럼 한 칸 걸러 아주 살짝 어둡게 → 타일 바닥 느낌
+          if ((x / FLOOR_TILE_SIZE + y / FLOOR_TILE_SIZE) % 2 === 0) {
+            b.fillStyle = "rgba(0, 0, 0, 0.10)";
+            b.fillRect(x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
+          }
+        }
+      }
+
+      // (2) 어두운 남색 막을 덮어 바닥을 차분하게 누름 → 공격·이펙트·구슬이 묻히지 않게
+      b.fillStyle = `rgba(18, 18, 32, ${BG_DIM})`;
+      b.fillRect(0, 0, WORLD_W, WORLD_H);
+
+      // (3) 맵 경계 돌담: 가장자리에 한 줄 (여기가 맵 끝이라는 표시)
+      if (floorImages.wall) {
+        for (let x = 0; x < WORLD_W; x += WALL_SIZE) {
+          b.drawImage(floorImages.wall, x, 0, WALL_SIZE, WALL_SIZE);
+          b.drawImage(floorImages.wall, x, WORLD_H - WALL_SIZE, WALL_SIZE, WALL_SIZE);
+        }
+        for (let y = 0; y < WORLD_H; y += WALL_SIZE) {
+          b.drawImage(floorImages.wall, 0, y, WALL_SIZE, WALL_SIZE);
+          b.drawImage(floorImages.wall, WORLD_W - WALL_SIZE, y, WALL_SIZE, WALL_SIZE);
+        }
+      }
+      background = c;
+
+      // (4) 비네트: 화면 크기로 따로 만들어 두고 매 프레임 맨 위에 덮음 (카메라가 움직여도 항상 화면 가장자리가 어둡게)
+      const v = document.createElement("canvas");
+      v.width = W;
+      v.height = H;
+      const vc = v.getContext("2d");
+      const vignette = vc.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.75);
+      vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+      vignette.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+      vc.fillStyle = vignette;
+      vc.fillRect(0, 0, W, H);
+      vignetteLayer = v;
+    }
+
+    // =====================================================================
     // 2. 게임 규칙 숫자들 (여기 값만 바꿔도 난이도 조절 가능)
     //    ※ 강화로 바뀌는 값은 "기본값"이고, 실제로는 player 안의 값을 씀
     // =====================================================================
     const PLAYER_SPEED = 220;        // 플레이어 기본 속도 (1초에 몇 픽셀)
     const PLAYER_RADIUS = 14;        // 플레이어 원의 반지름
-    const PLAYER_MAX_HP = 100;       // 기본 최대 체력
-    const INVINCIBLE_TIME = 0.5;     // 맞은 뒤 무적 시간 (초)
+    const PLAYER_MAX_HP = 120;       // 기본 최대 체력
+    const INVINCIBLE_TIME = 0.8;     // 맞은 뒤 무적 시간 (초). 길수록 몰렸을 때 덜 아픔
+
+    // --- 전체 난이도: 이 숫자 하나로 게임 전체가 쉬워지거나 어려워짐 (1 = 기본, 1.5 = 1.5배 어려움) ---
+    //   모든 몬스터(꽃·미믹·엘리트·보스 포함)의 체력·피해, 보스 탄환 피해, 몬스터가 나오는 빈도, 동시에 있을 수 있는 수에 곱해짐
+    const DIFFICULTY = 1.5;
 
     // ※ 적의 속도·체력·피해는 아래 2-3번 구역 ENEMY_TYPES 표에 있음
-    const SPAWN_START = 1.0;         // 처음 적 생성 간격 (초)
-    const SPAWN_MIN = 0.3;           // 최소 생성 간격 (초)
+    // --- 몬스터 생성 속도: 시간이 지날수록 빨라짐 ---
+    //   생성 간격이 SPAWN_START 에서 시작해 SPAWN_RAMP_TIME 초에 걸쳐 SPAWN_MIN 까지 서서히 줄어듦
+    //   그 뒤로는 한 번에 두 마리씩 나올 확률이 천천히 올라가서 후반에도 계속 압박이 커짐
+    const SPAWN_START = 0.8;         // 처음 적 생성 간격 (초)
+    const SPAWN_MIN = 0.25;          // 최소 생성 간격 (초)
+    const SPAWN_RAMP_TIME = 600;     // 최소 간격에 도달하기까지 걸리는 시간 (초). 30분 클리어에 맞춰 10분
+    const SPAWN_DOUBLE_TIME = 600;   // 최소 간격 도달 후, 한 번에 나오는 수가 +1 되기까지 걸리는 시간 (초). 20분에 2마리, 30분에 3마리
+    const MAX_ENEMIES = Math.round(220 * DIFFICULTY);       // 화면에 동시에 있을 수 있는 몬스터 수 (너무 많으면 느려지고 억울하게 포위됨)
+    const WEAPON_LEVEL_DAMAGE = 0.2; // 무기를 1레벨 강화할 때마다 그 무기의 피해 +20%
+    const MAX_WEAPONS = 6;           // 가질 수 있는 무기 수 (원작과 같음). 다 차면 '새 무기' 카드가 안 나옴
 
-    const BULLET_SPEED = 450;        // 기본 탄환 속도
-    const BULLET_RADIUS = 4;         // 기본 탄환 반지름
+    const BULLET_SPEED = 450;        // 단검 속도
+    const BULLET_RADIUS = 6;         // 단검이 맞는 범위 (그림 크기에 맞춰 4 → 6)
 
     // --- 경험치 / 레벨 ---
     const GEM_RADIUS = 6;            // 경험치 구슬 크기
@@ -146,90 +425,167 @@
     const XP_BASE = 10;              // 1레벨 → 2레벨 필요 경험치
     const XP_GROWTH = 5;             // 레벨마다 늘어나는 양
     const XP_CURVE = 1;              // 레벨이 높을수록 더 가파르게 만드는 값
-    const WEAPON_MAX_LEVEL = 5;      // 무기 최대 레벨
+    const WEAPON_MAX_LEVEL = 8;      // 무기 최대 레벨 (원작과 같음)
     const GEM_PULL_SPEED = 150;      // 구슬이 끌려오기 시작할 때 속도 (px/초)
     const GEM_PULL_ACCEL = 900;      // 끌려오는 구슬이 1초마다 빨라지는 양
-    const MAGNET_MAX = 2;            // 자석 카드를 고를 수 있는 최대 횟수
+    const MAGNET_MAX = 5;            // 자석(패시브)의 최대 레벨 (원작과 같음)
     const START_CHOICES = 3;         // 레벨업 카드 수 (처음)
     const MAX_CHOICES = 5;           // 레벨업 카드 수 (최대)
+    const PASSIVE_MAX_SLOTS = 6;     // 가질 수 있는 패시브 아이템 수 (원작과 같음). '선택의 폭'은 자리를 차지하지 않음
 
     // =====================================================================
     // 2-1. 무기 목록 (새 무기를 추가하려면 여기에 항목 하나 더)
     //   name        : 카드에 보이는 이름
+    //   desc        : '새 무기' 카드에 보이는 한 줄 설명 (어떻게 공격하는지)
     //   interval    : 발동 간격 (초). 0이면 "항상 켜짐"
     //   upgradeDesc : 강화 카드 설명
     //   fire(w)     : 간격마다 한 번 실행 (탄환 쏘기 등)
-    //   update(w,dt): 매 프레임 실행 (회전 구체처럼 계속 움직이는 것)
+    //   update(w,dt): 매 프레임 실행 (회전 도끼처럼 계속 움직이는 것)
     //   draw(w)     : 화면에 그리기 (플레이어에 붙어 있는 무기용)
-    //   w.level     : 이 무기의 현재 레벨 (1~5)
+    //   icon        : 보유 목록·카드에 표시할 그림 이름 (assets 폴더. 몬스터·무기는 Tiny Dungeon, 나머지는 1-Bit Pack 에 색을 입힘)
+    //   w.level     : 이 무기의 현재 레벨 (1~WEAPON_MAX_LEVEL, 원작처럼 8)
     // =====================================================================
     const WEAPONS = {
-      // --- 기본 탄환: 가장 가까운 적에게 발사, 레벨 = 발사 개수 ---
+      // --- 단검: 바라보는 방향으로 빠르게 연사 (원작 Knife). 레벨 = 단검 개수 ---
       bullet: {
-        name: "기본 탄환",
-        interval: 0.5,
-        upgradeDesc: "발사 개수 +1",
+        name: "단검",
+        desc: "바라보는 방향으로 단검을 빠르게 연사",
+        icon: "dagger",
+        interval: 0.35,
+        upgradeDesc: "단검 +1자루, 피해 +20%",
         fire(w) {
-          const target = findNearestEnemy();
-          if (!target) return;
-          const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+          const dirX = player.facingX, dirY = player.facingY;
           const count = w.level;
-          const spread = 0.2;                       // 발사체 사이 각도 (라디안, 약 11도)
           for (let i = 0; i < count; i++) {
-            // 여러 발이면 가운데를 기준으로 좌우로 벌림
-            const angle = baseAngle + (i - (count - 1) / 2) * spread;
+            // 여러 자루면 진행 방향의 옆으로 나란히 (12px 간격)
+            const side = (i - (count - 1) / 2) * 12;
             bullets.push({
-              kind: "bullet",
-              x: player.x, y: player.y,
-              vx: Math.cos(angle) * BULLET_SPEED,
-              vy: Math.sin(angle) * BULLET_SPEED,
+              kind: "bullet", sprite: "dagger", size: 16,
+              x: player.x - dirY * side, y: player.y + dirX * side,
+              vx: dirX * BULLET_SPEED, vy: dirY * BULLET_SPEED,
               r: BULLET_RADIUS,
-              damage: player.damage,
+              damage: weaponDamage(w),
             });
           }
         },
       },
 
-      // --- 회전 구체: 플레이어 주위를 도는 공, 레벨 = 구체 개수 ---
-      orb: {
-        name: "회전 구체",
-        interval: 0,
-        upgradeDesc: "구체 +1개",
-        orbitRadius: 60,       // 플레이어와의 거리
-        orbRadius: 8,          // 구체 크기
-        rotateSpeed: 3,        // 1초에 도는 각도 (라디안)
-        hitCooldown: 0.4,      // 같은 적을 다시 때리기까지 시간
+      // --- 마법봉: 가장 가까운 적에게 마법탄 (원작 Magic Wand). Lv3·5·7 마법탄 +1, Lv2·4·6·8 간격 -10% ---
+      wand: {
+        name: "마법봉",
+        desc: "가장 가까운 적에게 마법탄을 자동 발사",
+        icon: "wand",
+        interval: 0.75,
+        upgradeDesc: "마법탄 +1 / 간격 -10% (번갈아), 피해 +20%",
+        getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
+        fire(w) {
+          const target = findNearestEnemy();
+          if (!target) return;
+          const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          for (let i = 0; i < count; i++) {
+            const angle = baseAngle + (i - (count - 1) / 2) * 0.18;
+            bullets.push({
+              kind: "magic", color: "#7df9ff",
+              x: player.x, y: player.y,
+              vx: Math.cos(angle) * 420, vy: Math.sin(angle) * 420,
+              r: 6,
+              damage: weaponDamage(w, 0.5),
+            });
+          }
+        },
+      },
+
+      // --- 검 휘두르기: 바라보는 방향 앞을 가로로 벰 (원작 Whip). Lv2·4·6·8 베기 +1(뒤, 위), Lv3·5·7 범위 +20% ---
+      sword: {
+        name: "검 휘두르기",
+        desc: "바라보는 방향 앞을 크게 베고 적을 밀어냄",
+        icon: "sword",
+        interval: 1.1,
+        upgradeDesc: "베기 +1 / 범위 +20% (번갈아), 피해 +20%",
+        noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
+        getRadius(w) { return 70 * Math.pow(1.2, Math.floor((w.level - 1) / 2)) * areaMul(); },
+        fire(w) {
+          const strikes = w.level >= 4 ? 3 : w.level >= 2 ? 2 : 1;
+          const f = { x: player.facingX, y: player.facingY };
+          const dirs = [f, { x: -f.x, y: -f.y }, { x: 0, y: -1 }];        // 앞 → 뒤 → 위
+          this.slash(w, dirs[0]);                                       // 첫 베기는 바로
+          w.pending = w.pending || [];
+          for (let i = 1; i < strikes; i++) w.pending.push({ delay: i * 0.15, dir: dirs[i] });   // 나머지는 0.15초씩 뒤에
+        },
         update(w, dt) {
-          w.angle = (w.angle || 0) + this.rotateSpeed * dt;
+          if (!w.pending) return;
+          for (const p of w.pending) {
+            p.delay -= dt;
+            if (p.delay <= 0) { this.slash(w, p.dir); p.done = true; }
+          }
+          w.pending = w.pending.filter((p) => !p.done);
+        },
+        // 한 방향으로 실제로 베기: 그 방향 앞쪽 반원 안의 적에게 피해 + 밀어냄
+        slash(w, dir) {
+          const r = this.getRadius(w);
+          for (const e of enemies) {
+            if (e.dead) continue;
+            const dx = e.x - player.x, dy = e.y - player.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < r + e.r && dx * dir.x + dy * dir.y > 0) {
+              damageEnemy(e, weaponDamage(w, 1));
+              pushEnemy(e, player.x, player.y, 30);
+            }
+          }
+          effects.push({ kind: "slash", x: player.x, y: player.y, angle: Math.atan2(dir.y, dir.x), r, life: 0.2, maxLife: 0.2 });
+        },
+      },
+
+      // --- 회전 도끼: 플레이어 주위를 도는 양날 도끼, 레벨 = 도끼 개수 ---
+      orb: {
+        name: "회전 도끼",
+        desc: "주위를 도는 도끼가 닿는 적을 계속 타격",
+        icon: "axe",
+        interval: 0,
+        upgradeDesc: "도끼 +1개, 피해 +20% (Lv3·5·7 회전 +20%)",
+        orbitRadius: 60,       // 플레이어와의 거리
+        orbRadius: 11,         // 도끼가 맞는 범위 (그림 크기에 맞춤)
+        rotateSpeed: 3,        // 1초에 도는 각도 (라디안). Lv3·5·7 에서 +20%
+        hitCooldown: 0.3,      // 같은 적을 다시 때리기까지 시간
+        update(w, dt) {
+          w.angle = (w.angle || 0) + this.rotateSpeed * Math.pow(1.2, Math.floor((w.level - 1) / 2)) * projSpeedMul() * dt;
           for (const pos of this.positions(w)) {
             for (const e of enemies) {
               if (e.dead || (e.cd.orb || 0) > 0) continue;
               if (circlesTouch({ x: pos.x, y: pos.y, r: this.orbRadius }, e)) {
-                damageEnemy(e, player.damage);
+                damageEnemy(e, weaponDamage(w));
                 e.cd.orb = this.hitCooldown;
               }
             }
           }
         },
-        // 구체들의 현재 위치 (360도를 개수만큼 균등 분할)
+        // 구체들의 현재 위치 (360도를 개수만큼 균등 분할). 개수 = 레벨 + 복제기, 거리 = 기본 × 촛대
         positions(w) {
           const list = [];
-          for (let i = 0; i < w.level; i++) {
-            const a = (w.angle || 0) + (Math.PI * 2 * i) / w.level;
-            list.push({ x: player.x + Math.cos(a) * this.orbitRadius,
-                        y: player.y + Math.sin(a) * this.orbitRadius });
+          const count = w.level + extraAmount() + (this.extraCount || 0);   // 진화하면 extraCount 만큼 더
+          const radius = this.orbitRadius * areaMul();
+          for (let i = 0; i < count; i++) {
+            const a = (w.angle || 0) + (Math.PI * 2 * i) / count;
+            list.push({ x: player.x + Math.cos(a) * radius,
+                        y: player.y + Math.sin(a) * radius });
           }
           return list;
         },
         draw(w) {
-          ctx.fillStyle = "#caf0f8";            // 내 공격은 전부 하늘·흰색 계열
-          ctx.strokeStyle = "#48cae4";
-          ctx.lineWidth = 2;
+          const spin = stats.time * 10;            // 도끼가 제자리에서 빙글빙글 도는 각도
           for (const pos of this.positions(w)) {
+            // 하늘색 빛 (내 공격 표시)
+            ctx.fillStyle = "rgba(125, 249, 255, 0.22)";
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, this.orbRadius, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, this.orbRadius * 1.5, 0, Math.PI * 2);
             ctx.fill();
-            ctx.stroke();
+            if (!drawSprite("axe", pos.x, pos.y, 16, { angle: spin })) {
+              ctx.fillStyle = "#caf0f8";           // 그림이 없을 때: 하늘색 원
+              ctx.beginPath();
+              ctx.arc(pos.x, pos.y, this.orbRadius, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         },
       },
@@ -237,8 +593,10 @@
       // --- 관통 창: 직선으로 날아가며 적을 뚫고 지나감, 레벨↑ = 발사 간격↓ ---
       spear: {
         name: "관통 창",
-        interval: 2.0,
-        upgradeDesc: "발사 간격 -25%",
+        desc: "가장 가까운 적 쪽으로 적을 뚫고 지나가는 창",
+        icon: "spear",
+        interval: 1.5,
+        upgradeDesc: "발사 간격 -25%, 피해 +20%",
         getInterval(w) { return this.interval * Math.pow(0.75, w.level - 1); },
         fire(w) {
           const target = findNearestEnemy();
@@ -246,11 +604,12 @@
           const dx = target.x - player.x, dy = target.y - player.y;
           const len = Math.hypot(dx, dy) || 1;
           bullets.push({
-            kind: "spear",
+            kind: "spear", sprite: "spear", size: 21,
             x: player.x, y: player.y,
             vx: (dx / len) * 600, vy: (dy / len) * 600,
             r: 6,
-            damage: player.damage + 1,
+            damage: weaponDamage(w, 1),
+            pierce: 99,               // 계속 뚫고 지나감
             hitIds: new Set(),        // 이미 때린 적 번호 (같은 적 두 번 안 때림)
           });
         },
@@ -259,70 +618,785 @@
       // --- 번개 오라: 플레이어 주변 원 안의 적에게 주기적으로 피해, 레벨↑ = 반경↑ ---
       aura: {
         name: "번개 오라",
+        desc: "주변 원 안의 적에게 계속 피해를 주고 살짝 밀어냄",
+        icon: "w_aura",
         interval: 0.5,
-        upgradeDesc: "범위 +20",
-        getRadius(w) { return 60 + 20 * (w.level - 1); },
+        upgradeDesc: "범위 +20, 피해 +20%",
+        noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
+        getRadius(w) { return (60 + 20 * (w.level - 1)) * areaMul(); },
         fire(w) {
           const r = this.getRadius(w);
           for (const e of enemies) {
             if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) {
-              damageEnemy(e, player.damage);
+              damageEnemy(e, weaponDamage(w));
+              pushEnemy(e, player.x, player.y, 10);   // 살짝 밀어냄 (원작 Garlic 의 넉백)
             }
           }
           w.flash = 0.15;   // 번쩍이는 연출용 (초)
         },
-        update(w, dt) { if (w.flash > 0) w.flash -= dt; },
+        update(w, dt) {
+          if (w.flash > 0) w.flash -= dt;
+          // 번개 줄기 모양을 0.08초마다 새로 만듦 (지직거리는 느낌)
+          w.boltTimer = (w.boltTimer || 0) - dt;
+          if (w.boltTimer <= 0) {
+            w.boltTimer = 0.08;
+            w.bolts = [];
+            const r = this.getRadius(w);
+            for (let i = 0; i < 5; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const points = [];
+              for (let step = 0; step <= 4; step++) {
+                const dist = r * (0.3 + 0.7 * (step / 4));
+                const jitter = a + (Math.random() - 0.5) * 0.7;
+                points.push({ dx: Math.cos(jitter) * dist, dy: Math.sin(jitter) * dist });
+              }
+              w.bolts.push(points);
+            }
+          }
+        },
         draw(w) {
-          ctx.fillStyle = w.flash > 0 ? "rgba(120, 200, 255, 0.35)" : "rgba(120, 200, 255, 0.12)";
+          const r = this.getRadius(w);
+          const active = w.flash > 0;              // 피해를 준 직후엔 더 밝게
+          ctx.fillStyle = active ? "rgba(120, 200, 255, 0.30)" : "rgba(120, 200, 255, 0.10)";
+          ctx.strokeStyle = active ? "rgba(125, 249, 255, 0.9)" : "rgba(125, 249, 255, 0.45)";
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(player.x, player.y, this.getRadius(w), 0, Math.PI * 2);
+          ctx.arc(player.x, player.y, r, 0, Math.PI * 2);
           ctx.fill();
+          ctx.stroke();
+
+          // 번개 줄기
+          ctx.strokeStyle = active ? "rgba(225, 252, 255, 0.95)" : "rgba(200, 245, 255, 0.45)";
+          ctx.lineWidth = active ? 2 : 1;
+          for (const points of w.bolts || []) {
+            ctx.beginPath();
+            points.forEach((pt, i) => {
+              if (i === 0) ctx.moveTo(player.x + pt.dx, player.y + pt.dy);
+              else ctx.lineTo(player.x + pt.dx, player.y + pt.dy);
+            });
+            ctx.stroke();
+          }
         },
       },
 
-      // --- 폭탄: 적이 가장 몰린 곳으로 날아가 범위 폭발, 레벨↑ = 폭발 반경↑ ---
+      // --- 화염병: 무작위 적 근처에 던져 바닥에 불바다를 남김 (원작 Santa Water). Lv3·5·7 병 +1, Lv2·4·6·8 크기·시간 +20% ---
       bomb: {
-        name: "폭탄",
+        name: "화염병",
+        desc: "적 근처에 던져 바닥에 불바다를 남김",
+        icon: "firebomb",
         interval: 3.0,
-        upgradeDesc: "폭발 반경 +25%",
-        getRadius(w) { return 60 * Math.pow(1.25, w.level - 1); },
+        upgradeDesc: "불바다 크기·시간 +20% (짝수 레벨), 병 +1 (Lv4·7), 피해 +20%",
+        getScale(w) { return Math.pow(1.2, Math.floor(w.level / 2)); },
         fire(w) {
-          const target = findCrowdedEnemy();
-          if (!target) return;
-          const dx = target.x - player.x, dy = target.y - player.y;
-          const len = Math.hypot(dx, dy) || 1;
-          bullets.push({
-            kind: "bomb",
-            x: player.x, y: player.y,
-            vx: (dx / len) * 300, vy: (dy / len) * 300,
-            r: 7,
-            targetX: target.x, targetY: target.y,   // 여기 도착하면 폭발
-            explodeRadius: this.getRadius(w),
-            damage: player.damage + 1,
-          });
+          const count = 1 + Math.floor((w.level - 1) / 3);          // 병: Lv1~3 1개, Lv4~6 2개, Lv7~8 3개
+          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
+          for (let i = 0; i < count; i++) {
+            // 목표: 화면 안 무작위 적 근처 (적이 없으면 플레이어 근처 아무 데나)
+            const t = targets.length ? targets[Math.floor(Math.random() * targets.length)] : { x: player.x + (Math.random() - 0.5) * 300, y: player.y + (Math.random() - 0.5) * 300 };
+            const tx = t.x + (Math.random() - 0.5) * 40, ty = t.y + (Math.random() - 0.5) * 40;
+            const dx = tx - player.x, dy = ty - player.y;
+            const len = Math.hypot(dx, dy) || 1;
+            bullets.push({
+              kind: "bomb", sprite: "firebomb", size: 16, spin: 14, noHit: true,
+              x: player.x, y: player.y,
+              vx: (dx / len) * 300, vy: (dy / len) * 300,
+              r: 7,
+              targetX: tx, targetY: ty,                  // 여기 도착하면 불바다
+              zoneRadius: 55 * this.getScale(w) * areaMul(),
+              zoneLife: 3 * this.getScale(w) * durationMul(),
+              damage: weaponDamage(w) * 0.3,             // 0.25초마다 이만큼 (불바다는 겹치므로 낮게)
+            });
+          }
         },
       },
+
+      // --- 던지는 망치: 위로 던져 포물선을 그리며 떨어짐, 관통, 큰 피해 (원작 Axe). Lv3·5·7 망치 +1, Lv2·4·6·8 피해 +30% ---
+      hammer: {
+        name: "던지는 망치",
+        desc: "위로 던져 떨어지는 관통 망치. 피해가 큼",
+        icon: "hammer",
+        interval: 2.0,
+        upgradeDesc: "망치 +1 / 피해 +30% (번갈아), 피해 +20%",
+        fire(w) {
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const bonus = Math.pow(1.3, Math.floor(w.level / 2));
+          for (let i = 0; i < count; i++) {
+            bullets.push({
+              kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 260,
+              x: player.x, y: player.y,
+              vx: player.facingX * 140 + (i - (count - 1) / 2) * 90 + (Math.random() - 0.5) * 40,
+              vy: -540 - Math.random() * 60,
+              gravity: 900,                              // 아래로 떨어짐
+              r: 12,
+              damage: weaponDamage(w) * 2 * bonus,
+              pierce: 99, hitIds: new Set(),
+            });
+          }
+        },
+      },
+
+      // --- 던지는 방패: 가장 가까운 적 쪽으로 날아갔다 부메랑처럼 돌아옴, 관통 (원작 Cross). Lv3·5·7 방패 +1, Lv2·4·6·8 속도 +20% ---
+      cross: {
+        name: "던지는 방패",
+        desc: "가장 가까운 적 쪽으로 날아갔다 부메랑처럼 돌아옴",
+        icon: "shield_throw",
+        interval: 2.2,
+        upgradeDesc: "방패 +1 / 속도 +20% (번갈아), 피해 +20%",
+        fire(w) {
+          const target = findNearestEnemy();
+          if (!target) return;
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const speed = 500 * Math.pow(1.2, Math.floor(w.level / 2));
+          const base = Math.atan2(target.y - player.y, target.x - player.x);
+          for (let i = 0; i < count; i++) {
+            const a = base + (i - (count - 1) / 2) * 0.35;
+            bullets.push({
+              kind: "cross", sprite: "shield_throw", size: 15, spin: 12, margin: 500,
+              x: player.x, y: player.y,
+              vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+              ax: -Math.cos(a) * 900, ay: -Math.sin(a) * 900,   // 던진 반대쪽으로 계속 당겨져서 되돌아옴
+              startDirX: Math.cos(a), startDirY: Math.sin(a),
+              r: 10,
+              damage: weaponDamage(w, 1),
+              pierce: 99, hitIds: new Set(),
+            });
+          }
+        },
+      },
+
+      // --- 화염 지팡이: 무작위 적에게 큰 화염구, 관통 (원작 Fire Wand). Lv2·4·6·8 피해 +30%, Lv3·5·7 화염구 +1 ---
+      firewand: {
+        name: "화염 지팡이",
+        desc: "무작위 적에게 큰 화염구. 적을 뚫고 지나감",
+        icon: "w_firewand",
+        interval: 2.4,
+        upgradeDesc: "피해 +30% / 화염구 +1 (번갈아), 피해 +20%",
+        fire(w) {
+          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
+          if (targets.length === 0) return;
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const bonus = Math.pow(1.3, Math.floor(w.level / 2));
+          for (let i = 0; i < count; i++) {
+            const t = targets[Math.floor(Math.random() * targets.length)];
+            const dx = t.x - player.x, dy = t.y - player.y;
+            const len = Math.hypot(dx, dy) || 1;
+            bullets.push({
+              kind: "fireball", color: "#ff8c42", glow: "#ffd166",
+              x: player.x, y: player.y,
+              vx: (dx / len) * 380, vy: (dy / len) * 380,
+              r: 10,
+              damage: weaponDamage(w) * 3 * bonus,
+              pierce: 99, hitIds: new Set(),
+            });
+          }
+        },
+      },
+
+      // --- 마법 구슬: 관통하며 화면 가장자리에 튕겨 다니는 구슬 (원작 Runetracer). Lv3·5·7 구슬 +1, Lv2·4·6·8 지속 +1초 ---
+      rune: {
+        name: "마법 구슬",
+        desc: "화면 가장자리에 튕겨 다니며 적을 뚫는 구슬",
+        icon: "w_rune",
+        interval: 2.2,
+        upgradeDesc: "구슬 +1 / 지속 +1초 (번갈아), 피해 +20%",
+        fire(w) {
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            bullets.push({
+              kind: "rune", color: "#caf0f8", glow: "#7df9ff",
+              x: player.x, y: player.y,
+              vx: Math.cos(a) * 420, vy: Math.sin(a) * 420,
+              r: 8,
+              damage: weaponDamage(w, 1),
+              pierce: 99, hitIds: new Set(),
+              bounces: 99,                                // 화면 가장자리에서 튕김 (튕기면 같은 적을 다시 때릴 수 있음)
+              life: (3 + Math.floor(w.level / 2)) * durationMul(),
+            });
+          }
+        },
+      },
+
+      // --- 낙뢰: 무작위 적 머리 위에 번개 (원작 Lightning Ring). Lv3·5·7 낙뢰 +1, Lv2·4·6·8 범위 +20% ---
+      lightning: {
+        name: "낙뢰",
+        desc: "무작위 적 머리 위에 번개. 주변 적도 함께 피해",
+        icon: "w_lightning",
+        interval: 2.0,
+        upgradeDesc: "낙뢰 +1 / 범위 +20% (번갈아), 피해 +20%",
+        fire(w) {
+          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
+          if (targets.length === 0) return;
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const radius = 45 * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul();
+          for (let i = 0; i < count; i++) {
+            const t = targets[Math.floor(Math.random() * targets.length)];
+            for (const e of enemies) {
+              if (!e.dead && Math.hypot(e.x - t.x, e.y - t.y) < radius + e.r) damageEnemy(e, weaponDamage(w, 1));
+            }
+            effects.push({ kind: "bolt", x: t.x, y: t.y, r: radius, life: 0.25, maxLife: 0.25, seed: Math.random() });
+          }
+        },
+      },
+
+      // --- 별의 문양: 긴 간격으로 화면의 적을 전부 지움 (원작 Pentagram). 구슬은 안 나옴(Lv5부터 나옴). 간격 -15%/레벨 ---
+      pentagram: {
+        name: "별의 문양",
+        desc: "긴 간격으로 화면의 적을 전부 지움 (구슬은 안 나옴)",
+        icon: "w_pentagram",
+        interval: 25,
+        upgradeDesc: "간격 -15% (Lv5: 지운 적도 구슬을 남김)",
+        noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
+        getInterval(w) { return this.interval * Math.pow(0.85, w.level - 1); },
+        fire(w) {
+          let erased = 0;
+          for (const e of enemies) {
+            if (e.dead || !inView(e.x, e.y)) continue;
+            if (e.boss) {
+              damageEnemy(e, Math.ceil(e.maxHp * 0.1));    // 보스는 10%만
+            } else if (e.elite) {
+              damageEnemy(e, Math.ceil(e.maxHp * 0.5));    // 엘리트는 체력 절반만
+            } else if (w.level >= 5) {
+              damageEnemy(e, e.hp);                        // Lv5: 보통 처치와 같음 (구슬 나옴)
+            } else {
+              e.dead = true;                               // 그냥 지움: 구슬·아이템·파편 없음
+              stats.kills += 1;
+            }
+            erased += 1;
+          }
+          if (erased > 0) enemyBullets = enemyBullets.filter((b) => !inView(b.x, b.y));
+          effects.push({ kind: "flash", life: 0.4, maxLife: 0.4 });
+          effects.push({ kind: "star", x: player.x, y: player.y, r: 90, life: 0.6, maxLife: 0.6 });
+        },
+      },
+
+      // --- 빙결 광선: 12방향을 차례로 돌며 광선, 맞은 적만 얼림 (원작 Clock Lancet). 피해 없음. 얼리는 시간 +0.5초/레벨, Lv3부터 반대쪽도 ---
+      clock: {
+        name: "빙결 광선",
+        desc: "12방향을 차례로 도는 광선. 맞은 적을 얼림 (피해 없음)",
+        icon: "w_clock",
+        interval: 3.0,
+        upgradeDesc: "얼리는 시간 +0.5초 (Lv3: 반대쪽 광선 추가)",
+        noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
+        rayLength: 1500,
+        rayHalf: 12,
+        fire(w) {
+          w.dir = ((w.dir || 0) + 1) % 12;
+          const angles = [(w.dir / 12) * Math.PI * 2];
+          if (w.level >= 3) angles.push(angles[0] + Math.PI);
+          const freezeFor = (3 + 0.5 * (w.level - 1)) * durationMul();
+          for (const a of angles) {
+            const ux = Math.cos(a), uy = Math.sin(a);
+            for (const e of enemies) {
+              if (e.dead) continue;
+              const dx = e.x - player.x, dy = e.y - player.y;
+              const along = dx * ux + dy * uy;                     // 광선 방향으로 얼마나 앞에 있는지
+              const across = Math.abs(dx * uy - dy * ux);          // 광선에서 옆으로 얼마나 벗어났는지
+              if (!e.boss && along > 0 && along < this.rayLength && across < this.rayHalf + e.r) e.frozenTimer = freezeFor;
+            }
+            effects.push({ kind: "ray", x: player.x, y: player.y, angle: a, len: this.rayLength, half: this.rayHalf, life: 0.3, maxLife: 0.3 });
+          }
+        },
+      },
+
+      // --- 튕기는 칼: 식칼이 화면 가장자리에 튕기며 관통 (원작 Bone). Lv3·5·7 칼 +1, Lv2·4·6·8 튕김 +1 ---
+      bone: {
+        name: "튕기는 칼",
+        desc: "화면 가장자리에 튕기며 적을 뚫는 식칼",
+        icon: "cleaver",
+        interval: 1.6,
+        upgradeDesc: "칼 +1 / 튕김 +1회 (번갈아), 피해 +20%",
+        fire(w) {
+          const target = findNearestEnemy();
+          if (!target) return;
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const base = Math.atan2(target.y - player.y, target.x - player.x);
+          for (let i = 0; i < count; i++) {
+            const a = base + (i - (count - 1) / 2) * 0.4;
+            bullets.push({
+              kind: "bone", sprite: "cleaver", size: 15, spin: 16,
+              x: player.x, y: player.y,
+              vx: Math.cos(a) * 450, vy: Math.sin(a) * 450,
+              r: 9,
+              damage: weaponDamage(w, 1),
+              pierce: 99, hitIds: new Set(),
+              bounces: 2 + Math.floor(w.level / 2),
+              life: 6 * durationMul(),
+            });
+          }
+        },
+      },
+
+      // --- 마법 지팡이: 가로줄이나 세로줄 중 적이 가장 많은 줄에 화면을 가로지르는 광선, 레벨↑ = 광선 폭↑ ---
+      staff: {
+        name: "마법 지팡이",
+        desc: "적이 가장 많은 가로·세로줄에 화면을 가로지르는 광선",
+        icon: "staff",
+        interval: 2.5,
+        upgradeDesc: "광선 폭 +30%, 피해 +20%",
+        noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
+        getHalfWidth(w) { return 22 * Math.pow(1.3, w.level - 1) * areaMul(); },   // 광선 두께의 절반 (22 → 29 → 37 → 48 → 63)
+        fire(w) {
+          const half = this.getHalfWidth(w);
+          const line = findBestLine(half);
+          if (!line) return;                         // 화면에 적이 없으면 쏘지 않음
+          for (const e of enemies) {
+            if (!e.dead && isInLine(e, line, half)) damageEnemy(e, weaponDamage(w, 1));
+          }
+          effects.push({ kind: "beam", horizontal: line.horizontal, pos: line.pos, half, life: 0.35, maxLife: 0.35 });
+        },
+      },
+
+      // --- 보호막: 공격을 한 번 막아 주고, 시간이 지나면 다시 생김. 레벨↑ = 재충전 시간↓ ---
+      shield: {
+        name: "보호막",
+        desc: "공격을 한 번 막아 주고, 시간이 지나면 다시 생김",
+        icon: "shield",
+        interval: 0,
+        upgradeDesc: "재충전 시간 -1.5초",
+        getRecharge(w) { return Math.max(3, 12 - 1.5 * (w.level - 1)) / durationMul(); },   // 12 → 10.5 → … → 최소 3초 (주문서로 더 짧아짐)
+        update(w, dt) {
+          if (w.ready === undefined) w.ready = true;           // 처음 얻으면 바로 켜진 상태
+          if (!w.ready) {
+            w.recharge -= dt;
+            if (w.recharge <= 0) w.ready = true;
+          }
+        },
+        // 공격을 막았을 때 호출됨 (hurtPlayer 에서)
+        breakShield(w) {
+          w.ready = false;
+          w.recharge = this.getRecharge(w);
+          spawnParticles(player.x, player.y, "#7df9ff", 14, 200);
+          effects.push({ kind: "ring", x: player.x, y: player.y, r: player.r * 1.9, color: "#7df9ff", life: 0.3, maxLife: 0.3 });
+          floatTexts.push({ x: player.x, y: player.y - 34, text: "막음!", color: "#7df9ff", life: 0.9, maxLife: 0.9 });
+        },
+        draw(w) {
+          const r = player.r * 1.9;
+          if (w.ready) {
+            // 켜져 있을 때: 캐릭터를 감싸는 하늘색 방울
+            ctx.fillStyle = "rgba(125, 249, 255, 0.12)";
+            ctx.strokeStyle = "rgba(125, 249, 255, 0.95)";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          // 재충전 중에는 캐릭터 주변에 아무것도 그리지 않음 (남은 시간은 오른쪽 보유 목록에 표시)
+        },
+      },
+
+      // =================== 2·3단계 무기 (원작에서 가져온 것 중 이 게임의 그림으로 살릴 수 있는 것만) ===================
+
+      // --- 사방 단검: 상하좌우 4방향으로 고정 연사 (원작 Phiera Der Tuphello). Lv3·5 단검 +1, Lv2·4 간격 -10% ---
+      phiera: {
+        name: "사방 단검", icon: "dagger", iconMark: "cross",
+        desc: "상하좌우 4방향으로 단검을 계속 던짐",
+        interval: 0.45,
+        upgradeDesc: "단검 +1 / 간격 -10% (번갈아), 피해 +20%",
+        angles: [0, Math.PI / 2, Math.PI, -Math.PI / 2],
+        getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
+        fire(w) {
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          for (const a of this.angles) {
+            const dx = Math.cos(a), dy = Math.sin(a);
+            for (let i = 0; i < count; i++) {
+              const side = (i - (count - 1) / 2) * 12;
+              bullets.push({ kind: "bullet", sprite: "dagger", size: 16, x: player.x - dy * side, y: player.y + dx * side, vx: dx * BULLET_SPEED, vy: dy * BULLET_SPEED, r: BULLET_RADIUS, damage: weaponDamage(w) });
+            }
+          }
+        },
+      },
+
+      // --- 대각 단검: 대각선 4방향 고정 연사 (원작 Eight The Sparrow) ---
+      eight: {
+        name: "대각 단검", icon: "dagger", iconMark: "x",
+        desc: "대각선 4방향으로 단검을 계속 던짐",
+        interval: 0.45,
+        upgradeDesc: "단검 +1 / 간격 -10% (번갈아), 피해 +20%",
+        angles: [Math.PI / 4, 3 * Math.PI / 4, -3 * Math.PI / 4, -Math.PI / 4],
+        getInterval(w) { return WEAPONS.phiera.getInterval.call(this, w); },
+        fire(w) { WEAPONS.phiera.fire.call(this, w); },
+      },
+
+      // --- 삼연발 마법탄: 무작위 적에게 마법탄 3발 연속 (원작 Bracelet). Lv3·5 연발 +1, Lv2·4 간격 -10% ---
+      bracelet: {
+        name: "삼연발 마법탄", icon: "w_bracelet",
+        desc: "무작위 적에게 마법탄을 3발 연속으로 쏨",
+        interval: 1.0,
+        upgradeDesc: "연발 +1 / 간격 -10% (번갈아), 피해 +20%",
+        getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
+        fire(w) {
+          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
+          if (targets.length === 0) return;
+          const t = targets[Math.floor(Math.random() * targets.length)];
+          const shots = 3 + Math.floor((w.level - 1) / 2);
+          w.pending = w.pending || [];
+          for (let i = 0; i < shots; i++) w.pending.push({ delay: i * 0.1, target: t });
+        },
+        update(w, dt) {
+          if (!w.pending) return;
+          for (const p of w.pending) {
+            p.delay -= dt;
+            if (p.delay <= 0) {
+              p.done = true;
+              const t = p.target.dead ? findNearestEnemy() : p.target;
+              if (!t) continue;
+              const a = Math.atan2(t.y - player.y, t.x - player.x);
+              bullets.push({ kind: "magic", color: "#7df9ff", x: player.x, y: player.y, vx: Math.cos(a) * 460, vy: Math.sin(a) * 460, r: 6, damage: weaponDamage(w, 0.5) });
+            }
+          }
+          w.pending = w.pending.filter((p) => !p.done);
+        },
+      },
+
+      // --- 폭탄: 튕기다가 가끔 터지는 폭탄 (원작 Cherry Bomb). Lv3·5 폭탄 +1, Lv2·4 폭발 확률 +15% ---
+      cherry: {
+        name: "폭탄", icon: "w_bomb",
+        desc: "적에 닿으면 터지고, 벽에 튕기면 가끔 터지며, 2.5초가 지나면 반드시 터짐",
+        interval: 2.2,
+        upgradeDesc: "폭탄 +1 / 폭발 확률 +10% (번갈아), 피해 +20%",
+        fire(w) {
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          const chance = 0.6 + 0.1 * Math.floor(w.level / 2);
+          const explode = (b) => {
+            const r = 90 * areaMul();
+            for (const e of enemies) if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < r + e.r) damageEnemy(e, b.damage);
+            effects.push({ x: b.x, y: b.y, r, life: 0.3, maxLife: 0.3, rgb: "255, 140, 40" });
+            b.dead = true;
+          };
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            bullets.push({
+              kind: "cherry", sprite: "w_bomb", size: 15, spin: 9, onHit: explode,
+              x: player.x, y: player.y, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, r: 8,
+              damage: weaponDamage(w, 1) * 2, bounces: 99, life: 2.5 * durationMul(),
+              onBounce(b) { if (Math.random() < chance) explode(b); },
+              onExpire: explode,
+            });
+          }
+        },
+      },
+
+      // --- 날아오는 가구: 탁자·의자가 위에서 떨어져 튕김 (원작 La Robba). Lv3·5 가구 +1, Lv2·4 튕김 +1 ---
+      larobba: {
+        name: "날아오는 가구", icon: "table",
+        desc: "탁자와 의자가 하늘에서 떨어져 튕기며 관통",
+        interval: 2.8,
+        upgradeDesc: "가구 +1 / 튕김 +1 (번갈아), 피해 +20%",
+        fire(w) {
+          const count = 1 + Math.floor((w.level - 1) / 2);
+          for (let i = 0; i < count; i++) {
+            bullets.push({
+              kind: "furniture", sprite: i % 2 === 0 ? "table" : "chair", size: 18, spin: 4, margin: 500,
+              x: player.x + (Math.random() - 0.5) * 500, y: player.y - 420, vx: (Math.random() - 0.5) * 120, vy: 60,
+              gravity: 900, r: 13, damage: weaponDamage(w, 1), pierce: 99, hitIds: new Set(),
+              bounces: 2 + Math.floor(w.level / 2), life: 5 * durationMul(),
+            });
+          }
+        },
+      },
+
+      // =================== 3단계 무기 ===================
+
+      // --- 그림자 발톱: 움직이면 바닥에 그림자 흔적, 멈추면 그 자리에서 폭발 (원작 Shadow Pinion). Lv2·4 흔적 +20%, Lv3·5 폭발 +1 ---
+      shadow: {
+        name: "그림자 발톱", icon: "w_shadow",
+        desc: "움직이는 동안 그림자 흔적이 피해를 주고, 멈추면 그 자리에서 폭발",
+        interval: 0,
+        upgradeDesc: "흔적 범위 +20% / 폭발 +1 (번갈아), 피해 +20%",
+        update(w, dt) {
+          if (isMoving()) {
+            w.stopped = 0; w.exploded = false;
+            w.trailT = (w.trailT || 0) - dt;
+            if (w.trailT <= 0) {
+              w.trailT = 0.15;
+              zones.push({ kind: "shadow", x: player.x, y: player.y, r: 18 * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul(), life: 1.5 * durationMul(), maxLife: 1.5 * durationMul(), tick: 0, interval: 0.3, damage: weaponDamage(w) * 0.5 });
+            }
+          } else {
+            w.stopped = (w.stopped || 0) + dt;
+            if (w.stopped >= 0.3 && !w.exploded) {
+              w.exploded = true;
+              const blasts = 1 + Math.floor((w.level - 1) / 2);
+              const r = 80 * areaMul();
+              for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) damageEnemy(e, weaponDamage(w, 1) * blasts);
+              effects.push({ x: player.x, y: player.y, r, life: 0.35, maxLife: 0.35, rgb: "80, 40, 120" });
+            }
+          }
+        },
+      },
+
+      // --- 성풍: 검 휘두르기와 같지만 계속 움직일수록 세지고 치명타 (원작 Vento Sacro). Lv 치명타 +5%, 범위 +20% ---
+      vento: {
+        name: "성풍", icon: "bigsword",
+        desc: "앞뒤로 베며, 계속 움직일수록 세지고 가끔 치명타(2배)",
+        interval: 1.0,
+        upgradeDesc: "치명타 +5% / 범위 +20% (번갈아), 피해 +20%",
+        getRadius(w) { return 75 * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul(); },
+        update(w, dt) { w.moveTime = isMoving() ? Math.min((w.moveTime || 0) + dt, 10) : 0; },
+        fire(w) {
+          const r = this.getRadius(w);
+          const crit = 0.05 * (1 + Math.floor((w.level - 1) / 2));
+          const power = 1 + 0.1 * (w.moveTime || 0);          // 10초 계속 움직이면 2배
+          const f = { x: player.facingX, y: player.facingY };
+          for (const dir of [f, { x: -f.x, y: -f.y }]) {
+            for (const e of enemies) {
+              if (e.dead) continue;
+              const dx = e.x - player.x, dy = e.y - player.y;
+              if (Math.hypot(dx, dy) < r + e.r && dx * dir.x + dy * dir.y > 0) {
+                const isCrit = Math.random() < crit;
+                damageEnemy(e, weaponDamage(w, 1) * power * (isCrit ? 2 : 1));
+                if (isCrit) floatTexts.push({ x: e.x, y: e.y - 20, text: "치명타!", color: "#ffd60a", life: 0.6, maxLife: 0.6 });
+                pushEnemy(e, player.x, player.y, 20);
+              }
+            }
+            effects.push({ kind: "slash", x: player.x, y: player.y, angle: Math.atan2(dir.y, dir.x), r, life: 0.2, maxLife: 0.2 });
+          }
+        },
+      },
+
+      // --- 꽃가루: 튕기는 꽃잎을 던짐, 움직이면 더 자주 (원작 Celestial Dusting). Lv3·5 꽃잎 +1, Lv2·4 튕김 +1 ---
+      dusting: {
+        name: "꽃가루", icon: "w_petal",
+        desc: "튕겨 다니는 꽃잎을 뿌림. 움직이는 동안은 더 자주 뿌림",
+        interval: 1.4,
+        upgradeDesc: "꽃잎 +1 / 튕김 +1 (번갈아), 피해 +20%",
+        update(w, dt) { if (isMoving()) w.timer -= dt * 0.6; },   // 움직이면 간격이 1.6배 빨리 줄어듦
+        fire(w) {
+          const count = 2 + Math.floor((w.level - 1) / 2);
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            bullets.push({
+              kind: "petal", sprite: "w_petal", size: 18, spin: 8, color: "#ffafcc",
+              x: player.x, y: player.y, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, r: 7,
+              damage: weaponDamage(w, 1), pierce: 99, hitIds: new Set(), bounces: 3 + Math.floor(w.level / 2), life: 3 * durationMul(),
+            });
+          }
+        },
+      },
+
+      // --- 승리의 검: 가장 가까운 적을 연속 콤보로 벰, 맞으면 반격 (원작 Victory Sword). Lv3·5 콤보 +1, Lv2·4 피해 +30% ---
+      victory: {
+        name: "승리의 검", icon: "bigsword", iconMark: "v",
+        desc: "가까운 적을 3연속 콤보로 베고, 내가 맞으면 주위를 반격",
+        interval: 1.3, range: 170,
+        upgradeDesc: "콤보 +1 / 피해 +30% (번갈아), 피해 +20%",
+        fire(w) {
+          const t = findNearestEnemy();
+          if (!t || Math.hypot(t.x - player.x, t.y - player.y) > this.range * areaMul()) return;
+          const hits = 3 + Math.floor((w.level - 1) / 2);
+          w.pending = w.pending || [];
+          for (let i = 0; i < hits; i++) w.pending.push({ delay: i * 0.12, target: t });
+        },
+        update(w, dt) {
+          if (!w.pending) return;
+          const bonus = Math.pow(1.3, Math.floor(w.level / 2));
+          for (const p of w.pending) {
+            p.delay -= dt;
+            if (p.delay <= 0) {
+              p.done = true;
+              const t = p.target.dead ? findNearestEnemy() : p.target;
+              if (!t || Math.hypot(t.x - player.x, t.y - player.y) > this.range * areaMul() + 40) continue;
+              damageEnemy(t, weaponDamage(w, 1) * bonus);
+              effects.push({ kind: "slash", x: t.x, y: t.y, angle: Math.random() * Math.PI * 2, r: 22, life: 0.15, maxLife: 0.15 });
+            }
+          }
+          w.pending = w.pending.filter((p) => !p.done);
+        },
+        // 반격: 플레이어가 맞았을 때 hurtPlayer 에서 호출
+        retaliate(w) {
+          const r = 90 * areaMul();
+          for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w, 1)); pushEnemy(e, player.x, player.y, 25); }
+          effects.push({ kind: "ring", x: player.x, y: player.y, r: 20, color: "#f0feff", life: 0.3, maxLife: 0.3 });
+        },
+      },
+
+      // --- 화염 방사: 바라보는 방향으로 부채꼴 불길 (원작 Flames of Misspell). Lv3·5 부채꼴 +1(뒤), Lv2·4 범위 +20% ---
+      flames: {
+        name: "화염 방사", icon: "w_flames",
+        desc: "바라보는 방향으로 부채꼴 불길을 내뿜음",
+        interval: 1.2, range: 160, halfAngle: 0.5,
+        upgradeDesc: "부채꼴 +1 / 범위 +20% (번갈아), 피해 +20%",
+        fire(w) {
+          const range = this.range * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul();
+          const cones = w.level >= 3 ? 2 : 1;
+          const f = { x: player.facingX, y: player.facingY };
+          for (let c = 0; c < cones; c++) {
+            const dir = c === 0 ? f : { x: -f.x, y: -f.y };
+            const angle = Math.atan2(dir.y, dir.x);
+            for (const e of enemies) {
+              if (e.dead) continue;
+              const dx = e.x - player.x, dy = e.y - player.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist > range + e.r) continue;
+              let diff = Math.atan2(dy, dx) - angle;
+              while (diff > Math.PI) diff -= Math.PI * 2;
+              while (diff < -Math.PI) diff += Math.PI * 2;
+              if (Math.abs(diff) < this.halfAngle) damageEnemy(e, weaponDamage(w, 1));
+            }
+            effects.push({ kind: "cone", x: player.x, y: player.y, angle, len: range, half: this.halfAngle, life: 0.3, maxLife: 0.3 });
+          }
+        },
+      },
+
     };
 
-    // =====================================================================
-    // 2-2. 능력치 강화 카드 목록 (무기가 아닌 플레이어 자체 강화)
-    //   canPick(p) 가 있으면, 그게 true일 때만 카드 후보에 들어감 (횟수 제한용)
-    // =====================================================================
-    const UPGRADES = [
-      { name: "빠른 공격", desc: "모든 무기 발동 간격 -20%", apply: (p) => { p.attackSpeed *= 0.8; } },
-      { name: "빠른 발",   desc: "이동 속도 +15%",           apply: (p) => { p.speed *= 1.15; } },
-      { name: "강한 공격", desc: "모든 무기 피해 +1",         apply: (p) => { p.damage += 1; } },
-      { name: "자석",      desc: "구슬을 끌어당기는 범위 +30 (최대 2번)",
-        canPick: (p) => p.magnetCount < MAGNET_MAX,          // 2번 고르면 더 안 나옴
-        apply: (p) => { p.pickupRadius += 30; p.magnetCount += 1; } },
-      { name: "튼튼함",    desc: "최대 체력 +20, 체력 전부 회복", apply: (p) => { p.maxHp += 20; p.hp = p.maxHp; } },
-      { name: "선택의 폭", desc: "레벨업 카드 +1장 (최대 5장)",
-        canPick: (p) => p.choices < MAX_CHOICES,             // 5장이 되면 더 안 나옴
-        apply: (p) => { p.choices += 1; } },
-    ];
+    // 지금 이동 키를 누르고 있는지 (그림자 발톱, 성풍, 꽃가루가 씀)
+    function isMoving() {
+      return !!(keys["w"] || keys["a"] || keys["s"] || keys["d"] || keys["arrowup"] || keys["arrowdown"] || keys["arrowleft"] || keys["arrowright"]);
+    }
 
     // =====================================================================
-    // 2-3. 적 종류 목록 (플레이어 레벨 1부터 순서대로 등장, 6종이 끝나면 다시 처음부터 순환)
+    // 2-1-1. 진화: 무기가 최대 레벨이고 짝이 되는 패시브도 최대 레벨인 채 보물 상자를 열면 진화
+    //   EVOLUTIONS[기본 무기] = { to: 진화 무기, needs: 패시브 }  ← 무기 만렙 + 그 패시브 만렙이어야 함
+    //   진화 무기는 레벨이 없고(항상 최대), 더 강화되지 않으며, '새 무기' 카드로는 나오지 않음
+    //   진화 무기 정의는 기본 무기를 복사한 뒤 일부만 덮어씀 (같은 그림을 씀)
+    // =====================================================================
+    const EVOLUTIONS = {
+      sword:     { to: "sword_evo",     needs: "maxhp" },
+      wand:      { to: "wand_evo",      needs: "cooldown" },
+      bullet:    { to: "bullet_evo",    needs: "projspeed" },
+      hammer:    { to: "hammer_evo",    needs: "area" },
+      cross:     { to: "cross_evo",     needs: "luck" },
+      orb:       { to: "orb_evo",       needs: "duration" },
+      firewand:  { to: "firewand_evo",  needs: "might" },
+      aura:      { to: "aura_evo",      needs: "regen" },
+      bomb:      { to: "bomb_evo",      needs: "magnet" },
+      rune:      { to: "rune_evo",      needs: "armor" },
+      lightning: { to: "lightning_evo", needs: "amount" },
+      pentagram: { to: "pentagram_evo", needs: "growth" },
+      staff:     { to: "staff_evo",     needs: "curse" },
+      clock:     { to: "clock_evo",     needs: "revival" },
+      shield:    { to: "shield_evo",    needs: "move" },
+      spear:     { to: "spear_evo",     needs: "projspeed" },
+    };
+    function evolvedDef(base, overrides) {
+      return Object.assign({}, WEAPONS[base], { evolved: true, evoOf: base }, overrides);
+    }
+    Object.assign(WEAPONS, {
+      sword_evo: evolvedDef("sword", { name: "피의 검", desc: "3연속 베기. 벨 때마다 체력 1 회복", damageMul: 2.0,
+        fire(w) { this.slash(w, { x: player.facingX, y: player.facingY }); w.pending = [{ delay: 0.12, dir: { x: -player.facingX, y: -player.facingY } }, { delay: 0.24, dir: { x: 0, y: -1 } }]; },
+        slash(w, dir) {
+          const r = this.getRadius(w); let hits = 0;
+          for (const e of enemies) { if (e.dead) continue; const dx = e.x - player.x, dy = e.y - player.y; if (Math.hypot(dx, dy) < r + e.r && dx * dir.x + dy * dir.y > 0) { damageEnemy(e, weaponDamage(w, 1)); pushEnemy(e, player.x, player.y, 30); hits++; } }
+          if (hits > 0) player.hp = Math.min(player.maxHp, player.hp + hits);
+          effects.push({ kind: "slash", x: player.x, y: player.y, angle: Math.atan2(dir.y, dir.x), r, life: 0.2, maxLife: 0.2 });
+        } }),
+      wand_evo: evolvedDef("wand", { name: "성스러운 봉", desc: "쉬지 않고 마법탄을 쏨", interval: 0.2, damageMul: 1.2 }),
+      bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.09 }),
+      hammer_evo: evolvedDef("hammer", { name: "죽음의 나선", desc: "망치 8개가 사방으로 회전하며 날아감", interval: 1.3,
+        fire(w) { for (let i = 0; i < 8; i++) { const a = (Math.PI * 2 * i) / 8 + stats.time; bullets.push({ kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 200, x: player.x, y: player.y, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, r: 12, damage: weaponDamage(w) * 2 * Math.pow(1.3, Math.floor(w.level / 2)), pierce: 99, hitIds: new Set(), life: 2.5 }); } } }),
+      cross_evo: evolvedDef("cross", { name: "천상의 검", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8 }),
+      orb_evo: evolvedDef("orb", { name: "부정한 저녁기도", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 1.8 }),
+      firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.4, damageMul: 2 }),
+      aura_evo: evolvedDef("aura", { name: "영혼 포식자", desc: "더 넓은 오라. 맞힌 적마다 체력 0.5 회복", damageMul: 2,
+        getRadius(w) { return (60 + 20 * (w.level - 1)) * 1.5 * areaMul(); },
+        fire(w) { const r = this.getRadius(w); let hits = 0; for (const e of enemies) { if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 10); hits++; } } if (hits) player.hp = Math.min(player.maxHp, player.hp + 0.5 * hits); w.flash = 0.15; } }),
+      bomb_evo: evolvedDef("bomb", { name: "성수의 늪", desc: "불바다가 더 크고 오래가며 나를 따라옴", damageMul: 1.2,
+        fire(w) { const before = bullets.length; WEAPONS.bomb.fire.call(this, w); for (let i = before; i < bullets.length; i++) { bullets[i].zoneRadius *= 1.25; bullets[i].zoneLife *= 1.5; bullets[i].zoneFollow = true; } } }),
+      rune_evo: evolvedDef("rune", { name: "미래 없음", desc: "구슬이 오래 튕기고, 튕길 때마다 폭발", damageMul: 1.5,
+        fire(w) { const before = bullets.length; WEAPONS.rune.fire.call(this, w); for (let i = before; i < bullets.length; i++) { const b = bullets[i]; b.life *= 2; b.onBounce = (x) => { const r = 60 * areaMul(); for (const e of enemies) if (!e.dead && Math.hypot(e.x - x.x, e.y - x.y) < r + e.r) damageEnemy(e, x.damage); effects.push({ x: x.x, y: x.y, r, life: 0.25, maxLife: 0.25 }); }; } } }),
+      lightning_evo: evolvedDef("lightning", { name: "천둥 고리", desc: "번개가 두 번씩 내리침", damageMul: 1.3,
+        fire(w) { WEAPONS.lightning.fire.call(this, w); w.pending = [{ delay: 0.2 }]; },
+        update(w, dt) { if (!w.pending) return; for (const p of w.pending) { p.delay -= dt; if (p.delay <= 0) { p.done = true; WEAPONS.lightning.fire.call(this, w); } } w.pending = w.pending.filter((p) => !p.done); } }),
+      pentagram_evo: evolvedDef("pentagram", { name: "화려한 달", desc: "자주 발동하고, 지운 적의 구슬이 전부 빨려옴", interval: 12, getInterval(w) { return this.interval; },
+        fire(w) { WEAPONS.pentagram.fire.call(this, w); for (const g of gems) { g.magnet = true; g.speed = Math.max(g.speed || 0, 400); } } }),
+      staff_evo: evolvedDef("staff", { name: "마나의 폭풍", desc: "가로줄과 세로줄에 동시에 두 배 굵은 광선", damageMul: 1.4,
+        getHalfWidth(w) { return 22 * Math.pow(1.3, w.level - 1) * 2 * areaMul(); },
+        fire(w) { const half = this.getHalfWidth(w); const onScreen = enemies.filter((e) => !e.dead && inView(e.x, e.y)); for (const horizontal of [true, false]) { let best = null; for (const c of onScreen) { const line = { horizontal, pos: horizontal ? c.y : c.x }; let count = 0; for (const e of onScreen) if (isInLine(e, line, half)) count++; if (!best || count > best.count) best = { ...line, count }; } if (!best) continue; for (const e of enemies) if (!e.dead && isInLine(e, best, half)) damageEnemy(e, weaponDamage(w, 1)); effects.push({ kind: "beam", horizontal: best.horizontal, pos: best.pos, half, life: 0.35, maxLife: 0.35 }); } } }),
+      clock_evo: evolvedDef("clock", { name: "무한 회랑", desc: "4방향 광선. 얼린 적의 체력을 30% 깎음",
+        fire(w) { w.dir = ((w.dir || 0) + 1) % 12; const freezeFor = 5 * durationMul(); for (let k = 0; k < 4; k++) { const a = (w.dir / 12) * Math.PI * 2 + (k * Math.PI) / 2; const ux = Math.cos(a), uy = Math.sin(a); for (const e of enemies) { if (e.dead || e.boss) continue; const dx = e.x - player.x, dy = e.y - player.y; const along = dx * ux + dy * uy, across = Math.abs(dx * uy - dy * ux); if (along > 0 && along < this.rayLength && across < this.rayHalf + e.r) { e.frozenTimer = freezeFor; damageEnemy(e, Math.ceil(e.maxHp * 0.3)); } } effects.push({ kind: "ray", x: player.x, y: player.y, angle: a, len: this.rayLength, half: this.rayHalf, life: 0.3, maxLife: 0.3 }); } } }),
+      shield_evo: evolvedDef("shield", { name: "진홍 장막", desc: "3초마다 다시 생기고, 깨질 때 주위 적을 밀어내며 피해",
+        getRecharge(w) { return 3; },
+        breakShield(w) { WEAPONS.shield.breakShield.call(this, w); const r = 120; for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, 20 * damageMul()); pushEnemy(e, player.x, player.y, 60); } } }),
+      spear_evo: evolvedDef("spear", { name: "폭풍의 창", desc: "창 3개를 더 빠르게 던짐", damageMul: 1.0,
+        getInterval(w) { return WEAPONS.spear.getInterval.call(this, w) * 0.7; },
+        fire(w) { const target = findNearestEnemy(); if (!target) return; const base = Math.atan2(target.y - player.y, target.x - player.x); for (let i = -1; i <= 1; i++) { const a = base + i * 0.25; bullets.push({ kind: "spear", sprite: "spear", size: 21, x: player.x, y: player.y, vx: Math.cos(a) * 600, vy: Math.sin(a) * 600, r: 6, damage: weaponDamage(w, 1), pierce: 99, hitIds: new Set() }); } } }),
+    });
+    for (const base in EVOLUTIONS) { WEAPONS[base].evolvesTo = EVOLUTIONS[base].to; WEAPONS[base].needs = EVOLUTIONS[base].needs; }
+
+    // =====================================================================
+    // 2-2. 패시브 아이템 목록 (원작 뱀파이어 서바이벌의 패시브. 무기처럼 Lv1~maxLevel, 카드와 상자에서 강화)
+    //   name     : 카드에 보이는 이름        icon : assets 폴더의 그림 이름
+    //   maxLevel : 최대 레벨                 desc : 카드 설명 (레벨당 효과)
+    //   noSlot   : true 면 패시브 슬롯(6칸)을 차지하지 않음
+    //   효과는 여기 적지 않고, 아래 passiveLevel()/recalcStats()/각 ×Mul() 함수가 레벨을 읽어서 적용함
+    //   → 레벨업 카드로 올리든 상자에서 올리든 계산이 어긋나지 않음
+    // =====================================================================
+    const PASSIVES = {
+      might:     { name: "힘",        icon: "passive_might",     maxLevel: 5, desc: "무기 피해 +10%" },
+      armor:     { name: "갑옷",      icon: "passive_armor",     maxLevel: 3, desc: "받는 피해 -1" },
+      maxhp:     { name: "튼튼함",    icon: "passive_maxhp",     maxLevel: 3, desc: "최대 체력 +20%" },
+      regen:     { name: "회복",      icon: "passive_regen",     maxLevel: 5, desc: "1초마다 체력 +0.2" },
+      cooldown:  { name: "빠른 공격", icon: "passive_cooldown",  maxLevel: 5, desc: "모든 무기 발동 간격 -8%" },
+      area:      { name: "촛대",      icon: "passive_area",      maxLevel: 5, desc: "공격 범위 +10%" },
+      projspeed: { name: "팔보호대",  icon: "passive_projspeed", maxLevel: 5, desc: "발사체 속도 +10%" },
+      duration:  { name: "주문서",    icon: "passive_duration",  maxLevel: 5, desc: "효과 지속 시간 +10%" },
+      amount:    { name: "복제기",    icon: "passive_amount",    maxLevel: 2, desc: "발사 무기가 한 번 더 발사됨" },
+      move:      { name: "날개",      icon: "passive_move",      maxLevel: 5, desc: "이동 속도 +10%" },
+      magnet:    { name: "자석",      icon: "passive_magnet",    maxLevel: MAGNET_MAX, desc: "구슬을 끌어당기는 범위 +30" },
+      luck:      { name: "클로버",    icon: "passive_luck",      maxLevel: 5, desc: "행운 +10% (물약 드랍, 상자 대박 확률)" },
+      growth:    { name: "왕관",      icon: "passive_growth",    maxLevel: 5, desc: "얻는 경험치 +8%" },
+      curse:     { name: "해골",      icon: "passive_curse",     maxLevel: 5, desc: "적 생성 +10%, 적 체력 +10%, 적 속도 +5% (경험치도 많이)" },
+      revival:   { name: "부활",      icon: "passive_revival",   maxLevel: 2, desc: "죽으면 체력을 전부 회복하고 부활 (+1회)" },
+      choices:   { name: "선택의 폭", icon: "passive_choices",   maxLevel: MAX_CHOICES - START_CHOICES, noSlot: true, desc: "레벨업 카드 +1장 (최대 5장)" },
+    };
+
+    // --- 패시브 레벨당 수치 (여기 값만 바꿔도 밸런스 조절 가능) ---
+    const P_MIGHT = 0.10;       // 힘: 피해 +10%
+    const P_MAXHP = 0.20;       // 튼튼함: 최대 체력 +20%
+    const P_REGEN = 0.2;        // 회복: 초당 +0.2
+    const P_COOLDOWN = 0.08;    // 빠른 공격: 간격 -8%
+    const P_AREA = 0.10;        // 촛대: 범위 +10%
+    const P_PROJSPEED = 0.10;   // 팔보호대: 발사체 속도 +10%
+    const P_DURATION = 0.10;    // 주문서: 지속 +10%
+    const P_MOVE = 0.10;        // 날개: 이동 속도 +10%
+    const P_MAGNET = 30;        // 자석: 범위 +30px
+    const P_LUCK = 0.10;        // 클로버: 행운 +10%
+    const P_GROWTH = 0.08;      // 왕관: 경험치 +8%
+    const P_CURSE_SPAWN = 0.10; // 해골: 적 생성 +10%
+    const P_CURSE_HP = 0.10;    // 해골: 적 체력 +10%
+    const P_CURSE_SPEED = 0.05; // 해골: 적 속도 +5%
+    const P_REVIVE_INVINCIBLE = 2; // 부활 직후 무적 시간 (초)
+
+    // 가진 패시브의 레벨 (없으면 0)
+    function passiveLevel(key) {
+      const p = player.passives.find((it) => it.type === key);
+      return p ? p.level : 0;
+    }
+    // 무기 계산 때 그때그때 읽는 배수들
+    function damageMul()    { return 1 + P_MIGHT * passiveLevel("might"); }
+    function areaMul()      { return 1 + P_AREA * passiveLevel("area"); }
+    function projSpeedMul() { return 1 + P_PROJSPEED * passiveLevel("projspeed"); }
+    function durationMul()  { return 1 + P_DURATION * passiveLevel("duration"); }
+    function extraAmount()  { return passiveLevel("amount"); }
+    function luckMul()      { return 1 + P_LUCK * passiveLevel("luck"); }
+    function xpMul()        { return 1 + P_GROWTH * passiveLevel("growth"); }
+    function curseLevel()   { return passiveLevel("curse"); }
+
+    // 패시브 레벨이 바뀔 때마다 플레이어의 능력치를 '기본값 × 레벨'로 다시 계산
+    //   (누적 곱셈 대신 매번 새로 계산하므로 어디서 올려도 값이 정확함)
+    function recalcStats() {
+      const oldMax = player.maxHp;
+      player.maxHp = Math.round(PLAYER_MAX_HP * (1 + P_MAXHP * passiveLevel("maxhp")));
+      if (player.maxHp > oldMax) player.hp += player.maxHp - oldMax;   // 최대 체력이 오른 만큼 현재 체력도 +
+      player.hp = Math.min(player.hp, player.maxHp);
+      player.speed = PLAYER_SPEED * (1 + P_MOVE * passiveLevel("move"));
+      player.attackSpeed = 1 - P_COOLDOWN * passiveLevel("cooldown");
+      player.pickupRadius = PICKUP_RADIUS + P_MAGNET * passiveLevel("magnet");
+      player.choices = START_CHOICES + passiveLevel("choices");
+    }
+
+    // 패시브 새로 얻기 / 한 레벨 올리기 (카드와 상자가 같이 씀)
+    function gainPassive(key) {
+      const owned = player.passives.find((it) => it.type === key);
+      if (owned) owned.level += 1;
+      else player.passives.push({ type: key, level: 1 });
+      recalcStats();
+    }
+
+    // =====================================================================
+    // 2-3. 적 종류 목록 (위에서부터 순서대로 등장. 언제 열리는지는 아래 '새 몬스터가 열리는 레벨' 참고)
     //   shape    : 그림 파일 이름 (assets 폴더의 ghost.png, bat.png ... 확장자 빼고 적음)
     //   color    : 죽을 때 튀는 파편 색 (그림과 비슷한 색으로 맞춤)
     //   r        : 크기(반지름)    speed : 속도    hp : 체력    damage : 닿으면 깎는 체력
@@ -331,29 +1405,62 @@
     //   splitInto: 죽을 때 갈라져 나오는 작은 적 수
     // =====================================================================
     const ENEMY_TYPES = [
-      { key: "basic",    name: "유령",     shape: "ghost",    color: "#d8dee9", r: 14, speed: 60,  hp: 2, damage: 10, xp: 1, behavior: "chase" },
-      { key: "rusher",   name: "박쥐",     shape: "bat",      color: "#c8793f", r: 12, speed: 110, hp: 1, damage: 8,  xp: 1, behavior: "chase" },
-      { key: "tank",     name: "외눈 거인", shape: "cyclops",  color: "#f0a860", r: 20, speed: 40,  hp: 4, damage: 15, xp: 3, behavior: "chase" },
-      { key: "splitter", name: "거미",     shape: "spider",   color: "#b5651d", r: 14, speed: 65,  hp: 3, damage: 10, xp: 2, behavior: "chase", splitInto: 2 },
-      { key: "shooter",  name: "마법사",   shape: "wizard",   color: "#9b5de5", r: 13, speed: 70,  hp: 3, damage: 8,  xp: 3, behavior: "ranged" },
-      { key: "charger",  name: "붉은 게",  shape: "crab",     color: "#e63946", r: 18, speed: 50,  hp: 4, damage: 15, xp: 4, behavior: "charger" },
+      // 약해 보이는 순서대로 등장. 뒤로 갈수록 체력·피해·경험치가 커짐
+      // 1레벨 박쥐   : 작고 약한 기본 적. 한 방에 죽지만 살짝 빠름
+      { key: "bat",     name: "박쥐",     shape: "bat",     color: "#c8793f", r: 11, speed: 80,  hp: 1, damage: 8,  xp: 1, behavior: "chase" },
+      // 2레벨 붉은 게 : 걷다가 멈춰서 번쩍인 뒤 돌진. 번쩍일 때 옆으로 피하면 빗나감
+      { key: "crab",    name: "붉은 게",  shape: "crab",    color: "#e63946", r: 14, speed: 50,  hp: 2, damage: 10, xp: 2, behavior: "charger" },
+      // 3레벨 거미    : 죽으면 새끼 거미 2마리로 갈라짐
+      { key: "spider",  name: "거미",     shape: "spider",  color: "#b5651d", r: 14, speed: 55,  hp: 3, damage: 10, xp: 2, behavior: "chase", splitInto: 2 },
+      // 4레벨 유령    : 빠르게 달라붙는 추격자
+      { key: "ghost",   name: "유령",     shape: "ghost",   color: "#d8dee9", r: 14, speed: 95,  hp: 3, damage: 12, xp: 3, behavior: "chase" },
+      // 5레벨 외눈 거인: 느리지만 크고 튼튼하며 한 대가 아픔
+      { key: "cyclops", name: "외눈 거인", shape: "cyclops", color: "#f0a860", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase" },
     ];
 
-    const OLD_ENEMY_CHANCE = 0.3;        // 이전 레벨의 적이 섞여 나올 확률 (나머지 70%는 현재 레벨의 적)
+    // --- 마지막 보스: 사신 마법사 (원작의 '사신'처럼 정해진 시간에 나타남. 잡으면 클리어) ---
+    //   일반 몬스터 목록에는 없고, BOSS_TIME 에 한 마리만 나옴. 시간·레벨 보정을 받지 않는 고정 능력치
+    const BOSS_TIME = 30 * 60;           // 보스가 나타나는 시간 (초) = 30분
+    const BOSS_TYPE = { key: "boss", name: "사신 마법사", shape: "wizard", color: "#9b5de5", r: 40, speed: 125, hp: 2500, damage: 30, xp: 0, behavior: "boss" };
+    const BOSS_HP_PER_LEVEL = 120;       // 보스 체력 = 기본 + 플레이어 레벨 × 이 값 (강한 빌드일수록 보스도 튼튼하게)
+    const BOSS_FOCUS_RANGE = 450;        // 보스가 이 거리 안이면 자동 조준 무기가 부하 대신 보스를 노림
+    //   플레이어를 계속 쫓아오므로(플레이어보다 느림) 도망치며 싸우고, 가까이 오면 근접 무기로도 때릴 수 있음
+    const BOSS_SHOT_INTERVAL = 1.6;      // 탄환(5갈래) 발사 간격
+    const BOSS_SHOT_COUNT = 5;           // 한 번에 쏘는 탄환 수 (부채꼴)
+    const BOSS_BULLET_SPEED = 230;
+    const BOSS_BULLET_DAMAGE = 15;
+    const BOSS_SUMMON_INTERVAL = 12;     // 부하 소환 간격 (초)
+    const BOSS_SUMMON_COUNT = 4;         // 한 번에 소환하는 부하 수 (지금 단계의 몬스터)
+
+    // --- 새 몬스터가 열리는 레벨: 갈수록 간격이 길어짐 ---
+    //   1레벨 박쥐로 시작 → 3레벨 붉은 게 → 7레벨 거미 → 12레벨 유령 → 18레벨 외눈 거인 → 25레벨 마법사
+    //   간격이 3, 4, 5, 6, 7 ... 로 1씩 늘어남. 6종이 다 나온 뒤에도 같은 규칙으로
+    //   33레벨 박쥐(더 강함) → 42레벨 붉은 게 ... 처럼 다시 돈다
+    const FIRST_UNLOCK_LEVEL = 3;        // 두 번째 몬스터가 열리는 레벨
+    const UNLOCK_GAP_START = 4;          // 그다음 몬스터까지의 간격 (3 → 7 이므로 4)
+    const UNLOCK_GAP_GROWTH = 1;         // 간격이 매번 얼마나 늘어나는지
+
+    // --- 새 몬스터가 서서히 등장하게 하는 값들 ---
+    //   레벨업 직후엔 새 몬스터가 조금만 나오고, 시간이 지나면서 비율이 서서히 올라감
+    const NEW_ENEMY_SHARE_START = 0.15;  // 레벨업 직후 새 몬스터 비율 (15%)
+    const NEW_ENEMY_SHARE_MAX = 0.7;     // 다 올라왔을 때 새 몬스터 비율 (70%)
+    const NEW_ENEMY_RAMP_TIME = 15;      // START → MAX 까지 걸리는 시간 (초)
+    const PREV_MAIN_CHANCE = 0.7;        // 새 몬스터가 아닐 때, 바로 전 레벨의 주력 몬스터가 나올 확률 (나머지는 더 옛날 몬스터)
 
     // --- 레벨 보정: 플레이어 레벨이 1 오를 때마다 새로 나오는 적이 이만큼 강해짐 ---
-    const ENEMY_HP_PER_LEVEL = 0.10;     // 체력 +10%
-    const ENEMY_SPEED_PER_LEVEL = 0.03;  // 속도 +3%
-    const ENEMY_SPEED_CAP = 1.6;         // 속도는 최대 1.6배까지만
-    const ENEMY_DAMAGE_PER_LEVEL = 0.05; // 피해 +5%
+    const ENEMY_HP_PER_LEVEL = 0.08;     // 체력 +8%
+    // --- 시간 보정: 오래 버틸수록 새로 나오는 적이 튼튼해짐 (무기가 쌓여 후반이 너무 쉬워지는 것 방지) ---
+    const ENEMY_HP_TIME_START = 300;     // 이 시간(초) 이후부터 적용
+    const ENEMY_HP_PER_MINUTE = 0.07;    // 그 뒤로 1분마다 체력 +7% (30분이면 약 2.75배)
+    const ENEMY_SPEED_PER_LEVEL = 0.02;  // 속도 +2%
+    const ENEMY_SPEED_CAP = 1.3;         // 속도는 최대 1.3배까지만 (30분 클리어 페이스에 맞춤)
+    const ENEMY_DAMAGE_PER_LEVEL = 0.04; // 피해 +4%
+    const ENEMY_DAMAGE_CAP = 1.6;        // 피해는 최대 1.6배까지만 (30분 시점에도 한 방이 너무 아프지 않게)
 
-    // --- 원거리형 ---
-    const SHOOTER_RANGE = 220;           // 이 거리까지만 다가오고 멈춤
-    const SHOOTER_INTERVAL = 2.0;        // 탄환 발사 간격 (초)
-    const ENEMY_BULLET_SPEED = 180;      // 적 탄환 속도
-    const ENEMY_BULLET_RADIUS = 5;       // 적 탄환 크기
+    // --- 적 탄환 (사신 마법사가 씀) ---
+    const ENEMY_BULLET_RADIUS = 6;       // 적 탄환 크기
 
-    // --- 돌격대장: 걷기 → 멈춰서 번쩍 → 돌진 을 반복 ---
+    // --- 붉은 게 (돌진): 걷기 → 멈춰서 번쩍 → 돌진 을 반복 ---
     const CHARGER_WALK_TIME = 3.0;       // 걷는 시간 (초)
     const CHARGER_WINDUP_TIME = 0.5;     // 돌진 전 멈춰서 번쩍이는 시간
     const CHARGER_DASH_TIME = 0.4;       // 돌진 시간
@@ -361,6 +1468,64 @@
 
     const SHOW_BANNER = true;            // 화면 위 "새로운 적" 안내 문구를 띄울지 (false로 바꾸면 꺼짐)
     const BANNER_TIME = 2.5;             // 안내 문구가 보이는 시간 (초)
+
+    // --- 엘리트 몬스터: 일정 시간마다 나오는 크고 강한 몬스터. 잡으면 보물 상자를 반드시 떨어뜨림 ---
+    //   그 시점의 주력 몬스터가 커진 모습으로 나오고, 금색 고리로 표시됨
+    const ELITE_INTERVAL = 60;           // 몇 초마다 엘리트가 나오는지
+    const ELITE_SIZE = 1.8;              // 크기 배수
+    const ELITE_HP = 12;                 // 체력 배수
+    const ELITE_DAMAGE = 1.5;            // 피해 배수
+    const ELITE_SPEED = 0.9;             // 속도 배수 (조금 느림)
+    const ELITE_XP = 5;                  // 구슬 경험치 배수
+
+    // --- 꽃 울타리: 일정 시간마다 식인꽃이 플레이어를 둥글게 에워싸고 천천히 조여 옴 (원작의 꽃 벽) ---
+    //   꽃은 "벽"이라서 몸으로 뚫고 지나갈 수 없음 → 몇 송이를 부숴서 틈을 내고 빠져나가야 함
+    //   일반 몬스터 목록에는 없고 이 이벤트로만 나옴. 시간이 지나면 저절로 시듦
+    const FLOWER_TYPE = { key: "flower", name: "식인꽃", shape: "flower", color: "#b565d8", r: 13, speed: 12, hp: 4, damage: 6, xp: 1, behavior: "ring" };
+    const FLOWER_FIRST_TIME = 120;       // 첫 꽃 울타리가 나오는 시간 (초) = 2분
+    const FLOWER_INTERVAL = 150;         // 그 뒤로 몇 초마다 나오는지
+    const FLOWER_RING_RADIUS = 300;      // 처음 에워싸는 원의 반지름 (화면 세로 절반 360 보다 작아야 다 보임)
+    const FLOWER_MIN_RADIUS = 140;       // 이만큼까지 조여 오면 멈춤
+    const FLOWER_GAP = 10;               // 꽃과 꽃 사이 틈 (플레이어 지름 28 보다 작아야 못 빠져나감)
+    const FLOWER_LIFETIME = 20;          // 이 시간이 지나면 남은 꽃이 시들어 사라짐 (초)
+    const FLOWER_WAKE_TIME = 0.7;        // 막 피어날 때 번쩍이며 피해를 주지 않는 시간 (초)
+
+    // --- 보물 상자: 열면 게임이 멈추고, 룰렛이 돈 뒤 가진 무기·능력이 자동으로 강화됨 ---
+    //   (일반 몬스터는 상자를 떨어뜨리지 않음. 엘리트와 미믹만 떨어뜨림)
+    const CHEST_LIFETIME = 30;           // 상자가 남아 있는 시간 (초). 지나면 사라짐
+    const CHEST_BLINK_TIME = 5;          // 사라지기 몇 초 전부터 깜빡일지
+    const CHEST_RADIUS = 14;             // 상자 크기 (몸이 닿으면 열림. 구슬처럼 끌려오지는 않음)
+    const CHEST_ROLL_TIME = 1.5;         // 룰렛이 도는 시간 (초)
+    // 상자 하나에서 나오는 강화 개수. weight = 나올 비중 (더하면 100 → % 로 읽으면 됨)
+    const CHEST_COUNTS = [
+      { count: 1, weight: 75 },
+      { count: 3, weight: 20 },
+      { count: 5, weight: 5 },
+    ];
+
+    // --- 바닥 아이템: 몬스터가 낮은 확률로 떨어뜨림. 닿으면 바로 발동 (구슬처럼 끌려오지는 않음) ---
+    const ITEM_DROP_CHANCE = 0.02;       // 몬스터를 잡을 때 아이템이 떨어질 확률 (2%)
+    const ITEM_LIFETIME = 30;            // 아이템이 남아 있는 시간 (초)
+    const ITEM_RADIUS = 11;              // 아이템 크기
+    const ITEM_HEAL = 30;                // 빨간 물약 회복량
+    const FREEZE_TIME = 10;              // 파란 물약: 적이 멈춰 있는 시간 (초)
+    const CROSS_ELITE_DAMAGE = 0.3;      // 회색 물약: 엘리트는 죽지 않고 최대 체력의 30% 피해
+    const ITEM_TYPES = [
+      { key: "heal",   weight: 45, sprite: "potion_red",   text: "체력 +30",   color: "#ff6b6b" },   // 체력 회복
+      { key: "magnet", weight: 30, sprite: "potion_green", text: "자석!",       color: "#7dffb0" },   // 화면의 모든 구슬 흡수
+      { key: "wipe",   weight: 15, sprite: "potion_grey",  text: "전멸!",       color: "#ffffff" },   // 화면의 적 전멸
+      { key: "freeze", weight: 10, sprite: "potion_blue",  text: "빙결! (10초)", color: "#7df9ff" },   // 10초간 적 정지
+    ];
+
+    // --- 미믹: 보물 상자인 척하는 몬스터 ---
+    //   20레벨부터, 떨어지는 상자 중 일부가 미믹. 닿으면 보상 대신 몬스터로 변해 덤벼듦
+    //   화면 위 안내 문구는 띄우지 않음 (몰래 섞여 나오는 게 재미)
+    //   구별법: 미믹 상자는 몇 초에 한 번씩 살짝 떨림
+    //   보상: 미믹을 잡으면 진짜 상자를 반드시 떨어뜨림
+    const MIMIC_MIN_LEVEL = 20;          // 이 레벨부터 미믹이 섞여 나옴
+    const MIMIC_CHANCE = 0.25;           // 상자가 미믹일 확률 (25%)
+    const MIMIC_WAKE_TIME = 0.6;         // 정체를 드러낸 뒤 움직이기까지 걸리는 시간 (초). 이동안은 닿아도 피해 없음
+    const MIMIC_TYPE = { key: "mimic", name: "미믹", shape: "mimic", color: "#c8793f", r: 15, speed: 95, hp: 12, damage: 15, xp: 8, behavior: "chase" };
 
     // --- 이펙트 (보기 좋으라고 넣는 연출, 게임 규칙에는 영향 없음) ---
     const HIT_FLASH_TIME = 0.08;         // 맞은 적이 흰색으로 번쩍이는 시간 (초)
@@ -372,13 +1537,22 @@
     // =====================================================================
     // 3. 게임이 기억해야 할 것들 (상태)
     // =====================================================================
-    let player;        // 플레이어 정보 (위치, 체력, 레벨, 무기 등)
+    let player;        // 플레이어 정보 (위치, 체력, 레벨, 무기, 패시브 등)
     let enemies;       // 적 목록
-    let pendingSpawns; // 이번 프레임에 새로 생긴 적 (분열형의 자식). 프레임 끝에 enemies에 합침
-    let enemyBullets;  // 원거리형 적이 쏜 탄환 목록
+    let pendingSpawns; // 이번 프레임에 새로 생긴 적 (거미의 새끼). 프레임 끝에 enemies에 합침
+    let enemyBullets;  // 마법사가 쏜 탄환 목록
     let banner;        // 화면 위 안내 문구 { text, life }
     let bullets;       // 발사체 목록 (탄환, 창, 폭탄 모두 여기)
     let gems;          // 경험치 구슬 목록
+    let chests;        // 바닥에 떨어진 보물 상자 목록
+    let items;         // 바닥에 떨어진 아이템(물약) 목록
+    let zones;         // 바닥에 남아 피해를 주는 지역 목록 (화염병 불바다 등)
+    let eliteTimer;    // 다음 엘리트가 나올 때까지 남은 시간
+    let flowerTimer;   // 다음 꽃 울타리가 나올 때까지 남은 시간
+    let boss;          // 마지막 보스 (나타나기 전에는 null)
+    let freezeTimer;   // 남은 빙결 시간 (0보다 크면 모든 적이 멈춤)
+    let chestRoll;     // 상자 룰렛 진행 정보 (열려 있지 않으면 null)
+    let floatTexts;    // 위로 떠오르며 사라지는 글씨 목록 (상자 보상 안내)
     let effects;       // 폭발·고리 같은 잠깐 보이는 연출 목록
     let particles;     // 작은 파편 목록 (피격 불꽃, 처치 파편)
     let stats;         // 생존 시간, 처치 수
@@ -394,26 +1568,30 @@
     // =====================================================================
     function resetGame() {
       player = {
-        x: W / 2,                 // 화면 한가운데에서 시작
-        y: H / 2,
+        x: WORLD_W / 2,           // 맵 한가운데에서 시작
+        y: WORLD_H / 2,
         r: PLAYER_RADIUS,
         hp: PLAYER_MAX_HP,
         maxHp: PLAYER_MAX_HP,
         invincible: 0,            // 남은 무적 시간
         facingLeft: false,        // 왼쪽을 보고 있는지 (그림 좌우 뒤집기용)
+        facingX: 1, facingY: 0,   // 바라보는 방향 (마지막 이동 방향, 길이 1). 단검·검 휘두르기가 씀
         // --- 강화로 바뀌는 값들 ---
         speed: PLAYER_SPEED,
         damage: 1,
         attackSpeed: 1,           // 발동 간격에 곱함 (작을수록 빠름)
         pickupRadius: PICKUP_RADIUS,
-        magnetCount: 0,           // 자석 카드를 고른 횟수
         choices: START_CHOICES,   // 레벨업 때 나오는 카드 수
+        // --- 패시브 아이템: 시작은 없음. { type: "luck", level: 1 } 형태로 쌓임 ---
+        passives: [],
+        revivesUsed: 0,           // 부활을 몇 번 썼는지
         // --- 레벨 ---
         level: 1,
         xp: 0,
         xpNeed: xpNeedFor(1),
-        // --- 무기: 시작은 기본 탄환만 ---
-        weapons: [{ type: "bullet", level: 1, timer: 0 }],
+        stageChangedAt: 0,        // 마지막으로 새 몬스터가 열린 시각 (새 몬스터 비율 계산용)
+        // --- 무기: 시작은 마법봉(자동 조준)만. 단검은 바라보는 방향으로만 나가서 시작 무기로는 어려움 ---
+        weapons: [{ type: "wand", level: 1, timer: 0 }],
       };
       enemies = [];
       pendingSpawns = [];
@@ -421,6 +1599,15 @@
       banner = null;
       bullets = [];
       gems = [];
+      chests = [];
+      items = [];
+      zones = [];
+      eliteTimer = ELITE_INTERVAL;
+      flowerTimer = FLOWER_FIRST_TIME;
+      boss = null;
+      freezeTimer = 0;
+      cancelChestRoll();
+      floatTexts = [];
       effects = [];
       particles = [];
       stats = { time: 0, kills: 0 };
@@ -431,63 +1618,117 @@
 
       gameoverBox.style.display = "none";   // 팝업 창 숨기기
       levelupBox.style.display = "none";
+      chestBox.style.display = "none";
+      clearBox.style.display = "none";
+      helpBox.style.display = "none";
+      candyBox.style.display = "none";
+      updateCamera();
       requestAnimationFrame(gameLoop);      // 게임 루프 시작
     }
 
     // =====================================================================
     // 5. 키보드 입력 기억하기
     // =====================================================================
+    // WASD 는 "입력된 글자"가 아니라 "키보드에서의 위치"(e.code)로 알아냄
+    //   → 한글 입력 상태(W 를 누르면 'ㅈ' 이 들어옴)나 Caps Lock 이 켜져 있어도 똑같이 동작
+    const KEY_POSITIONS = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d", KeyH: "h" };
+
+    function keyName(e) {
+      return KEY_POSITIONS[e.code] || (e.key || "").toLowerCase();
+    }
+
     window.addEventListener("keydown", (e) => {
-      keys[e.key.toLowerCase()] = true;
+      const name = keyName(e);
+      if (name === "h" && !e.repeat) { toggleHelp(); return; }          // H: 도움말 열기/닫기
+      if (name === "escape" && state === "help") { toggleHelp(); return; }
+      // Cmd/Ctrl/Alt 와 함께 누른 키는 단축키이므로 무시
+      //   → 맥은 Cmd 를 누른 채 누른 키의 "뗌" 신호를 안 보내서, 기억해 두면 영원히 눌린 걸로 남음
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        for (const k in keys) keys[k] = false;
+        return;
+      }
+      keys[name] = true;
       // 방향키를 누르면 페이지가 스크롤되는 걸 막음
-      if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(e.key.toLowerCase())) {
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(name)) {
         e.preventDefault();
       }
     });
     window.addEventListener("keyup", (e) => {
-      keys[e.key.toLowerCase()] = false;
+      const name = keyName(e);
+      // Cmd/Ctrl/Alt 를 떼는 순간에도 전부 초기화 (그 사이 놓친 "뗌" 신호 대비)
+      if (["meta", "control", "alt"].includes(name)) {
+        for (const k in keys) keys[k] = false;
+        return;
+      }
+      keys[name] = false;
+    });
+    // 창을 벗어났다 돌아오면 "눌린 채로 남은 키"가 없게 초기화 (혼자 계속 걸어가는 것 방지)
+    window.addEventListener("blur", () => {
+      for (const k in keys) keys[k] = false;
     });
 
     // =====================================================================
-    // 6. 적 만들기: 화면 바깥 가장자리 아무 곳에서 등장
+    // 6. 적 만들기: 지금 보이는 화면의 바깥 가장자리 아무 곳에서 등장
     // =====================================================================
     function spawnEnemy() {
-      const margin = 30;                          // 화면 밖으로 얼마나 떨어져서 나올지
-      const side = Math.floor(Math.random() * 4); // 0=위, 1=아래, 2=왼쪽, 3=오른쪽
-      let x, y;
-
-      if (side === 0)      { x = Math.random() * W; y = -margin; }
-      else if (side === 1) { x = Math.random() * W; y = H + margin; }
-      else if (side === 2) { x = -margin;           y = Math.random() * H; }
-      else                 { x = W + margin;        y = Math.random() * H; }
-
+      const { x, y } = randomEdgePosition(30);    // 화면 밖 30px 지점 (맵 안쪽 변만)
       enemies.push(makeEnemy(pickEnemyType(), x, y));
     }
 
-    // 지금 플레이어 레벨의 "주력" 적 종류 (6종이 끝나면 다시 처음부터)
-    function currentEnemyType() {
-      return ENEMY_TYPES[(player.level - 1) % ENEMY_TYPES.length];
+    // 지금 레벨이 "몇 번째 몬스터 단계"인지 (0 = 박쥐만, 1 = 붉은 게까지, 2 = 거미까지 ...)
+    //   레벨 1~2 → 0,  3~6 → 1,  7~11 → 2,  12~17 → 3,  18~24 → 4,  25~32 → 5,  33~ → 6 (박쥐 재등장) ...
+    function enemyStage(level) {
+      let stage = 0;
+      let unlockAt = FIRST_UNLOCK_LEVEL;   // 다음 단계가 열리는 레벨
+      let gap = UNLOCK_GAP_START;
+      while (level >= unlockAt) {
+        stage += 1;
+        unlockAt += gap;
+        gap += UNLOCK_GAP_GROWTH;
+      }
+      return stage;
     }
 
-    // 이번에 나올 적 종류 고르기: 70% 현재 종류, 30% 이전에 나왔던 종류
+    // 지금의 "주력" 적 종류 (6종이 끝나면 다시 처음부터)
+    function currentEnemyType() {
+      return ENEMY_TYPES[enemyStage(player.level) % ENEMY_TYPES.length];
+    }
+
+    // 이번에 나올 적 종류 고르기: 새 몬스터 비율은 레벨업 후 서서히 늘어나고, 나머지는 기존 몬스터
     function pickEnemyType() {
       const current = currentEnemyType();
-      const unlocked = ENEMY_TYPES.slice(0, Math.min(player.level, ENEMY_TYPES.length));
+      const stage = enemyStage(player.level);
+      const unlocked = ENEMY_TYPES.slice(0, Math.min(stage + 1, ENEMY_TYPES.length));
       const olds = unlocked.filter((t) => t !== current);
-      if (olds.length > 0 && Math.random() < OLD_ENEMY_CHANCE) {
-        return olds[Math.floor(Math.random() * olds.length)];
-      }
-      return current;
+      if (olds.length === 0) return current;             // 첫 단계: 박쥐뿐
+
+      // 새 몬스터가 나올 확률 (레벨업 후 시간이 지날수록 커짐)
+      if (Math.random() < newEnemyShare()) return current;
+
+      // 기존 몬스터: 대부분은 바로 전 단계의 주력, 가끔 더 옛날 몬스터
+      const len = ENEMY_TYPES.length;
+      const prevMain = ENEMY_TYPES[(stage - 1 + len) % len];
+      if (Math.random() < PREV_MAIN_CHANCE) return prevMain;
+      return olds[Math.floor(Math.random() * olds.length)];
+    }
+
+    // 지금 새 몬스터가 차지하는 비율: 새 몬스터가 열린 직후 15% → 15초에 걸쳐 70% 로 서서히 증가
+    function newEnemyShare() {
+      const sinceUnlock = stats.time - player.stageChangedAt;
+      const t = Math.max(0, Math.min(sinceUnlock / NEW_ENEMY_RAMP_TIME, 1));   // 0 → 1
+      return NEW_ENEMY_SHARE_START + (NEW_ENEMY_SHARE_MAX - NEW_ENEMY_SHARE_START) * t;
     }
 
     // 적 하나 만들기: 종류 표의 값에 레벨 보정을 곱함
-    //   isChild = true 면 분열형에서 갈라져 나온 작은 적
+    //   isChild = true 면 거미에서 갈라져 나온 새끼 거미
     function makeEnemy(type, x, y, isChild = false) {
       const lv = player.level - 1;
-      const cycle = Math.floor(lv / ENEMY_TYPES.length);   // 6종을 몇 바퀴 돌았는지
-      const speedMul = Math.min(1 + ENEMY_SPEED_PER_LEVEL * lv, ENEMY_SPEED_CAP);
-      const hpMul = 1 + ENEMY_HP_PER_LEVEL * lv;
-      const damageMul = 1 + ENEMY_DAMAGE_PER_LEVEL * lv;
+      const cycle = Math.floor(enemyStage(player.level) / ENEMY_TYPES.length);   // 6종을 몇 바퀴 돌았는지
+      const curse = curseLevel();                                  // 해골(패시브): 적이 더 튼튼하고 빠름
+      const speedMul = Math.min(1 + ENEMY_SPEED_PER_LEVEL * lv, ENEMY_SPEED_CAP) * (1 + P_CURSE_SPEED * curse);
+      const lateMinutes = Math.max(0, stats.time - ENEMY_HP_TIME_START) / 60;
+      const hpMul = DIFFICULTY * (1 + ENEMY_HP_PER_LEVEL * lv) * (1 + ENEMY_HP_PER_MINUTE * lateMinutes) * (1 + P_CURSE_HP * curse);
+      const damageMul = DIFFICULTY * Math.min(1 + ENEMY_DAMAGE_PER_LEVEL * lv, ENEMY_DAMAGE_CAP);
 
       const e = {
         id: nextEnemyId++,
@@ -504,16 +1745,18 @@
         splitInto: type.splitInto || 0,
         cd: {},                             // 무기별 재타격 대기시간
       };
+      e.maxHp = e.hp;
 
       if (isChild) {
-        // 분열형의 자식: 작고 약하지만 빠름, 더 이상 갈라지지 않음
+        // 새끼 거미: 작고 약하지만 빠름, 더 이상 갈라지지 않음
         e.r = Math.round(type.r / 2);
         e.hp = Math.max(1, Math.round(1 * hpMul));
-        e.speed *= 1.4;
+        e.speed *= 1.15;
+        e.damage = Math.ceil(e.damage / 2);   // 새끼는 피해도 절반 (수가 많아서 몰려 죽기 쉬움)
         e.xp = 1 * (cycle + 1);
         e.splitInto = 0;
       }
-      if (e.behavior === "ranged")  e.shootTimer = SHOOTER_INTERVAL;
+      if (e.behavior === "boss")    { e.shootTimer = BOSS_SHOT_INTERVAL; e.summonTimer = BOSS_SUMMON_INTERVAL; }
       if (e.behavior === "charger") { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
       return e;
     }
@@ -536,10 +1779,228 @@
       }
     }
 
+    // 엘리트 몬스터 등장: 지금의 주력 몬스터를 크고 강하게 만들어 화면 가장자리에서 내보냄
+    function spawnElite() {
+      const { x, y } = randomEdgePosition(50);
+      const e = makeEnemy(currentEnemyType(), x, y);
+      e.elite = true;
+      e.r = Math.round(e.r * ELITE_SIZE);
+      e.hp = Math.round(e.hp * ELITE_HP);
+      e.damage = Math.round(e.damage * ELITE_DAMAGE);
+      e.speed *= ELITE_SPEED;
+      e.xp *= ELITE_XP;
+      e.maxHp = e.hp;
+      enemies.push(e);
+      return e;
+    }
+
+    // 꽃 울타리 등장: 지금 플레이어 자리를 중심으로 식인꽃을 둥글게 심음
+    //   꽃 수는 원둘레에 맞춰 자동 계산 (틈이 FLOWER_GAP 이 되게). 맵 밖(돌담)에 걸리는 자리는 건너뜀 → 거긴 돌담이 막아 줌
+    //   MAX_ENEMIES 제한은 받지 않음 (한 송이라도 빠지면 울타리에 구멍이 나므로)
+    function spawnFlowerRing() {
+      const cx = player.x, cy = player.y;
+      const count = Math.floor((Math.PI * 2 * FLOWER_RING_RADIUS) / (FLOWER_TYPE.r * 2 + FLOWER_GAP));
+      for (let i = 0; i < count; i++) {
+        const a = (Math.PI * 2 * i) / count;
+        const x = cx + Math.cos(a) * FLOWER_RING_RADIUS;
+        const y = cy + Math.sin(a) * FLOWER_RING_RADIUS;
+        if (x < WALL_SIZE || x > WORLD_W - WALL_SIZE || y < WALL_SIZE || y > WORLD_H - WALL_SIZE) continue;
+        const e = makeEnemy(FLOWER_TYPE, x, y);
+        e.speed = FLOWER_TYPE.speed;        // 조여 오는 속도는 레벨 보정 없이 고정 (빨라지면 피할 틈이 없음)
+        e.ringX = cx; e.ringY = cy;         // 울타리의 중심 (플레이어를 따라오지 않고 이 자리로 조여 옴)
+        e.life = FLOWER_LIFETIME;
+        e.wakeTimer = FLOWER_WAKE_TIME;
+        enemies.push(e);
+      }
+    }
+
+    // 마지막 보스 등장: 화면 밖에서 나타남. 시간·레벨 보정 없이 BOSS_TYPE 의 고정 능력치
+    function spawnBoss() {
+      const { x, y } = randomEdgePosition(80);
+      boss = makeEnemy(BOSS_TYPE, x, y);
+      boss.boss = true;
+      boss.r = BOSS_TYPE.r; boss.hp = Math.round((BOSS_TYPE.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY); boss.maxHp = boss.hp;
+      boss.speed = BOSS_TYPE.speed; boss.damage = Math.round(BOSS_TYPE.damage * DIFFICULTY); boss.xp = 0;
+      enemies.push(boss);
+      spawnParticles(x, y, "#9b5de5", 30, 260);
+      return boss;
+    }
+
     // 경험치 구슬 떨어뜨리기 (적이 죽은 자리에). value = 이 구슬의 경험치
     function spawnGem(x, y, value = 1) {
       const r = GEM_RADIUS + (value >= 2 ? 2 : 0) + (value >= 4 ? 1 : 0);   // 값진 구슬은 조금 큼
       gems.push({ x, y, r, value });
+    }
+
+    // 보물 상자 떨어뜨리기
+    //   realOnly = true 면 절대 미믹이 아님 (미믹을 잡고 받는 진짜 상자용)
+    function spawnChest(x, y, realOnly = false) {
+      // 맵 경계 밖에서 죽은 적이 떨어뜨려도 주울 수 있게 맵 안쪽으로 밀어 넣음
+      const cx = Math.max(CHEST_RADIUS, Math.min(WORLD_W - CHEST_RADIUS, x));
+      const cy = Math.max(CHEST_RADIUS, Math.min(WORLD_H - CHEST_RADIUS, y));
+      const mimic = !realOnly && player.level >= MIMIC_MIN_LEVEL && Math.random() < MIMIC_CHANCE;
+      chests.push({ x: cx, y: cy, r: CHEST_RADIUS, life: CHEST_LIFETIME, mimic, seed: Math.random() * 10 });
+    }
+
+    // 미믹 상자에 닿았을 때: 보상 대신 몬스터로 변함
+    function wakeMimic(chest) {
+      chest.dead = true;
+      const e = makeEnemy(MIMIC_TYPE, chest.x, chest.y);
+      e.wakeTimer = MIMIC_WAKE_TIME;       // 잠깐 제자리에서 번쩍이다가 덤벼듦 (도망칠 틈)
+      enemies.push(e);
+      floatTexts.push({ x: chest.x, y: chest.y - 20, text: "미믹!", color: "#ff1744", life: 1.2, maxLife: 1.2 });
+      spawnParticles(chest.x, chest.y, "#ff1744", 10, 160);
+    }
+
+    // weight 가 있는 목록에서 하나 뽑기 (weight 가 클수록 잘 나옴)
+    function pickWeighted(list) {
+      const total = list.reduce((sum, r) => sum + r.weight, 0);
+      let roll = Math.random() * total;
+      for (const r of list) {
+        roll -= r.weight;
+        if (roll < 0) return r;
+      }
+      return list[0];
+    }
+
+    // 진화 조건: 무기가 최대 레벨이고, 짝이 되는 패시브도 최대 레벨
+    function canEvolve(w) {
+      const d = WEAPONS[w.type];
+      if (!d.evolvesTo || w.level < WEAPON_MAX_LEVEL) return false;
+      return passiveLevel(d.needs) >= PASSIVES[d.needs].maxLevel;
+    }
+
+    // 상자 열기: 게임을 멈추고, 가진 무기·능력을 1·3·5개 자동 강화한 뒤 룰렛 연출을 보여줌
+    //   forcedCount 를 주면 그 개수만큼 강화 (테스트용)
+    function openChest(chest, forcedCount) {
+      chest.dead = true;
+      state = "chest";
+      effects.push({ kind: "chest", x: chest.x, y: chest.y, life: 0.8, maxLife: 0.8 });
+      spawnParticles(chest.x, chest.y, "#ffd60a", 12, 160);
+
+      // 강화는 여는 순간 바로 적용하고, 화면에는 룰렛이 끝난 뒤에 보여줌
+      // 클로버(패시브): 3개·5개가 나올 비중이 행운만큼 커짐
+      const counts = CHEST_COUNTS.map((c) => ({ count: c.count, weight: c.count > 1 ? c.weight * luckMul() : c.weight }));
+      const count = forcedCount || pickWeighted(counts).count;
+      const names = buildUpgradePool(false).map((u) => u.title);   // 룰렛에 돌아갈 이름들
+      const gains = [];
+
+      // 진화: 최대 레벨 무기 + 짝 패시브가 있으면 상자 하나당 하나씩 진화 (원작과 같음)
+      const evolvable = player.weapons.find((w) => canEvolve(w));
+      if (evolvable) {
+        const from = WEAPONS[evolvable.type], to = WEAPONS[from.evolvesTo];
+        evolvable.type = from.evolvesTo;
+        evolvable.level = WEAPON_MAX_LEVEL;
+        evolvable.timer = 0;
+        gains.push({ title: `진화! ${from.name} → ${to.name}`, desc: to.desc, iconUrl: weaponIconUrl(evolvable.type), evolved: true });
+        spawnParticles(player.x, player.y, "#ffd60a", 30, 240);
+      }
+      for (let i = gains.length; i < count; i++) {
+        const pool = buildUpgradePool(false);        // 새 무기는 안 나옴. 가진 것만 강화
+        if (pool.length === 0) break;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        pick.apply();
+        gains.push(pick);
+      }
+      if (gains.length === 0) {
+        // 강화할 것이 하나도 없으면 체력을 전부 회복
+        player.hp = player.maxHp;
+        gains.push({ title: "체력 전부 회복", desc: "더 강화할 것이 없습니다" });
+      }
+
+      startChestRoll(names, gains);
+      return gains;
+    }
+
+    // 룰렛 연출: 이름이 빠르게 바뀌다가 멈추고, 결과가 하나씩 나타난 뒤 '받기' 버튼이 켜짐
+    function startChestRoll(names, gains) {
+      cancelChestRoll();
+      chestSlot.textContent = "";
+      chestList.innerHTML = "";
+      chestOk.disabled = true;
+      chestBox.style.display = "flex";
+
+      chestRoll = { gains, shown: 0, timers: [] };
+      if (names.length === 0) names = ["?"];
+      const spin = setInterval(() => {
+        chestSlot.textContent = names[Math.floor(Math.random() * names.length)];
+      }, 70);
+      chestRoll.timers.push(spin);
+      chestRoll.timers.push(setTimeout(() => {
+        clearInterval(spin);
+        chestSlot.textContent = `강화 ${gains.length}개!`;
+        gains.forEach((g, i) => {
+          chestRoll.timers.push(setTimeout(() => showChestGain(g), 250 * i));
+        });
+        chestRoll.timers.push(setTimeout(() => { chestOk.disabled = false; }, 250 * gains.length));
+      }, CHEST_ROLL_TIME * 1000));
+    }
+
+    // 강화 결과 한 줄을 창에 추가
+    function showChestGain(g) {
+      const row = document.createElement("div");
+      row.className = "gain" + (g.evolved ? " evolved" : "");
+      row.innerHTML = `${g.title}<small>${g.desc}</small>`;
+      setIcon(row, g.iconUrl);
+      chestList.appendChild(row);
+      if (chestRoll) chestRoll.shown += 1;
+    }
+
+    // 룰렛 연출을 건너뛰고 결과를 전부 보여줌 (테스트용 + 재시작 때 정리용)
+    function finishChestRoll() {
+      if (!chestRoll) return;
+      for (const t of chestRoll.timers) { clearInterval(t); clearTimeout(t); }
+      chestRoll.timers = [];
+      chestSlot.textContent = `강화 ${chestRoll.gains.length}개!`;
+      for (let i = chestRoll.shown; i < chestRoll.gains.length; i++) showChestGain(chestRoll.gains[i]);
+      chestOk.disabled = false;
+    }
+
+    function cancelChestRoll() {
+      if (chestRoll) for (const t of chestRoll.timers) { clearInterval(t); clearTimeout(t); }
+      chestRoll = null;
+    }
+
+    // '받기' 버튼: 창을 닫고 게임 재개
+    function closeChest() {
+      if (state !== "chest" || chestOk.disabled) return;
+      cancelChestRoll();
+      chestBox.style.display = "none";
+      resumeGame();
+    }
+
+    // ---------------------------------------------------------------------
+    // 바닥 아이템 (물약)
+    // ---------------------------------------------------------------------
+    function spawnItem(x, y, forcedKey) {
+      const type = ITEM_TYPES.find((t) => t.key === forcedKey) || pickWeighted(ITEM_TYPES);
+      const ix = Math.max(ITEM_RADIUS, Math.min(WORLD_W - ITEM_RADIUS, x));
+      const iy = Math.max(ITEM_RADIUS, Math.min(WORLD_H - ITEM_RADIUS, y));
+      items.push({ x: ix, y: iy, r: ITEM_RADIUS, life: ITEM_LIFETIME, type });
+    }
+
+    // 아이템에 닿았을 때: 종류에 따라 바로 발동
+    function useItem(item) {
+      item.dead = true;
+      const type = item.type;
+      floatTexts.push({ x: item.x, y: item.y - 16, text: type.text, color: type.color, life: 1.4, maxLife: 1.4 });
+      spawnParticles(item.x, item.y, type.color, 8, 140);
+
+      if (type.key === "heal") {
+        player.hp = Math.min(player.maxHp, player.hp + ITEM_HEAL);
+      } else if (type.key === "magnet") {
+        // 화면의 모든 구슬이 거리와 상관없이 끌려옴
+        for (const g of gems) { g.magnet = true; g.speed = Math.max(g.speed || 0, 400); }
+      } else if (type.key === "wipe") {
+        // 화면의 적 전멸. 엘리트는 죽지 않고 최대 체력의 일부만 깎임
+        for (const e of enemies) {
+          damageEnemy(e, e.boss ? Math.ceil(e.maxHp * 0.1) : e.elite ? Math.ceil(e.maxHp * CROSS_ELITE_DAMAGE) : e.hp);
+        }
+        enemyBullets = [];
+        effects.push({ x: player.x, y: player.y, r: Math.hypot(W, H), life: 0.35, maxLife: 0.35 });
+      } else if (type.key === "freeze") {
+        freezeTimer = FREEZE_TIME * durationMul();   // 주문서(패시브)로 더 길게
+      }
     }
 
     // 레벨업에 필요한 경험치 (레벨이 높을수록 가파르게 늘어남)
@@ -560,13 +2021,21 @@
       if (e.hp <= 0) {
         e.dead = true;
         stats.kills += 1;
+        if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
         spawnGem(e.x, e.y, e.xp);
+        if (e.type === "mimic") {
+          spawnChest(e.x, e.y, true);                                  // 미믹을 잡으면 진짜 상자를 반드시 떨어뜨림
+        } else if (e.elite) {
+          spawnChest(e.x, e.y);                                        // 엘리트를 잡으면 상자를 반드시 떨어뜨림 (20레벨부터는 미믹일 수도)
+        } else if (Math.random() < ITEM_DROP_CHANCE * luckMul()) {          // 클로버(패시브)가 있으면 더 자주
+          spawnItem(e.x, e.y);                                         // 일반 몬스터: 낮은 확률로 바닥 아이템
+        }
 
         // 처치 이펙트: 적 색깔 파편이 사방으로 퍼짐 + 바깥으로 퍼지는 고리
         spawnParticles(e.x, e.y, e.color, DEATH_PARTICLES, 180);
         effects.push({ kind: "ring", x: e.x, y: e.y, r: e.r, color: e.color, life: 0.25, maxLife: 0.25 });
 
-        // 분열형: 죽은 자리 양옆에 작은 적이 갈라져 나옴
+        // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴
         // (적 목록을 도는 중일 수 있어서 바로 넣지 않고 pendingSpawns에 모아둠)
         for (let i = 0; i < e.splitInto; i++) {
           const angle = (Math.PI * 2 * i) / e.splitInto + Math.random();
@@ -581,6 +2050,9 @@
     // =====================================================================
     // 가장 가까운 적
     function findNearestEnemy() {
+      // 보스전: 보스가 사정거리(BOSS_FOCUS_RANGE) 안에 있으면 부하보다 보스를 먼저 노림
+      if (boss && !boss.dead && Math.hypot(boss.x - player.x, boss.y - player.y) < BOSS_FOCUS_RANGE) return boss;
+
       let nearest = null;
       let nearestDist = Infinity;
 
@@ -597,17 +2069,24 @@
       return nearest;
     }
 
-    // 주변(반경 80)에 적이 가장 많이 모인 적 (폭탄 목표용)
-    function findCrowdedEnemy() {
+    // 적 e 가 광선 줄 안에 들어 있는지 (가로줄이면 y, 세로줄이면 x 를 비교)
+    function isInLine(e, line, half) {
+      const offset = line.horizontal ? e.y - line.pos : e.x - line.pos;
+      return Math.abs(offset) < half + e.r;
+    }
+
+    // 가로줄·세로줄 가운데 적이 가장 많이 걸리는 줄 찾기 (마법 지팡이 목표용)
+    //   각 적의 위치를 줄의 중심 후보로 놓고, 그 줄에 걸리는 적 수를 세서 가장 많은 것을 고름
+    function findBestLine(half) {
+      const onScreen = enemies.filter((e) => !e.dead && inView(e.x, e.y));
       let best = null;
-      let bestCount = -1;
-      for (const e of enemies) {
-        if (e.dead) continue;
-        let count = 0;
-        for (const other of enemies) {
-          if (!other.dead && Math.hypot(other.x - e.x, other.y - e.y) < 80) count++;
+      for (const horizontal of [true, false]) {
+        for (const center of onScreen) {
+          const line = { horizontal, pos: horizontal ? center.y : center.x };
+          let count = 0;
+          for (const e of onScreen) if (isInLine(e, line, half)) count++;
+          if (!best || count > best.count) best = { ...line, count };
         }
-        if (count > bestCount) { bestCount = count; best = e; }
       }
       return best;
     }
@@ -619,19 +2098,71 @@
       for (const w of player.weapons) {
         const def = WEAPONS[w.type];
 
-        // 매 프레임 실행되는 것 (회전 구체 움직임 등)
+        // 매 프레임 실행되는 것 (회전 도끼 움직임, 보호막 재충전 등)
         if (def.update) def.update(w, dt);
 
         // 간격마다 실행되는 것 (탄환, 창, 오라, 폭탄)
         if (def.fire && def.interval > 0) {
           w.timer -= dt;
           if (w.timer <= 0) {
-            def.fire(w);
+            fireWeapon(w, def);
             const base = def.getInterval ? def.getInterval(w) : def.interval;
             w.timer = base * player.attackSpeed;
+            // 복제기(패시브): 발사 무기는 0.12초 간격으로 레벨만큼 한 번 더 발사 (noAmount 무기는 제외)
+            if (!def.noAmount && extraAmount() > 0) {
+              w.refire = [];
+              for (let i = 1; i <= extraAmount(); i++) w.refire.push(0.12 * i);
+            }
           }
         }
+        // 복제기로 예약된 추가 발사
+        if (w.refire && w.refire.length) {
+          w.refire = w.refire.map((t) => t - dt);
+          while (w.refire.length && w.refire[0] <= 0) { w.refire.shift(); fireWeapon(w, def); }
+        }
       }
+    }
+
+    // 무기 한 번 발사 + 이번에 새로 생긴 발사체에 팔보호대(패시브) 속도 배수 적용
+    function fireWeapon(w, def) {
+      const before = bullets.length;
+      def.fire(w);
+      const m = projSpeedMul();
+      if (m === 1) return;
+      for (let i = before; i < bullets.length; i++) {
+        const b = bullets[i];
+        b.vx *= m; b.vy *= m;
+        if (b.ax) { b.ax *= m; b.ay *= m; }
+      }
+    }
+
+    // 무기 한 방의 피해 = (기본 공격력 + 무기 고유 보너스) × 무기 레벨 보정
+    //   기본 공격력은 '강한 공격' 카드로, 레벨 보정은 그 무기를 강화할 때마다 +20%
+    function weaponDamage(w, bonus = 0) {
+      return (player.damage + bonus) * (1 + WEAPON_LEVEL_DAMAGE * (w.level - 1)) * damageMul() * ((WEAPONS[w.type] || {}).damageMul || 1);   // 힘(패시브) 배수 × 진화 배수
+    }
+
+    // 적을 (fromX, fromY) 반대쪽으로 power 픽셀만큼 밀어냄 (엘리트는 절반만)
+    function pushEnemy(e, fromX, fromY, power) {
+      if (e.boss) return;                                   // 보스는 밀리지 않음
+      const dx = e.x - fromX, dy = e.y - fromY;
+      const len = Math.hypot(dx, dy) || 1;
+      const p = e.elite ? power * 0.5 : power;
+      e.x += (dx / len) * p;
+      e.y += (dy / len) * p;
+    }
+
+    // 플레이어가 피해를 입을 때 (적에게 닿음, 적 탄환에 맞음). 보호막이 켜져 있으면 대신 막아 줌
+    function hurtPlayer(amount) {
+      const shield = player.weapons.find((w) => (w.type === "shield" || w.type === "shield_evo") && w.ready);
+      const victory = player.weapons.find((w) => w.type === "victory");
+      if (victory) WEAPONS.victory.retaliate(victory);          // 승리의 검: 맞으면 반격
+      if (shield) {
+        WEAPONS[shield.type].breakShield(shield);
+      } else {
+        player.hp -= Math.max(1, amount - passiveLevel("armor"));   // 갑옷(패시브): 레벨당 -1, 최소 1
+      }
+      player.invincible = INVINCIBLE_TIME;   // 막았을 때도 잠깐 무적 (연달아 맞지 않게)
     }
 
     // =====================================================================
@@ -660,24 +2191,69 @@
       if (mx !== 0 || my !== 0) {
         // 대각선일 때 속도가 빨라지지 않게 길이를 1로 맞춤
         const len = Math.hypot(mx, my);
+        player.facingX = mx / len;                 // 바라보는 방향 기억
+        player.facingY = my / len;
         player.x += (mx / len) * player.speed * dt;
         player.y += (my / len) * player.speed * dt;
       }
-      // 화면 밖으로 못 나가게 가둠
-      player.x = Math.max(player.r, Math.min(W - player.r, player.x));
-      player.y = Math.max(player.r, Math.min(H - player.r, player.y));
+      // 식인꽃은 벽: 겹치면 플레이어를 꽃 바깥으로 밀어냄 (뚫고 지나갈 수 없음) + 닿은 값으로 피해
+      for (const e of enemies) {
+        if (e.behavior !== "ring" || e.dead) continue;
+        const dx = player.x - e.x, dy = player.y - e.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const overlap = player.r + e.r - dist;
+        if (overlap <= 0) continue;
+        player.x += (dx / dist) * overlap;
+        player.y += (dy / dist) * overlap;
+        const harmless = e.wakeTimer > 0 || freezeTimer > 0 || e.frozenTimer > 0;
+        if (player.invincible <= 0 && !harmless) hurtPlayer(e.damage);
+      }
+      // 맵 밖(돌담)으로 못 나가게 가둠 + 카메라가 따라옴
+      player.x = Math.max(WALL_SIZE + player.r, Math.min(WORLD_W - WALL_SIZE - player.r, player.x));
+      player.y = Math.max(WALL_SIZE + player.r, Math.min(WORLD_H - WALL_SIZE - player.r, player.y));
+      updateCamera();
 
       // 무적 시간 줄이기
       if (player.invincible > 0) player.invincible -= dt;
 
+      // 회복(패시브): 1초마다 레벨 × 0.2 만큼 체력 회복
+      if (passiveLevel("regen") > 0 && player.hp < player.maxHp) {
+        player.hp = Math.min(player.maxHp, player.hp + P_REGEN * passiveLevel("regen") * dt);
+      }
+
       // --- 적 생성 (시간이 갈수록 간격이 짧아짐) ---
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnEnemy();
-        // 60초 동안 서서히 SPAWN_START → SPAWN_MIN 으로 줄어듦
-        const progress = Math.min(stats.time / 60, 1);
-        spawnTimer = SPAWN_START - (SPAWN_START - SPAWN_MIN) * progress;
+        // 최소 간격에 도달한 뒤에는 한 번에 나오는 수가 계속 늘어남 (10분 1마리 → 20분 2마리 → 30분 3마리, 그 사이는 확률로)
+        const extra = Math.max(0, (stats.time - SPAWN_RAMP_TIME) / SPAWN_DOUBLE_TIME);
+        const burst = 1 + Math.floor(extra) + (Math.random() < extra % 1 ? 1 : 0);
+        for (let i = 0; i < burst; i++) if (enemies.length < MAX_ENEMIES) spawnEnemy();
+
+        // SPAWN_RAMP_TIME 초 동안 서서히 SPAWN_START → SPAWN_MIN 으로 줄어듦
+        const progress = Math.min(stats.time / SPAWN_RAMP_TIME, 1);
+        spawnTimer = (SPAWN_START - (SPAWN_START - SPAWN_MIN) * progress) / (1 + P_CURSE_SPAWN * curseLevel()) / DIFFICULTY;   // 해골: 더 자주
       }
+
+      // --- 엘리트 등장 (1분마다). 보스가 나온 뒤에는 안 나옴 ---
+      eliteTimer -= dt;
+      if (eliteTimer <= 0) {
+        if (!boss) spawnElite();
+        eliteTimer = ELITE_INTERVAL;
+      }
+
+      // --- 꽃 울타리 등장 (2분에 처음, 그 뒤 2분 30초마다). 보스가 나온 뒤에는 안 나옴 ---
+      flowerTimer -= dt;
+      if (flowerTimer <= 0) {
+        if (!boss) spawnFlowerRing();
+        flowerTimer = FLOWER_INTERVAL;
+      }
+
+      // --- 마지막 보스: 30분에 등장 (문구 없이 조용히. 화면 위 보스 체력바로 알 수 있음) ---
+      if (!boss && stats.time >= BOSS_TIME) spawnBoss();
+
+      // --- 빙결 시간 줄이기 (파란 물약) ---
+      const frozen = freezeTimer > 0;
+      if (frozen) freezeTimer -= dt;
 
       // --- 적 이동 (행동 방식별) + 무기별 재타격 대기시간 줄이기 ---
       for (const e of enemies) {
@@ -687,25 +2263,42 @@
         const dirX = dx / len;    // 플레이어 쪽 방향 (길이 1)
         const dirY = dy / len;
 
-        if (e.behavior === "ranged") {
-          // 원거리형: 일정 거리까지만 다가오고, 가까워지면 멈춰서 탄환을 쏨
-          if (len > SHOOTER_RANGE) {
-            e.x += dirX * e.speed * dt;
-            e.y += dirY * e.speed * dt;
-          }
-          const onScreen = e.x > 0 && e.x < W && e.y > 0 && e.y < H;
-          if (onScreen) e.shootTimer -= dt;
+        // 식인꽃: 수명이 다하면 시들어 사라짐 (구슬·처치 수 없음)
+        if (e.life !== undefined) {
+          e.life -= dt;
+          if (e.life <= 0) { e.dead = true; spawnParticles(e.x, e.y, e.color, 4, 90); continue; }
+        }
+
+        if ((frozen || e.frozenTimer > 0) && !e.boss) {
+          // 빙결 중(파란 물약 전체 빙결, 또는 빙결 광선에 맞은 개별 빙결): 움직이지도, 쏘지도, 돌진하지도 않음
+          if (e.frozenTimer > 0) e.frozenTimer -= dt;
+        } else if (e.wakeTimer > 0) {
+          // 막 정체를 드러낸 미믹: 잠깐 제자리에 있음
+          e.wakeTimer -= dt;
+        } else if (e.behavior === "boss") {
+          // 사신 마법사: 플레이어를 계속 쫓아오며 5갈래 탄환을 쏘고, 주기적으로 부하를 소환
+          e.x += dirX * e.speed * dt;
+          e.y += dirY * e.speed * dt;
+          e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
-            enemyBullets.push({
-              x: e.x, y: e.y,
-              vx: dirX * ENEMY_BULLET_SPEED, vy: dirY * ENEMY_BULLET_SPEED,
-              r: ENEMY_BULLET_RADIUS,
-              damage: e.damage,
-            });
-            e.shootTimer = SHOOTER_INTERVAL;
+            const base = Math.atan2(dirY, dirX);
+            for (let i = 0; i < BOSS_SHOT_COUNT; i++) {
+              const a = base + (i - (BOSS_SHOT_COUNT - 1) / 2) * 0.22;
+              enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY) });
+            }
+            e.shootTimer = BOSS_SHOT_INTERVAL;
+          }
+          e.summonTimer -= dt;
+          if (e.summonTimer <= 0) {
+            for (let i = 0; i < BOSS_SUMMON_COUNT; i++) {
+              const a = (Math.PI * 2 * i) / BOSS_SUMMON_COUNT;
+              if (enemies.length < MAX_ENEMIES) pendingSpawns.push(makeEnemy(currentEnemyType(), e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70));
+            }
+            e.summonTimer = BOSS_SUMMON_INTERVAL;
+            spawnParticles(e.x, e.y, "#9b5de5", 16, 200);
           }
         } else if (e.behavior === "charger") {
-          // 돌격대장: 걷기(walk) → 멈춰서 번쩍(windup) → 돌진(dash) 반복
+          // 붉은 게(돌진): 걷기(walk) → 멈춰서 번쩍(windup) → 돌진(dash) 반복
           e.modeTimer -= dt;
           if (e.mode === "walk") {
             e.x += dirX * e.speed * dt;
@@ -723,6 +2316,14 @@
             e.y += e.dashY * CHARGER_DASH_SPEED * dt;
             if (e.modeTimer <= 0) { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
           }
+        } else if (e.behavior === "ring") {
+          // 식인꽃(울타리): 플레이어가 아니라 울타리 중심 쪽으로 천천히 조여 오다가 FLOWER_MIN_RADIUS 에서 멈춤
+          const rx = e.ringX - e.x, ry = e.ringY - e.y;
+          const dist = Math.hypot(rx, ry);
+          if (dist > FLOWER_MIN_RADIUS) {
+            e.x += (rx / dist) * e.speed * dt;
+            e.y += (ry / dist) * e.speed * dt;
+          }
         } else {
           // 기본(chase): 플레이어 쪽으로 곧장
           e.x += dirX * e.speed * dt;
@@ -736,48 +2337,83 @@
       // --- 무기 발동 ---
       updateWeapons(dt);
 
-      // --- 발사체 이동 ---
+      // --- 발사체 이동 (속성에 따라: 중력, 되돌아오기, 튕김, 수명) ---
       for (const b of bullets) {
+        if (b.life !== undefined) { b.life -= dt; if (b.life <= 0) { if (b.onExpire) b.onExpire(b); b.dead = true; continue; } }
+        if (b.gravity) b.vy += b.gravity * dt;                           // 던지는 망치: 포물선
+        if (b.ax !== undefined) {                                        // 던지는 방패: 되돌아옴
+          b.vx += b.ax * dt;
+          b.vy += b.ay * dt;
+          // 방향이 뒤집히는 순간, 돌아오는 길에 다시 때릴 수 있게 맞은 목록을 비움
+          if (!b.turned && b.vx * b.startDirX + b.vy * b.startDirY < 0) { b.turned = true; b.hitIds.clear(); }
+        }
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
-        // 폭탄: 목표 지점에 도착했으면 폭발
+        // 화면 가장자리에서 튕김 (마법 구슬, 튕기는 칼). 튕기면 맞은 목록을 비워서 같은 적을 다시 때릴 수 있음
+        if (b.bounces > 0) {
+          let bounced = false;
+          if (b.x < cam.x + b.r && b.vx < 0) { b.x = cam.x + b.r; b.vx = -b.vx; bounced = true; }
+          if (b.x > cam.x + W - b.r && b.vx > 0) { b.x = cam.x + W - b.r; b.vx = -b.vx; bounced = true; }
+          if (b.y < cam.y + b.r && b.vy < 0) { b.y = cam.y + b.r; b.vy = -b.vy; bounced = true; }
+          if (b.y > cam.y + H - b.r && b.vy > 0) { b.y = cam.y + H - b.r; b.vy = -b.vy; bounced = true; }
+          if (bounced) { b.bounces -= 1; if (b.hitIds) b.hitIds.clear(); if (b.onBounce) b.onBounce(b); }
+        }
+
+        // 화염병: 목표 지점에 도착하면 바닥에 불바다
         if (b.kind === "bomb") {
           const remain = Math.hypot(b.targetX - b.x, b.targetY - b.y);
           if (remain < 8) {
-            for (const e of enemies) {
-              if (Math.hypot(e.x - b.x, e.y - b.y) < b.explodeRadius + e.r) damageEnemy(e, b.damage);
-            }
-            effects.push({ x: b.x, y: b.y, r: b.explodeRadius, life: 0.3, maxLife: 0.3 });
+            zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow });
+            effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40" });
             b.dead = true;
           }
         }
       }
-      // 화면 밖으로 나간 발사체 제거
-      bullets = bullets.filter((b) => !b.dead && b.x > -40 && b.x < W + 40 && b.y > -40 && b.y < H + 40);
+      // 화면 밖으로 나간 발사체 제거 (여유는 발사체마다 다를 수 있음: 망치는 위로 높이 올라감)
+      bullets = bullets.filter((b) => !b.dead && inView(b.x, b.y, b.margin || 40));
 
       // --- 충돌: 발사체 ↔ 적 ---
       for (const b of bullets) {
-        if (b.kind === "bomb") continue;             // 폭탄은 닿아도 안 터지고 목표까지 감
+        if (b.noHit) continue;                       // 화염병은 닿아도 안 터지고 목표까지 감
         for (const e of enemies) {
           if (e.dead || !circlesTouch(b, e)) continue;
-
-          if (b.kind === "spear") {
-            // 관통: 같은 적은 한 번만 때리고 계속 날아감
-            if (b.hitIds.has(e.id)) continue;
+          if (b.hitIds) {
+            if (b.hitIds.has(e.id)) continue;        // 관통 중 같은 적은 한 번만
             b.hitIds.add(e.id);
-            damageEnemy(e, b.damage);
+          }
+          if (b.onHit) { b.onHit(b); break; }        // 닿으면 터지는 것 (폭탄)
+          damageEnemy(e, b.damage);
+          if (b.pierce > 0) {
+            b.pierce -= 1;                           // 관통: 계속 날아감
           } else {
-            // 기본 탄환: 적 하나 맞고 사라짐
-            damageEnemy(e, b.damage);
-            b.dead = true;
+            b.dead = true;                           // 단검·마법탄: 적 하나 맞고 사라짐
             break;
           }
         }
       }
       bullets = bullets.filter((b) => !b.dead);
+
+      // --- 바닥 지역(불바다): 안에 있는 적에게 주기적으로 피해 ---
+      for (const z of zones) {
+        z.life -= dt;
+        z.tick -= dt;
+        if (z.follow) {                                 // 진화한 불바다: 플레이어 쪽으로 천천히 따라옴
+          const dx = player.x - z.x, dy = player.y - z.y, len = Math.hypot(dx, dy) || 1;
+          if (len > 30) { z.x += (dx / len) * 60 * dt; z.y += (dy / len) * 60 * dt; }
+        }
+        if (z.tick <= 0) {
+          z.tick = z.interval;
+          for (const e of enemies) {
+            if (!e.dead && Math.hypot(e.x - z.x, e.y - z.y) < z.r + e.r) damageEnemy(e, z.damage);
+          }
+        }
+      }
+      zones = zones.filter((z) => z.life > 0);
+
       enemies = enemies.filter((e) => !e.dead);
-      if (pendingSpawns.length > 0) {          // 분열형에서 갈라져 나온 적 합치기
+      enemies = enemies.filter((e) => !e.dead);
+      if (pendingSpawns.length > 0) {          // 거미에서 갈라져 나온 새끼 합치기
         enemies = enemies.concat(pendingSpawns);
         pendingSpawns = [];
       }
@@ -799,9 +2435,10 @@
       // --- 충돌: 적 ↔ 플레이어 ---
       if (player.invincible <= 0) {
         for (const e of enemies) {
+          if (frozen && !e.boss) continue; // 빙결 중인 적은 닿아도 피해를 주지 않음 (보스는 안 얼음)
+          if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
           if (circlesTouch(e, player)) {
-            player.hp -= e.damage;
-            player.invincible = INVINCIBLE_TIME;
+            hurtPlayer(e.damage);
             break;               // 한 프레임에 한 번만 맞음
           }
         }
@@ -809,17 +2446,15 @@
 
       // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
       for (const b of enemyBullets) {
+        if (frozen) continue;              // 빙결 중엔 적 탄환도 멈춤
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         if (circlesTouch(b, player)) {
           b.dead = true;
-          if (player.invincible <= 0) {
-            player.hp -= b.damage;
-            player.invincible = INVINCIBLE_TIME;
-          }
+          if (player.invincible <= 0) hurtPlayer(b.damage);
         }
       }
-      enemyBullets = enemyBullets.filter((b) => !b.dead && b.x > -40 && b.x < W + 40 && b.y > -40 && b.y < H + 40);
+      enemyBullets = enemyBullets.filter((b) => !b.dead && inView(b.x, b.y, 40));
 
       // --- 안내 문구 시간 줄이기 ---
       if (banner) {
@@ -830,8 +2465,8 @@
       // --- 구슬 끌어당기기 + 줍기 ---
       const pickupArea = { x: player.x, y: player.y, r: player.pickupRadius };
       for (const g of gems) {
-        // 매 프레임 "지금 범위 안인지"를 새로 판정
-        if (circlesTouch(pickupArea, g)) {
+        // 매 프레임 "지금 범위 안인지"를 새로 판정 (상자의 자석 보상을 받은 구슬은 거리와 상관없이 끌려옴)
+        if (g.magnet || circlesTouch(pickupArea, g)) {
           // 범위 안: 플레이어 쪽으로 이동, 점점 빨라짐 (막 들어왔으면 시작 속도부터)
           g.speed = (g.speed || GEM_PULL_SPEED) + GEM_PULL_ACCEL * dt;
           const dx = player.x - g.x;
@@ -847,19 +2482,50 @@
         // 플레이어 몸에 닿으면 획득
         if (circlesTouch(player, g)) {
           g.dead = true;
-          player.xp += g.value;
+          player.xp += g.value * xpMul();   // 왕관(패시브): 경험치 배수
         }
       }
       gems = gems.filter((g) => !g.dead);
 
-      // --- 게임오버 확인 ---
+      // --- 떠오르는 글씨: 위로 올라가며 사라짐 ---
+      for (const f of floatTexts) { f.y -= 30 * dt; f.life -= dt; }
+      floatTexts = floatTexts.filter((f) => f.life > 0);
+
+      // --- 바닥 아이템: 시간이 지나면 사라지고, 몸이 닿으면 바로 발동 ---
+      for (const it of items) {
+        it.life -= dt;
+        if (it.life <= 0) { it.dead = true; continue; }
+        if (circlesTouch(player, it)) useItem(it);
+      }
+      items = items.filter((it) => !it.dead);
+
+      // --- 보물 상자: 시간이 지나면 사라지고, 몸이 닿으면 열림 ---
+      let openedChest = false;
+      for (const c of chests) {
+        c.life -= dt;
+        if (c.life <= 0) { c.dead = true; continue; }
+        if (!c.dead && circlesTouch(player, c)) {
+          if (c.mimic) { wakeMimic(c); continue; }
+          openChest(c);
+          openedChest = true;              // 상자 창이 떴으니 이번 프레임은 여기까지
+          break;
+        }
+      }
+      chests = chests.filter((c) => !c.dead);
+
+      // --- 게임오버 확인 (부활 패시브가 남아 있으면 대신 부활) ---
       if (player.hp <= 0) {
-        player.hp = 0;
-        gameOver();
-        return;
+        if (player.revivesUsed < passiveLevel("revival")) {
+          revivePlayer();
+        } else {
+          player.hp = 0;
+          gameOver();
+          return;
+        }
       }
 
       // --- 레벨업 확인 (한 프레임에 한 번만) ---
+      if (openedChest) return;             // 상자 창이 떠 있으면 레벨업은 창을 닫은 다음 프레임에
       if (player.xp >= player.xpNeed) {
         levelUp();
       }
@@ -870,6 +2536,77 @@
     // =====================================================================
     function draw() {
       ctx.clearRect(0, 0, W, H);   // 이전 프레임 지우기
+
+      // --- 여기부터는 월드 좌표: 카메라 위치만큼 옮겨서 그림 ---
+      ctx.save();
+      ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
+      if (background) {
+        // 던전 바닥: 맵 전체 그림에서 지금 화면에 보이는 부분만 잘라서 그림
+        const sx = Math.round(cam.x), sy = Math.round(cam.y);
+        ctx.drawImage(background, sx, sy, W, H, sx, sy, W, H);
+      }
+
+      // 바닥 아이템 (물약 그림 + 옅은 흰 원. 사라지기 직전엔 깜빡임)
+      for (const it of items) {
+        const blinkOff = it.life < CHEST_BLINK_TIME && Math.floor(it.life * 6) % 2 === 0;
+        if (blinkOff) continue;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(it.x, it.y, it.r * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if (!drawSprite(it.type.sprite, it.x, it.y, it.r * SPRITE_SCALE)) {
+          ctx.fillStyle = it.type.color;                   // 그림이 없을 때: 색깔 원
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.r * 0.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 보물 상자 (금빛 테두리 원 위에 상자 그림. 사라지기 직전엔 깜빡임)
+      for (const c of chests) {
+        const blinkOff = c.life < CHEST_BLINK_TIME && Math.floor(c.life * 6) % 2 === 0;
+        if (blinkOff) continue;
+        ctx.fillStyle = "rgba(255, 214, 10, 0.18)";
+        ctx.strokeStyle = "rgba(255, 214, 10, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // 미믹 상자는 2.5초에 한 번씩 0.3초 동안 살짝 떨림 (눈썰미가 좋으면 구별 가능)
+        let shake = 0;
+        if (c.mimic) {
+          const phase = (stats.time + c.seed) % 2.5;
+          if (phase < 0.3) shake = Math.sin(phase * 70) * 1.5;
+        }
+        if (!drawSprite("chest", c.x + shake, c.y, c.r * SPRITE_SCALE)) {
+          ctx.fillStyle = "#c8793f";                       // 그림이 없을 때: 갈색 네모
+          ctx.fillRect(c.x - c.r, c.y - c.r * 0.7, c.r * 2, c.r * 1.4);
+        }
+      }
+
+      // 바닥 지역: 불바다 (일렁이는 주황 원)
+      for (const z of zones) {
+        const t = z.life / z.maxLife;
+        if (z.kind === "shadow") {
+          // 그림자 발톱의 흔적: 어두운 보라 원
+          ctx.fillStyle = `rgba(60, 30, 90, ${0.55 * t})`;
+          ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+          continue;
+        }
+        const flicker = 0.85 + Math.sin(stats.time * 18 + z.x) * 0.08;
+        ctx.fillStyle = `rgba(255, 120, 30, ${0.30 * Math.min(1, t * 3)})`;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, z.r * flicker, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255, 200, 80, ${0.35 * Math.min(1, t * 3)})`;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, z.r * 0.55 * flicker, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // 경험치 구슬 (초록 마름모 + 흰 테두리, 끌려오는 중이면 밝은 초록)
       for (const g of gems) {
@@ -890,7 +2627,105 @@
       // 연출: 폭발(주황 원이 점점 옅어짐) / 처치 고리(바깥으로 퍼지며 옅어짐)
       for (const f of effects) {
         const t = f.life / f.maxLife;          // 1 → 0 으로 줄어듦
-        if (f.kind === "ring") {
+        if (f.kind === "chest") {
+          // 열린 상자가 잠깐 남았다가 옅어지며 사라짐
+          ctx.globalAlpha = t;
+          drawSprite("chest_open", f.x, f.y, CHEST_RADIUS * SPRITE_SCALE);
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "slash") {
+          // 검 휘두르기: 방향 앞쪽에 굵은 호(弧)
+          ctx.globalAlpha = t;
+          ctx.strokeStyle = "#e8fdff";
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r * (0.8 + 0.2 * (1 - t)), f.angle - 1.0, f.angle + 1.0);
+          ctx.stroke();
+          ctx.strokeStyle = "#7df9ff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r * 0.7, f.angle - 0.8, f.angle + 0.8);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "bolt") {
+          // 낙뢰: 위에서 내려오는 지그재그 + 바닥 원
+          ctx.globalAlpha = t;
+          ctx.strokeStyle = "#f0feff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          let px = f.x, py = f.y - 220;
+          ctx.moveTo(px, py);
+          for (let i = 1; i <= 6; i++) {
+            const ny = f.y - 220 + (220 * i) / 6;
+            const nx = i === 6 ? f.x : f.x + Math.sin(f.seed * 40 + i * 2.3) * 18;
+            ctx.lineTo(nx, ny);
+          }
+          ctx.stroke();
+          ctx.fillStyle = "rgba(125, 249, 255, 0.35)";
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "flash") {
+          // 별의 문양: 화면 전체가 하얗게 번쩍
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.6 * t})`;
+          ctx.fillRect(cam.x, cam.y, W, H);
+        } else if (f.kind === "star") {
+          // 별의 문양: 오각별
+          ctx.globalAlpha = t;
+          ctx.strokeStyle = "#ffd60a";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for (let i = 0; i <= 5; i++) {
+            const a = -Math.PI / 2 + (i * 2 * Math.PI * 2) / 5;    // 꼭짓점을 두 칸씩 건너뛰면 별이 됨
+            const px = f.x + Math.cos(a) * f.r, py = f.y + Math.sin(a) * f.r;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "cone") {
+          // 화염 방사: 부채꼴 불길
+          ctx.globalAlpha = t;
+          ctx.fillStyle = "rgba(255, 140, 40, 0.5)";
+          ctx.beginPath();
+          ctx.moveTo(f.x, f.y);
+          ctx.arc(f.x, f.y, f.len, f.angle - f.half, f.angle + f.half);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 220, 120, 0.6)";
+          ctx.beginPath();
+          ctx.moveTo(f.x, f.y);
+          ctx.arc(f.x, f.y, f.len * 0.6, f.angle - f.half * 0.5, f.angle + f.half * 0.5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "ray") {
+          // 빙결 광선: 캐릭터에서 뻗어 나가는 하늘색 선
+          ctx.globalAlpha = t;
+          ctx.strokeStyle = "#7df9ff";
+          ctx.lineWidth = f.half * 2;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(f.x, f.y);
+          ctx.lineTo(f.x + Math.cos(f.angle) * f.len, f.y + Math.sin(f.angle) * f.len);
+          ctx.stroke();
+          ctx.strokeStyle = "#f0feff";
+          ctx.lineWidth = f.half * 0.6;
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          ctx.globalAlpha = 1;
+        } else if (f.kind === "beam") {
+          // 마법 지팡이 광선: 화면을 가로지르는 하늘색 띠 + 가운데 흰 심. 시간이 지나며 가늘어지고 옅어짐
+          const outer = f.half * (0.4 + 0.6 * t);
+          const inner = outer * 0.35;
+          for (const [halfWidth, color] of [[outer, `rgba(125, 249, 255, ${0.45 * t})`], [inner, `rgba(240, 254, 255, ${0.9 * t})`]]) {
+            ctx.fillStyle = color;
+            if (f.horizontal) ctx.fillRect(cam.x, f.pos - halfWidth, W, halfWidth * 2);
+            else ctx.fillRect(f.pos - halfWidth, cam.y, halfWidth * 2, H);
+          }
+        } else if (f.kind === "ring") {
           ctx.globalAlpha = t;
           ctx.strokeStyle = f.color;
           ctx.lineWidth = 2;
@@ -899,41 +2734,45 @@
           ctx.stroke();
           ctx.globalAlpha = 1;
         } else {
-          ctx.fillStyle = `rgba(144, 224, 239, ${0.55 * t})`;   // 폭발도 하늘색 (내 공격)
+          ctx.fillStyle = `rgba(${f.rgb || "144, 224, 239"}, ${0.55 * t})`;   // 기본은 하늘색, 화염병은 주황색
           ctx.beginPath();
           ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
-      // 발사체 (종류별로 모양 다름)
+      // 발사체 (그림이 있으면 그림, 없으면 빛나는 구슬. 전부 꼬리가 붙어서 '내 공격'임을 표시)
       for (const b of bullets) {
-        if (b.kind === "spear") {
-          // 관통 창: 진행 방향으로 길쭉한 흰 선
-          const len = Math.hypot(b.vx, b.vy) || 1;
-          ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(b.x - (b.vx / len) * 15, b.y - (b.vy / len) * 15);
-          ctx.lineTo(b.x + (b.vx / len) * 15, b.y + (b.vy / len) * 15);
-          ctx.stroke();
-        } else {
-          // 꼬리: 날아온 방향으로 짧고 옅은 선
-          const color = b.kind === "bomb" ? "#ffffff" : "#7df9ff";   // 폭탄=흰색, 탄환=밝은 하늘색
-          ctx.globalAlpha = 0.35;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = b.r * 1.5;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(b.x - b.vx * BULLET_TRAIL, b.y - b.vy * BULLET_TRAIL);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-          ctx.lineCap = "butt";
+        const heading = Math.atan2(b.vy, b.vx) + Math.PI / 2;   // 그림은 위쪽을 향해 그려져 있어서 90도 보정
+        const color = b.color || "#7df9ff";
 
-          ctx.fillStyle = color;
+        // 꼬리: 날아온 방향으로 옅은 선
+        const trailTime = b.kind === "spear" ? BULLET_TRAIL * 2.2 : BULLET_TRAIL * 1.4;
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = b.kind === "spear" ? 6 : 5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.vx * trailTime, b.y - b.vy * trailTime);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.lineCap = "butt";
+
+        let drew = false;
+        if (b.sprite) {
+          // 그림: spin 이 있으면 빙글빙글, 없으면 날아가는 방향으로
+          drew = drawSprite(b.sprite, b.x, b.y, b.size || 16, { angle: b.spin ? stats.time * b.spin : heading });
+        }
+        if (!drew) {
+          // 빛나는 구슬 (마법탄, 화염구, 마법 구슬): 바깥 빛 + 밝은 속
+          ctx.fillStyle = b.glow ? b.glow + "59" : "rgba(125, 249, 255, 0.35)";
           ctx.beginPath();
-          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.arc(b.x, b.y, b.r * 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = b.color ? color : "#e8fdff";
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * 0.85, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -960,7 +2799,7 @@
         ctx.stroke();
       }
 
-      // 플레이어에 붙어 있는 무기 (오라, 회전 구체)
+      // 플레이어에 붙어 있는 무기 (오라, 회전 도끼, 지팡이, 보호막)
       for (const w of player.weapons) {
         const def = WEAPONS[w.type];
         if (def.draw) def.draw(w);
@@ -968,14 +2807,6 @@
 
       // 플레이어 (기사 그림, 무적 중엔 깜빡임)
       const blink = player.invincible > 0 && Math.floor(player.invincible * 20) % 2 === 0;
-      // 캐릭터를 감싸는 파란 고리: 회색 유령들 사이에서도 내 캐릭터를 바로 찾을 수 있게
-      ctx.fillStyle = "rgba(74, 144, 226, 0.30)";
-      ctx.strokeStyle = "#6fb6ff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.r * 1.55, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
       const drewKnight = drawSprite("knight", player.x, player.y, player.r * SPRITE_SCALE, {
         flip: player.facingLeft,
         white: blink,                      // 무적 중엔 흰색으로 깜빡임
@@ -991,33 +2822,52 @@
         ctx.stroke();
       }
 
-      // 체력바 (왼쪽 위)
-      const barW = 200, barH = 16, barX = 16, barY = 16;
-      ctx.fillStyle = "#444";
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.fillStyle = "#2ecc71";
-      ctx.fillRect(barX, barY, barW * (player.hp / player.maxHp), barH);
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(barX, barY, barW, barH);
-
-      // 경험치바 (체력바 아래, 파란색) + 레벨 표시
-      const xpY = barY + barH + 6;
-      ctx.fillStyle = "#444";
-      ctx.fillRect(barX, xpY, barW, 10);
-      ctx.fillStyle = "#4a90e2";
-      ctx.fillRect(barX, xpY, barW * Math.min(player.xp / player.xpNeed, 1), 10);
-      ctx.strokeRect(barX, xpY, barW, 10);
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px sans-serif";
+      // 떠오르는 글씨 (상자 보상 이름)
+      for (const f of floatTexts) {
+        ctx.globalAlpha = Math.min(f.life / (f.maxLife * 0.5), 1);
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#000";
+        ctx.strokeText(f.text, f.x, f.y);
+        ctx.fillStyle = f.color;
+        ctx.fillText(f.text, f.x, f.y);
+      }
+      ctx.globalAlpha = 1;
       ctx.textAlign = "left";
-      ctx.fillText(`Lv.${player.level}`, barX + barW + 8, xpY + 10);
 
-      // 보유 무기 목록 (경험치바 아래, 작은 글씨)
-      ctx.font = "12px sans-serif";
-      ctx.fillStyle = "#ccc";
-      const weaponLine = player.weapons.map((w) => `${WEAPONS[w.type].name} Lv${w.level}`).join(" · ");
-      ctx.fillText(weaponLine, barX, xpY + 28);
+      // 체력·경험치바 (캐릭터 머리 위를 따라다님)
+      drawPlayerBars();
+
+      ctx.restore();
+      // --- 여기부터는 화면 좌표 (카메라와 상관없이 항상 같은 자리) ---
+
+      if (vignetteLayer) ctx.drawImage(vignetteLayer, 0, 0);   // 화면 가장자리 어둡게
+
+      // 보유한 무기·방어구 목록 (화면 오른쪽에 아이콘으로 세로 나열)
+      drawOwnedList();
+
+      // 화면 밖에 있는 보물 상자를 가리키는 화살표 (화면 가장자리에)
+      drawChestArrows();
+
+      // 보스 체력바 (화면 위 가운데, 보스가 살아 있는 동안)
+      if (boss && !boss.dead) {
+        const bw = 520, bh = 16, bx = (W - bw) / 2, by = 48;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(bx - 4, by - 26, bw + 8, bh + 34);
+        ctx.fillStyle = "#222";
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = "#c77dff";
+        ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), bh);
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, bw, bh);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 15px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${BOSS_TYPE.name}  ${Math.ceil(boss.hp)} / ${boss.maxHp}`, W / 2, by - 8);
+        ctx.textAlign = "left";
+      }
 
       // 안내 문구 (화면 위 가운데, 서서히 사라짐)
       if (banner) {
@@ -1028,13 +2878,6 @@
         ctx.textAlign = "left";
       }
 
-      // 생존 시간, 처치 수 (오른쪽 위)
-      ctx.fillStyle = "#fff";
-      ctx.font = "18px sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(`생존 시간: ${stats.time.toFixed(1)}초`, W - 16, 30);
-      ctx.fillText(`처치: ${stats.kills}`, W - 16, 54);
-      ctx.textAlign = "left";
     }
 
     // ---------------------------------------------------------------------
@@ -1043,10 +2886,138 @@
     // ---------------------------------------------------------------------
     const SPRITE_SCALE = 1.35;   // 그림 크기 = 반지름 × 이 값 × 2 (그림 가장자리에 여백이 있어서 조금 크게)
 
+    // 보유한 무기·방어구를 화면 오른쪽에 아이콘으로 세로 나열 (얻은 순서대로)
+    //   칸마다: 어두운 네모 + 무기 그림 + 오른쪽 아래에 레벨. 보호막은 재충전 중일 때 어둡게 덮이며 차오름
+    function drawOwnedList() {
+      const size = 40, gap = 6;
+      const weaponX = W - 16 - size;             // 오른쪽 끝 열: 무기
+      const passiveX = weaponX - size - gap;     // 그 왼쪽 열: 패시브 아이템
+      drawSlotColumn(player.weapons, WEAPONS, weaponX, size, gap, (w) => w.level >= WEAPON_MAX_LEVEL);
+      // 패시브: 슬롯을 차지하는 것 먼저, '선택의 폭'처럼 자리를 안 차지하는 것은 맨 아래
+      const passives = [...player.passives].sort((a, b) => (PASSIVES[a.type].noSlot ? 1 : 0) - (PASSIVES[b.type].noSlot ? 1 : 0));
+      drawSlotColumn(passives, PASSIVES, passiveX, size, gap, (p) => p.level >= PASSIVES[p.type].maxLevel);
+      ctx.textAlign = "left";
+    }
+
+    // 화면 밖 보물 상자 안내: 상자 쪽 화면 가장자리에 작은 상자 그림 + 금색 화살표
+    //   상자가 화면 안에 들어오면 사라짐. 상자가 사라지기 직전엔 화살표도 같이 깜빡임 (미믹도 똑같이 보임)
+    const CHEST_ARROW_MARGIN = 48;       // 화면 가장자리에서 얼마나 안쪽에 그릴지
+    function drawChestArrows() {
+      for (const c of chests) {
+        if (inView(c.x, c.y, c.r)) continue;
+        if (c.life < CHEST_BLINK_TIME && Math.floor(c.life * 6) % 2 === 0) continue;
+
+        // 화면 한가운데에서 상자 쪽으로 뻗은 선이 화면 가장자리(안쪽 여백)와 만나는 점
+        const dx = c.x - cam.x - W / 2;
+        const dy = c.y - cam.y - H / 2;
+        const scale = Math.min((W / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dx) || 1), (H / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dy) || 1));
+        const x = W / 2 + dx * scale;
+        const y = H / 2 + dy * scale;
+        const angle = Math.atan2(dy, dx);
+
+        // 작은 상자 그림 (금빛 원 위에)
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.strokeStyle = "#ffd60a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        drawSprite("chest", x, y, 11);
+
+        // 상자 방향을 가리키는 세모 (원 바깥쪽에 붙음)
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.fillStyle = "#ffd60a";
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(32, 0);
+        ctx.lineTo(20, -8);
+        ctx.lineTo(20, 8);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 보유 목록 한 열 그리기 (무기 열과 패시브 열이 같이 씀)
+    //   list : 보유 항목 [{type, level, ...}]   defs : WEAPONS 또는 PASSIVES   isMax(item) : 최대 레벨이면 금색 테두리
+    function drawSlotColumn(list, defs, x, size, gap, isMax) {
+      list.forEach((item, i) => {
+        const def = defs[item.type];
+        const y = 16 + i * (size + gap);
+
+        // 칸 배경
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fillRect(x, y, size, size);
+
+        // 그림
+        const cx = x + size / 2, cy = y + size / 2;
+        drawSprite(def.icon, cx, cy, 17);
+
+        // 보호막 재충전 중: 위에서부터 어둡게 덮고, 찰수록 걷힘
+        if (item.type === "shield" && defs === WEAPONS && item.ready === false) {
+          const remain = Math.max(0, Math.min(1, item.recharge / def.getRecharge(item)));
+          ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+          ctx.fillRect(x, y, size, size * remain);
+        }
+
+        // 테두리 (최대 레벨이면 금색)
+        ctx.strokeStyle = def.evolved ? "#ff8c42" : isMax(item) ? "#ffd60a" : "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, size, size);
+
+        // 레벨 숫자 (오른쪽 아래)
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "right";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#000";
+        const label = def.evolved ? "MAX" : `Lv${item.level}`;
+        ctx.strokeText(label, x + size - 3, y + size - 4);
+        ctx.fillStyle = def.evolved ? "#ffd60a" : "#fff";
+        ctx.fillText(label, x + size - 3, y + size - 4);
+      });
+    }
+
+    // 캐릭터 머리 위 체력바(위) + 경험치바(아래)
+    function drawPlayerBars() {
+      const barW = 48;
+      const hpH = 5;
+      const xpH = 3;
+      const x = Math.round(player.x - barW / 2);
+
+      // 캐릭터(보호막 방울) 바로 위. 화면 맨 위에 붙어서 바가 잘릴 것 같으면 캐릭터 아래로 옮김
+      let y = Math.round(player.y - player.r * 1.55 - 12);
+      if (y < 4) y = Math.round(player.y + player.r * 1.55 + 6);
+
+      // 체력바: 남은 체력에 따라 초록 → 노랑 → 빨강
+      const hpRatio = Math.max(0, player.hp / player.maxHp);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x, y, barW, hpH);
+      ctx.fillStyle = hpRatio > 0.5 ? "#2ecc71" : hpRatio > 0.25 ? "#ffd60a" : "#ff1744";
+      ctx.fillRect(x, y, barW * hpRatio, hpH);
+
+      // 경험치바 (파란색)
+      const xpRatio = Math.min(player.xp / player.xpNeed, 1);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x, y + hpH + 1, barW, xpH);
+      ctx.fillStyle = "#4a90e2";
+      ctx.fillRect(x, y + hpH + 1, barW * xpRatio, xpH);
+
+      // 두 바를 감싸는 검은 테두리
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 0.5, y - 0.5, barW + 1, hpH + xpH + 2);
+    }
+
     // 그림 하나 그리기. 그렸으면 true, 그림이 준비 안 됐으면 false
     //   half  : 그림 절반 크기 (가운데에서 가장자리까지)
     //   flip  : 좌우 뒤집기      white : 흰색 실루엣으로 그리기 (맞았을 때)
-    function drawSprite(name, x, y, half, { flip = false, white = false } = {}) {
+    //   angle : 돌리는 각도 (라디안). 무기 그림을 날아가는 방향으로 돌릴 때 씀
+    function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0 } = {}) {
       const sprite = SPRITES[name];
       if (!sprite || !sprite.ready) return false;
       const img = white ? sprite.white : sprite.normal;
@@ -1055,6 +3026,7 @@
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y));
       if (flip) ctx.scale(-1, 1);
+      if (angle) ctx.rotate(angle);
       ctx.drawImage(img, -size / 2, -size / 2, size, size);
       ctx.restore();
       return true;
@@ -1062,19 +3034,62 @@
 
     // 적 하나 그리기
     function drawEnemy(e) {
-      // 붉은 게(돌격대장)는 돌진 직전에 흰색으로 번쩍임 (피하라는 신호)
+      // 붉은 게는 돌진 직전에 흰색으로 번쩍임 (피하라는 신호)
       const flashing = e.mode === "windup" && Math.floor(e.modeTimer * 16) % 2 === 0;
       const hit = e.hitFlash > 0;                       // 방금 맞았으면 흰색으로 번쩍
-      const white = flashing || hit;
+      const waking = e.wakeTimer > 0 && Math.floor(e.wakeTimer * 16) % 2 === 0;   // 막 깨어난 미믹
+      const white = flashing || hit || waking;
 
       // 살아 있는 느낌: 위아래로 살짝 들썩임 (박쥐는 빠르게 파닥파닥)
       const bobSpeed = e.shape === "bat" ? 18 : 7;
       const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12;
 
+      // 보스: 보라색 큰 고리
+      if (e.boss) {
+        ctx.fillStyle = "rgba(155, 93, 229, 0.18)";
+        ctx.strokeStyle = "#c77dff";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // 엘리트: 금색 고리로 표시 (잡으면 상자를 주는 몬스터)
+      if (e.elite) {
+        ctx.fillStyle = "rgba(255, 214, 10, 0.15)";
+        ctx.strokeStyle = "#ffd60a";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.6, 0, Math.PI * 2);      // 그림보다 크게 그려야 가려지지 않음
+        ctx.fill();
+        ctx.stroke();
+      }
+
       const drew = drawSprite(e.shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
         flip: player.x < e.x,              // 플레이어가 있는 쪽을 바라봄
         white,
       });
+
+      // 빙결 중: 옅은 하늘색으로 덮음
+      if (freezeTimer > 0 || e.frozenTimer > 0) {
+        ctx.fillStyle = "rgba(125, 249, 255, 0.35)";
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 엘리트는 머리 위에 체력바 (얼마나 남았는지 알 수 있게)
+      if (e.elite) {
+        const w = e.r * 2, x = e.x - e.r, y = e.y - e.r * 1.6 - 10;
+        ctx.fillStyle = "#222";
+        ctx.fillRect(x, y, w, 4);
+        ctx.fillStyle = "#ffd60a";
+        ctx.fillRect(x, y, w * Math.max(0, e.hp / e.maxHp), 4);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 0.5, y - 0.5, w + 1, 5);
+      }
 
       if (!drew) {
         // 그림을 못 불러왔을 때: 단색 원 + 검은 테두리
@@ -1121,61 +3136,146 @@
       player.level += 1;
       player.xp -= player.xpNeed;
       player.xpNeed = xpNeedFor(player.level);
-      state = "levelup";
 
-      // 카드 후보 만들기: 능력치 강화 + 무기 카드
+      // 이번 레벨업으로 새 몬스터가 열렸는지 확인 (매 레벨마다 열리는 게 아님)
+      const stage = enemyStage(player.level);
+      const unlockedNew = stage > enemyStage(player.level - 1);
+      if (!unlockedNew) {
+        showCards("레벨 업!", `Lv.${player.level} 도달!`, null);
+        return;
+      }
+
+      player.stageChangedAt = stats.time;  // 이 순간부터 새 몬스터가 서서히 늘어남
+      const newEnemy = currentEnemyType();
+      const enemyNote = stage >= ENEMY_TYPES.length        // 6종을 다 본 뒤에는 같은 종류가 더 강해져서 다시 나옴
+        ? `더 강해진 적: ${newEnemy.name}`
+        : `새로운 적: ${newEnemy.name}`;
+      showCards("레벨 업!", `Lv.${player.level} 도달! ${enemyNote}`, enemyNote);
+    }
+
+    // 번개 오라는 그림 파일이 없어서, 보유 목록과 같은 번개 모양을 SVG 그림으로 만들어 씀
+    // 무기 종류 → 카드에 넣을 그림 주소
+    function weaponIconUrl(type) {
+      const def = WEAPONS[type];
+      return `assets/${def.icon}.png`;
+    }
+
+    // 패시브 종류 → 카드에 넣을 그림 주소
+    function passiveIconUrl(key) {
+      return `assets/${PASSIVES[key].icon}.png`;
+    }
+
+    // 카드·결과 줄에 그림 넣기 (그림이 없으면 빈칸으로 둠 → 글자 줄은 그대로 맞춰짐)
+    function setIcon(element, iconUrl) {
+      element.style.backgroundImage = iconUrl ? `url("${iconUrl}")` : "none";
+    }
+
+    // 강화 후보 목록 만들기 (레벨업 카드와 보물 상자가 같이 씀)
+    //   includeNewWeapons = false 면 '새 무기'·'새 아이템'은 빼고, 이미 가진 무기·패시브 강화만 (보물 상자용)
+    function buildUpgradePool(includeNewWeapons) {
       const pool = [];
-      for (const u of UPGRADES) {
-        if (u.canPick && !u.canPick(player)) continue;   // 횟수 제한에 걸린 카드는 제외
-        pool.push({ title: u.name, desc: u.desc, apply: () => u.apply(player) });
+      const passiveSlotsUsed = player.passives.filter((p) => !PASSIVES[p.type].noSlot).length;
+      for (const key in PASSIVES) {
+        const def = PASSIVES[key];
+        const owned = player.passives.find((p) => p.type === key);
+        if (!owned) {
+          if (!includeNewWeapons) continue;                                   // 보물 상자에서는 새 아이템이 나오지 않음
+          if (!def.noSlot && passiveSlotsUsed >= PASSIVE_MAX_SLOTS) continue;  // 패시브 슬롯이 다 찼으면 새 아이템 없음
+          pool.push({
+            title: `새 아이템: ${def.name}`,
+            iconUrl: passiveIconUrl(key),
+            desc: def.desc,
+            isNew: true, isPassive: true,
+            apply: () => gainPassive(key),
+          });
+        } else if (owned.level < def.maxLevel) {
+          pool.push({
+            title: `강화: ${def.name} Lv${owned.level} → Lv${owned.level + 1}`,
+            iconUrl: passiveIconUrl(key),
+            desc: def.desc,
+            isPassive: true,
+            apply: () => gainPassive(key),
+          });
+        }
+      }
+      // 사탕 상자 (원작 Candybox): 무기 슬롯이 남아 있으면 가끔 나오는 카드. 고르면 원하는 무기를 직접 선택
+      if (includeNewWeapons && player.weapons.length < MAX_WEAPONS && candyChoices().length > 0) {
+        pool.push({ title: "사탕 상자", desc: "원하는 무기를 직접 골라 장착합니다", iconUrl: "assets/chest.png", isNew: true, isCandy: true, apply: openCandyBox });
       }
       for (const type in WEAPONS) {
         const def = WEAPONS[type];
+        if (def.evolved) continue;                 // 진화 무기는 카드로 나오지 않음 (상자에서 진화로만)
         const owned = player.weapons.find((w) => w.type === type);
         if (!owned) {
+          if (!includeNewWeapons) continue;        // 보물 상자에서는 새 무기가 나오지 않음
+          if (player.weapons.length >= MAX_WEAPONS) continue;   // 무기 슬롯이 다 찼으면 새 무기 없음
+          if (player.weapons.some((w) => WEAPONS[w.type].evoOf === type)) continue;   // 이미 진화한 무기의 원본은 다시 안 나옴
           pool.push({
             title: `새 무기: ${def.name}`,
-            desc: "새로운 무기를 장착합니다",
+            iconUrl: weaponIconUrl(type),
+            desc: def.desc,                            // 무기가 어떻게 공격하는지 한 줄 설명
             isNew: true,
             apply: () => player.weapons.push({ type, level: 1, timer: 0 }),
           });
         } else if (owned.level < WEAPON_MAX_LEVEL) {
           pool.push({
             title: `강화: ${def.name} Lv${owned.level} → Lv${owned.level + 1}`,
+            iconUrl: weaponIconUrl(type),
             desc: def.upgradeDesc,
             apply: () => { owned.level += 1; },
           });
         }
       }
+      return pool;
+    }
 
+    // 게임을 멈추고 강화 카드 창 띄우기
+    //   bannerText : 카드를 고른 뒤 화면 위에 잠깐 띄울 문구 (없으면 null)
+    function showCards(title, text, bannerText) {
+      state = "levelup";
+      const pool = buildUpgradePool(true);
       // 섞어서 앞에서부터 player.choices장 (기본 3장, 최대 5장)
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      const picks = pool.slice(0, player.choices);
+      let picks = pool.slice(0, player.choices);
+      if (picks.length === 0) {
+        // 무기·아이템이 전부 만렙이면 고를 게 없으므로 체력 회복 카드를 줌 (창이 비어 멈추는 것 방지)
+        picks = [{ title: "체력 전부 회복", desc: "더 강화할 것이 없습니다", apply: () => { player.hp = player.maxHp; } }];
+      }
 
       // 카드 버튼 만들기
-      // 이 레벨부터 주력으로 나올 적 안내 (7레벨부터는 같은 종류가 더 강해져서 다시 나옴)
-      const newEnemy = currentEnemyType();
-      const enemyNote = player.level > ENEMY_TYPES.length
-        ? `더 강해진 적: ${newEnemy.name}`
-        : `새로운 적: ${newEnemy.name}`;
-      levelText.textContent = `Lv.${player.level} 도달! ${enemyNote}`;
+      levelTitle.textContent = title;
+      levelText.textContent = text;
       choicesBox.innerHTML = "";
       for (const card of picks) {
         const btn = document.createElement("button");
-        btn.className = "card" + (card.isNew ? " weapon-new" : "");
+        btn.className = "card" + (card.isNew ? (card.isPassive ? " passive-new" : " weapon-new") : "");
         btn.innerHTML = `${card.title}<small>${card.desc}</small>`;
+        setIcon(btn, card.iconUrl);           // 무기 카드면 왼쪽에 무기 그림
         btn.addEventListener("click", () => {
           card.apply();
           levelupBox.style.display = "none";
-          if (SHOW_BANNER) banner = { text: enemyNote, life: BANNER_TIME };   // 재개 직후 화면 위에 잠깐 안내
+          if (SHOW_BANNER && bannerText) banner = { text: bannerText, life: BANNER_TIME };   // 재개 직후 화면 위에 잠깐 안내
+          if (state === "candy") return;                  // 사탕 상자: 무기 고르기 창이 떠 있으므로 아직 재개하지 않음
           resumeGame();
         });
         choicesBox.appendChild(btn);
       }
       levelupBox.style.display = "flex";
+    }
+
+    // 부활(패시브): 체력 전부 회복, 잠깐 무적, 주변 적을 밀어냄
+    function revivePlayer() {
+      player.revivesUsed += 1;
+      player.hp = player.maxHp;
+      player.invincible = P_REVIVE_INVINCIBLE;
+      for (const e of enemies) if (!e.dead && inView(e.x, e.y)) pushEnemy(e, player.x, player.y, 120);
+      enemyBullets = [];
+      effects.push({ x: player.x, y: player.y, r: Math.hypot(W, H) * 0.5, life: 0.5, maxLife: 0.5 });
+      spawnParticles(player.x, player.y, "#ffd60a", 20, 220);
+      floatTexts.push({ x: player.x, y: player.y - 34, text: "부활!", color: "#ffd60a", life: 1.5, maxLife: 1.5 });
     }
 
     // =====================================================================
@@ -1184,11 +3284,123 @@
     function gameOver() {
       state = "gameover";
       resultText.textContent =
-        `생존 시간 ${stats.time.toFixed(1)}초 · 처치 ${stats.kills}마리 · Lv.${player.level}`;
+        `생존 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리`;
       gameoverBox.style.display = "flex";
     }
 
+    // 초 → "12분 34초"
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+      return m > 0 ? `${m}분 ${s}초` : `${s}초`;
+    }
+
+    // 클리어: 게임을 멈추고 결과 창
+    function gameClear() {
+      state = "clear";
+      spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
+      clearText.innerHTML = `걸린 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리 · Lv.${player.level}`;
+      clearBox.style.display = "flex";
+    }
+    clearRestart.addEventListener("click", resetGame);
+
+    // =====================================================================
+    // 14-1. ? 도움말: 무기 조합(진화)표, 무기 설명, 아이템 설명. 열려 있는 동안 게임이 멈춤
+    // =====================================================================
+    let helpTab = "combo";
+    let helpReturnState = "playing";   // 닫을 때 돌아갈 상태 (레벨업 창 위에서 열었으면 레벨업으로)
+
+    function toggleHelp() {
+      if (state === "help") {
+        helpBox.style.display = "none";
+        if (helpReturnState === "playing") resumeGame();
+        else state = helpReturnState;
+        return;
+      }
+      if (state === "gameover" || state === "clear" || state === "candy") return;
+      helpReturnState = state;
+      state = "help";
+      renderHelp();
+      helpBox.style.display = "flex";
+    }
+
+    function renderHelp() {
+      for (const tab of document.querySelectorAll(".help-tab")) tab.classList.toggle("active", tab.dataset.tab === helpTab);
+      helpList.innerHTML = "";
+      if (helpTab === "combo") renderComboTab();
+      else if (helpTab === "weapons") renderListTab(Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved), WEAPONS, (k) => weaponIconUrl(k), (k) => player.weapons.find((w) => w.type === k || WEAPONS[w.type].evoOf === k));
+      else renderListTab(Object.keys(PASSIVES), PASSIVES, (k) => passiveIconUrl(k), (k) => player.passives.find((p) => p.type === k));
+    }
+
+    // 조합표: [무기] + [패시브] → [진화 무기]. 가진 것은 밝게, 조건이 갖춰지면 금색, 이미 진화했으면 주황
+    function renderComboTab() {
+      for (const base in EVOLUTIONS) {
+        const from = WEAPONS[base], to = WEAPONS[EVOLUTIONS[base].to], need = PASSIVES[EVOLUTIONS[base].needs];
+        const ownedW = player.weapons.find((w) => w.type === base);
+        const done = player.weapons.some((w) => w.type === EVOLUTIONS[base].to);
+        const pLv = passiveLevel(EVOLUTIONS[base].needs), pMax = need.maxLevel;
+        const hasP = pLv > 0;
+        const ready = !done && ownedW && canEvolve(ownedW);
+        const row = document.createElement("div");
+        row.className = "combo" + (done ? " done" : ready ? " ready" : "");
+        row.innerHTML =
+          `<span class="piece${ownedW || done ? "" : " dim"}"><img src="${weaponIconUrl(base)}">${from.name}${ownedW ? ` Lv${ownedW.level}/${WEAPON_MAX_LEVEL}` : ` (Lv${WEAPON_MAX_LEVEL} 필요)`}</span>` +
+          `<span class="arrow">+</span>` +
+          `<span class="piece${hasP ? "" : " dim"}"><img src="${passiveIconUrl(EVOLUTIONS[base].needs)}">${need.name}${hasP ? ` Lv${pLv}/${pMax}` : ` (Lv${pMax} 필요)`}</span>` +
+          `<span class="arrow">→</span>` +
+          `<span class="piece result${done ? "" : " dim"}"><img src="${weaponIconUrl(EVOLUTIONS[base].to)}"><span>${to.name}<small>${to.desc}</small></span></span>` +
+          (done ? `<span class="tag">진화 완료</span>` : ready ? `<span class="tag">다음 상자에서 진화!</span>` : "");
+        helpList.appendChild(row);
+      }
+      const note = document.createElement("p");
+      note.style.cssText = "margin: 6px 0 0; color: #aaa; font-size: 13px;";
+      note.textContent = `무기와 짝이 되는 아이템을 둘 다 최대 레벨까지 올린 채 보물 상자를 열면 진화합니다. 진화한 무기는 더 강화되지 않습니다.`;
+      helpList.appendChild(note);
+    }
+
+    // 무기·아이템 설명 목록
+    function renderListTab(keys_, defs, iconOf, ownedOf) {
+      for (const k of keys_) {
+        const def = defs[k]; const owned = ownedOf(k);
+        const row = document.createElement("div");
+        row.className = "combo";
+        row.innerHTML = `<span class="piece${owned ? "" : " dim"}" style="min-width: 200px"><img src="${iconOf(k)}">${def.name}${owned ? ` Lv${owned.level}` : ""}</span><span class="result" style="color:#ccc">${def.desc || def.upgradeDesc || ""}</span>`;
+        helpList.appendChild(row);
+      }
+    }
+
+    helpBtn.addEventListener("click", toggleHelp);
+    helpClose.addEventListener("click", toggleHelp);
+    for (const tab of document.querySelectorAll(".help-tab")) tab.addEventListener("click", () => { helpTab = tab.dataset.tab; renderHelp(); });
+
+    // =====================================================================
+    // 14-2. 사탕 상자: 원하는 무기를 직접 고르는 창 (레벨업 카드 '사탕 상자'를 고르면 뜸)
+    // =====================================================================
+    // 고를 수 있는 무기: 진화 무기가 아니고, 아직 없고, 그 진화형도 없는 것
+    function candyChoices() {
+      return Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !player.weapons.some((w) => w.type === k || WEAPONS[w.type].evoOf === k));
+    }
+
+    function openCandyBox() {
+      state = "candy";
+      candyList.innerHTML = "";
+      for (const k of candyChoices()) {
+        const def = WEAPONS[k];
+        const btn = document.createElement("button");
+        btn.className = "card weapon-new";
+        btn.innerHTML = `${def.name}<small>${def.desc || ""}</small>`;
+        setIcon(btn, weaponIconUrl(k));
+        btn.addEventListener("click", () => {
+          player.weapons.push({ type: k, level: 1, timer: 0 });
+          candyBox.style.display = "none";
+          resumeGame();
+        });
+        candyList.appendChild(btn);
+      }
+      candyBox.style.display = "flex";
+    }
+
     restartBtn.addEventListener("click", resetGame);
+    chestOk.addEventListener("click", closeChest);
 
     // =====================================================================
     // 15. 시작!
