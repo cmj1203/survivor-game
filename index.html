@@ -2911,9 +2911,17 @@
         const dx = c.x - cam.x - W / 2;
         const dy = c.y - cam.y - H / 2;
         const scale = Math.min((W / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dx) || 1), (H / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dy) || 1));
-        const x = W / 2 + dx * scale;
+        let x = W / 2 + dx * scale;
         const y = H / 2 + dy * scale;
         const angle = Math.atan2(dy, dx);
+
+        // 오른쪽 위 보유 아이콘 줄과 겹치면 그 왼쪽 옆으로, 왼쪽 위 ? 버튼과 겹치면 그 오른쪽 옆으로 비켜 그림
+        const reach = 36;                                  // 원 + 세모가 차지하는 반경
+        const slot = 40 + 6;                               // 보유 아이콘 한 칸 (크기 + 간격. drawOwnedList 와 같은 값)
+        const iconsLeft = W - 16 - 40 - (player.passives.length > 0 ? slot : 0);
+        const iconsBottom = 16 + Math.max(player.weapons.length, player.passives.length) * slot;
+        if (x > iconsLeft - reach && y < iconsBottom + reach) x = iconsLeft - reach;
+        if (x < 64 + reach && y < 60 + reach) x = 64 + reach;
 
         // 작은 상자 그림 (금빛 원 위에)
         ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
