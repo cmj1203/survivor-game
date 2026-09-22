@@ -235,7 +235,7 @@
          '게임 시작'(또는 Enter) → 게임 시작.  '게임 설명' → 제목·버튼 자리에 설명판이 대신 나옴 (intro 클래스) -->
     <div id="titleOverlay">
       <div class="title-head">
-        <canvas id="titleText" role="heading" aria-level="1" aria-label="SURVIVOR"></canvas>
+        <canvas id="titleText" role="heading" aria-level="1" aria-label="DUNGEON SURVIVOR"></canvas>
       </div>
 
       <div class="title-menu">
@@ -3632,7 +3632,7 @@
 
     // 제목 글자: 작은 캔버스에 16px 로 찍고 가장자리를 딱딱하게 자른 다음(안티에일리어싱 제거) 4배로 확대 → 진짜 픽셀 계단이 보임
     //   큰 글자를 바로 그리면 바라우저가 가장자리를 부드럽게 뭉개서 픽셀 글꼴이어도 그냥 둥그런 글자처럼 보임
-    const TITLE_TEXT = "SURVIVOR";
+    const TITLE_TEXT = "DUNGEON SURVIVOR";
     const TITLE_FONT_PX = 20;      // 이 크기로 찍음. Tiny5 는 5px 격자 글꼴이라 5의 배수(15, 20, 25...)로 찍어야 픽셀 두께가 고릅다 (16 이면 들왟날왟)
     const TITLE_SCALE = 4;         // 확대 배수
     let titleTextDrawn = false;
