@@ -16,12 +16,9 @@
       color: #fff;
     }
     canvas {
-      background: #1e1e2e;          /* 게임 도화지 배경: 어두운 남색 (바닥 그림이 안 불러와졌을 때 보임) */
+      background: #1e1e2e;          /* 게임 도화지 배경: 어두운 남색 (바닥 그림이 안 불러와지지 않았을 때 보임) */
       display: block;
-      /* 브라우저 창이 게임 화면보다 작을 때만, 비율을 유지한 채 줄어들게 함 */
-      max-width: 100vw;
-      max-height: 100vh;
-      object-fit: contain;
+      width: 100%; height: 100%;    /* 크기는 바깥 틀(#stage)이 정함 */
     }
     /* 팝업 창 공통: 평소엔 숨겨두고(display:none) 필요할 때 보여줌(flex) */
     .popup {
@@ -77,8 +74,15 @@
     #clearBox h1 { color: #ffd60a; font-size: 40px; }
     #clearText { margin: 0; line-height: 1.7; }
 
-    /* 게임 화면 틀: 안에 든 ? 버튼이 "브라우저 창"이 아니라 "게임 화면" 구석을 기준으로 놓이게 함 */
-    #stage { position: relative; line-height: 0; }
+    /* 게임 화면 틀: 안에 든 ? 버튼·시작 화면이 "바라우저 창"이 아니라 "게임 화면" 구석을 기준으로 놓이게 함
+       - 크기: 1280×720 이 기본. 바라우저 창이 그보다 작으면 16:9 버율을 지키면서 줄어듦 (예전에 canvas 에 있던 max-width/height 역할)
+       - container-type: 시작 화면 글자·버튼 크기를 cqw (이 틀 너비의 1/100) 단위로 적어서, 화면이 줄어들면 같이 줄어들게 함 */
+    #stage {
+      position: relative; line-height: 0;
+      width: min(1280px, 100vw, calc(100vh * 16 / 9));
+      aspect-ratio: 16 / 9;
+      container-type: inline-size;
+    }
 
     /* ? 버튼 (게임 화면 안 왼쪽 위 구석, 픽셀아트 그림) */
     #helpBtn {
@@ -159,6 +163,65 @@
     }
     .reroll-button:hover { background: #2e3a55; }
     .reroll-button:disabled { opacity: 0.35; cursor: default; background: #1e1e2e; }
+
+    /* =====================================================================
+       시작 화면: 창(팝업)이 아니라 게임 화면 전체를 덮는 한 장의 화면
+         - 배경은 캤버스에 그림 (던전 바닥 + 몰려오는 몬스터 + 기사 → drawTitleScene)
+         - 제목·버튼·설명은 HTML 로 캤버스 위에 얹음 (#titleOverlay)
+         - 크기 단위가 cqw 인 것은 바로 아래 #stage 설명 참고: 창이 작아지면 글자·버튼도 같은 배율로 작아짐
+       ===================================================================== */
+    /* 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 둘 다 무료·오프라인이면 sans-serif 로 대체됨 */
+    @import url("https://fonts.googleapis.com/css2?family=Tiny5&display=swap");
+    @import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
+
+    #titleOverlay {
+      position: absolute; inset: 0; z-index: 5;
+      display: none;                        /* 게임 중에는 숨김. 시작 화면일 때 자바스크립트가 flex 로 바꿈 */
+      flex-direction: column; align-items: center; justify-content: center;
+      line-height: 1.4;
+      font-family: "Galmuri11", "Tiny5", sans-serif;
+      user-select: none;
+    }
+    /* 세로 배치 (화면 높이 = 56.25cqw): 위 제목 묶음(~17cqw) / 가운데 기사(캔버스, ~24→34cqw) / 아래 버튼 묶음(37cqw~) — 서로 겹치지 않게 */
+    /* 제목: 영문 픽셀 글꼴 한 줄. 기사 바로 위에 놓임 (기사 머리 ≈ 23cqw, 그 위 밝은 원 ≈ 14cqw → 제목 아랫변을 그 사이에)
+       글자는 HTML 텍스트가 아니라 작은 캔버스에 찍어 확대한 그림 (drawTitleText): 큰 글자를 바로 그리면 가장자리가 뭉개져서 픽셀 느낌이 안 남 */
+    .title-head { position: absolute; top: 12.5cqw; left: 0; right: 0; display: flex; justify-content: center; }
+    #titleText { image-rendering: pixelated; height: 5.8cqw; width: auto; display: block; background: transparent; }   /* 세로 크기만 정하고 가로는 버율대로. 공통 canvas 배경색을 덮어서 투명하게 */
+
+    /* 버튼 묶음: 화면 아래쪽 (버튼 2개 + Enter 안내). 단순한 픽셀풍 버튼 (두꺼운 테두리, 모서리 각짐) */
+    .title-menu { position: absolute; bottom: 4.5cqw; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 0.9cqw; }
+    .pixel-btn {
+      font-family: inherit; font-size: 1.7cqw; letter-spacing: 0.1cqw;
+      width: 20cqw; padding: 0.8cqw 0;
+      color: #fff; background: #1e1e2e;
+      border: 0.3cqw solid #fff; border-radius: 0;
+      box-shadow: 0.5cqw 0.5cqw 0 #000;
+      cursor: pointer;
+    }
+    .pixel-btn:hover { background: #2e3a55; transform: translate(-0.15cqw, -0.15cqw); box-shadow: 0.65cqw 0.65cqw 0 #000; }
+    .pixel-btn:active { transform: translate(0.3cqw, 0.3cqw); box-shadow: 0.2cqw 0.2cqw 0 #000; }
+    .pixel-btn.primary { background: #ffd60a; color: #111; border-color: #fff; }
+    .pixel-btn.primary:hover { background: #ffe14d; }
+    .title-hint { font-size: 1.1cqw; color: #aaa; margin-top: 0.3cqw; text-shadow: 0.15cqw 0.15cqw 0 #000; animation: blink 1.6s steps(2, start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
+    .title-credit { position: absolute; bottom: 1.4cqw; right: 1.8cqw; font-size: 1cqw; color: #666; }
+
+    /* 게임 설명: 제목·버튼 자리에 대신 나오는 널범판 (같은 배경 위에 얹힘) */
+    .title-intro {
+      display: none; flex-direction: column; align-items: center; gap: 1.4cqw;
+      width: 64cqw; padding: 2.4cqw 3cqw;
+      background: rgba(10, 8, 18, 0.9);
+      border: 0.3cqw solid #ffd60a; box-shadow: 0.6cqw 0.6cqw 0 #000;
+    }
+    #titleOverlay.intro .title-head, #titleOverlay.intro .title-menu { display: none; }
+    #titleOverlay.intro .title-intro { display: flex; }
+    .title-intro h2 { margin: 0; font-size: 3cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
+    .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1cqw 1.6cqw; width: 100%; }
+    .intro-item { display: flex; gap: 1cqw; align-items: flex-start; padding: 1cqw; background: rgba(30, 30, 46, 0.9); border: 0.2cqw solid rgba(255,255,255,0.25); }
+    .intro-item img { width: 3.6cqw; height: 3.6cqw; flex: none; image-rendering: pixelated; filter: drop-shadow(0.2cqw 0.2cqw 0 #000); }
+    .intro-item div { font-size: 1.35cqw; line-height: 1.55; color: #ddd; }
+    .intro-item b { display: block; color: #ffd60a; font-size: 1.6cqw; margin-bottom: 0.3cqw; }
+    .intro-item kbd { padding: 0 0.4cqw; border: 0.15cqw solid #aaa; background: #111; font-family: inherit; font-size: 1.2cqw; }
   </style>
 </head>
 <body>
@@ -167,6 +230,35 @@
     <canvas id="game" width="1280" height="720"></canvas>
     <!-- ? 버튼: 무기 조합(진화)표와 무기 설명을 보여주는 도움말 (H 키로도 열림) -->
     <button id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
+
+    <!-- 시작 화면: 게임을 켜면 가장 먼저 보임. 배경(던전·몬스터·기사)은 캔버스가 그리고, 이 글자·버튼은 그 위에 얹힘
+         '게임 시작'(또는 Enter) → 게임 시작.  '게임 설명' → 제목·버튼 자리에 설명판이 대신 나옴 (intro 클래스) -->
+    <div id="titleOverlay">
+      <div class="title-head">
+        <canvas id="titleText" role="heading" aria-level="1" aria-label="SURVIVOR"></canvas>
+      </div>
+
+      <div class="title-menu">
+        <button id="startBtn" class="pixel-btn primary">게임 시작</button>
+        <button id="introBtn" class="pixel-btn">게임 설명</button>
+        <div class="title-hint">- PRESS ENTER -</div>
+      </div>
+
+      <div class="title-intro">
+        <h2>게임 설명</h2>
+        <div class="intro-grid">
+          <div class="intro-item"><img src="assets/knight.png" alt=""><div><b>이동</b><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다. 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
+          <div class="intro-item"><img src="assets/passive_growth.png" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 초록 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
+          <div class="intro-item"><img src="assets/chest.png" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
+          <div class="intro-item"><img src="assets/wizard.png" alt=""><div><b>클리어</b>20분을 버티면 마지막 보스 사신 마법사가 나타납니다. 잡으면 클리어!</div></div>
+          <div class="intro-item"><img src="assets/potion_green.png" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
+          <div class="intro-item"><img src="assets/help.png" alt=""><div><b>도움말</b>게임 중 <kbd>H</kbd> 키나 왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
+        </div>
+        <button id="introClose" class="pixel-btn">돌아가기</button>
+      </div>
+
+      <div class="title-credit">Art: Kenney Tiny Dungeon (CC0)</div>
+    </div>
   </div>
 
   <div id="helpBox" class="popup">
@@ -246,6 +338,11 @@
     const helpClose = document.getElementById("helpClose");
     const candyBox = document.getElementById("candyBox");
     const candyList = document.getElementById("candyList");
+    const titleOverlay = document.getElementById("titleOverlay");
+    const titleText = document.getElementById("titleText");
+    const startBtn = document.getElementById("startBtn");
+    const introBtn = document.getElementById("introBtn");
+    const introClose = document.getElementById("introClose");
 
     const W = canvas.width;    // 화면(도화지) 가로 (1280) ← 크기를 바꾸려면 위쪽 <canvas> 태그의 숫자를 고치면 됨
     const H = canvas.height;   // 화면(도화지) 세로 (720)
@@ -401,6 +498,7 @@
       vc.fillStyle = vignette;
       vc.fillRect(0, 0, W, H);
       vignetteLayer = v;
+
     }
 
     // =====================================================================
@@ -1610,7 +1708,7 @@
     let effects;       // 폭발·고리 같은 잠깐 보이는 연출 목록
     let particles;     // 작은 파편 목록 (피격 불꽃, 처치 파편)
     let stats;         // 생존 시간, 처치 수
-    let state;         // "playing", "levelup", "gameover"
+    let state;         // "title", "intro", "playing", "levelup", "chest", "candy", "help", "gameover", "clear"
     let spawnTimer;    // 다음 적 생성까지 남은 시간
     let lastTime;      // 이전 프레임 시각 (dt 계산용)
     let nextEnemyId;   // 적마다 붙이는 고유 번호
@@ -1678,6 +1776,8 @@
       clearBox.style.display = "none";
       helpBox.style.display = "none";
       candyBox.style.display = "none";
+      titleOverlay.style.display = "none";     // 시작 화면 숨기기 (시작 화면 애니메이션은 state 가 바뀜서 저절로 뱈침)
+      helpBtn.style.display = "";             // 시작 화면에서 숨겼던 ? 버튼 다시 보이기
       updateCamera();
       requestAnimationFrame(gameLoop);      // 게임 루프 시작
     }
@@ -1695,6 +1795,9 @@
 
     window.addEventListener("keydown", (e) => {
       const name = keyName(e);
+      // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
+      if (state === "title") { if (name === "enter") startGame(); return; }
+      if (state === "intro") { if (name === "enter" || name === "escape") closeIntro(); return; }
       if (name === "h" && !e.repeat) { toggleHelp(); return; }          // H: 도움말 열기/닫기
       if (name === "escape" && state === "help") { toggleHelp(); return; }
       // Cmd/Ctrl/Alt 와 함께 누른 키는 단축키이므로 무시
@@ -3518,9 +3621,212 @@
     chestOk.addEventListener("click", closeChest);
 
     // =====================================================================
-    // 15. 시작!
+    // 15. 시작 화면: 게임을 켜면 가장 먼저 보이는 창. '게임 시작'(또는 Enter)을 누르면 resetGame 으로 진짜 게임 시작
     // =====================================================================
-    resetGame();
+    //   배경은 캔버스에 계속 그림 (titleLoop): 던전 바닥이 느리게 흘러가고, 기사가 한가운데 서 있고, 몬스터들이 사방에서 몰려옴
+    //   제목·버튼은 HTML (#titleOverlay) 이 그 위에 얹힘
+    const TITLE_MONSTERS = ["bat", "crab", "spider", "ghost", "cyclops", "bat", "spider", "bat"];   // 시작 화면에 돌아다니는 몬스터 (박쥐가 많게)
+    const TITLE_MONSTER_COUNT = 22;
+    let titleScene = null;      // { t, monsters[] }  시작 화면 애니메이션 상태
+    let titleLastTime = null;
+
+    // 제목 글자: 작은 캔버스에 16px 로 찍고 가장자리를 딱딱하게 자른 다음(안티에일리어싱 제거) 4배로 확대 → 진짜 픽셀 계단이 보임
+    //   큰 글자를 바로 그리면 바라우저가 가장자리를 부드럽게 뭉개서 픽셀 글꼴이어도 그냥 둥그런 글자처럼 보임
+    const TITLE_TEXT = "SURVIVOR";
+    const TITLE_FONT_PX = 20;      // 이 크기로 찍음. Tiny5 는 5px 격자 글꼴이라 5의 배수(15, 20, 25...)로 찍어야 픽셀 두께가 고릅다 (16 이면 들왟날왟)
+    const TITLE_SCALE = 4;         // 확대 배수
+    let titleTextDrawn = false;
+
+    function drawTitleText(family) {
+      const font = `400 ${TITLE_FONT_PX}px ${family}`;   // Tiny5 는 굵기가 400 하나뿐
+      const probe = document.createElement("canvas").getContext("2d");
+      probe.font = font;
+      const pad = 3;                                                     // 테두리(1) + 그림자(2) 자리
+      const w0 = Math.ceil(probe.measureText(TITLE_TEXT).width) + pad * 2 + 1;   // 일단 넉넉히 찍을 크기 (+1 은 아래 '굵게' 처리가 오른쪽으로 1px 늨어나는 분). 아래에서 글자 범위만 잘라 쓰임
+      const h0 = Math.ceil(TITLE_FONT_PX * 1.6) + pad * 2;
+
+      // (1) 작은 캔버스에 흰색으로 찍고, 알파 50% 기준으로 "글자 픽셀인지" 마스크를 만듦
+      const raw = document.createElement("canvas");
+      raw.width = w0; raw.height = h0;
+      const rc = raw.getContext("2d");
+      rc.font = font; rc.textBaseline = "top"; rc.fillStyle = "#fff";
+      rc.fillText(TITLE_TEXT, pad, pad);
+      const src = rc.getImageData(0, 0, w0, h0).data;
+      const m0 = new Uint8Array(w0 * h0);
+      for (let i = 0; i < w0 * h0; i++) m0[i] = src[i * 4 + 3] >= 128 ? 1 : 0;
+      // 굵게: 글자 픽셀을 오른쪽으로 1px 복제해 확 두께를 1 → 2px 로 (픽셀 게임에서 볼드 글자 만드는 방식). Tiny5 는 확이 1px 이라 그대로 키우면 가느다다
+      for (let y = 0; y < h0; y++) for (let x = w0 - 1; x > 0; x--) if (m0[y * w0 + x - 1]) m0[y * w0 + x] = 1;
+      // 글자가 실제로 차지하는 범위를 재서 위아래 믹 여백을 잘라냄 (글꼴이 잡는 줄 높이는 글자보다 훨씬 컬서, 안 자르면 글자가 작게 보임)
+      let top = h0, bottom = -1, left = w0, right = -1;
+      for (let y = 0; y < h0; y++) for (let x = 0; x < w0; x++) {
+        if (!m0[y * w0 + x]) continue;
+        if (y < top) top = y; if (y > bottom) bottom = y; if (x < left) left = x; if (x > right) right = x;
+      }
+      if (bottom < 0) return;                                            // 글꼴이 아직 안 있어서 아무것도 안 찍혔으면 그리지 않음
+      const w = right - left + 1 + pad * 2, h = bottom - top + 1 + pad * 2;
+      const mask = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const sx = x - pad + left, sy = y - pad + top;
+        if (sx < 0 || sy < 0 || sx >= w0 || sy >= h0) continue;
+        mask[y * w + x] = m0[sy * w0 + sx];
+      }
+      const small = document.createElement("canvas");
+      small.width = w; small.height = h;
+      const sc = small.getContext("2d");
+
+      // (2) 마스크로 그림자(오른쪽 아래 2px, 검정) → 테두리(1px 팽창, 검정) → 글자(노랑) 순으로 찍음
+      const out = sc.createImageData(w, h);
+      const o = out.data;
+      const put = (x, y, r, g, b) => {
+        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        const k = (y * w + x) * 4;
+        o[k] = r; o[k + 1] = g; o[k + 2] = b; o[k + 3] = 255;
+      };
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) { put(x + 1, y + 1, 0, 0, 0); put(x + 2, y + 2, 0, 0, 0); }
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) put(x + dx, y + dy, 0, 0, 0);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) put(x, y, 255, 214, 10);
+      sc.putImageData(out, 0, 0);
+
+      // (3) 보여줄 캔버스에 네배로 확대 (부드럽게 만들기 금지 → 픽셀이 그대로 네모네모하게)
+      titleText.width = w * TITLE_SCALE; titleText.height = h * TITLE_SCALE;
+      const tc = titleText.getContext("2d");
+      tc.imageSmoothingEnabled = false;
+      tc.drawImage(small, 0, 0, titleText.width, titleText.height);
+    }
+
+    // 픽셀 글꼴이 온 뒤에 그림. 3초 안에 안 오면(오프라인 등) 기본 글꼴로라도 그림
+    function prepareTitleText() {
+      if (titleTextDrawn) return;
+      titleTextDrawn = true;
+      const family = '"Tiny5"';
+      const fallback = new Promise((resolve) => setTimeout(() => resolve("timeout"), 3000));
+      drawTitleText("sans-serif");                                        // 우선 기본 글꼴로 한 번 (번짓하게 보이는 것보단 낫다)
+      Promise.race([document.fonts.load(`400 ${TITLE_FONT_PX}px ${family}`), fallback])
+        .then((r) => { if (r !== "timeout") drawTitleText(family); })
+        .catch(() => {});
+    }
+
+    function showTitle() {
+      state = "title";
+      helpBtn.style.display = "none";          // 게임이 없으니 ? 버튼도 숨김 (무기 보유 표시가 플레이어 정보를 쓰기 때문)
+      titleOverlay.classList.remove("intro");
+      titleOverlay.style.display = "flex";
+      prepareTitleText();
+      titleScene = { t: 0, monsters: [] };
+      for (let i = 0; i < TITLE_MONSTER_COUNT; i++) titleScene.monsters.push(newTitleMonster(true));
+      titleLastTime = null;
+      requestAnimationFrame(titleLoop);
+    }
+
+    // 몬스터 하나 만들기: 화면 바깥 가장자리에서 한가운데(기사) 쪽으로 느리게 기어옴. 기사 근처까지 오면 사라지고 다시 바깥에서 나옴
+    //   scatter = true 이면 처음부터 화면 여기저기 흩어진 상태로 시작 (처음 화면이 훑하지 않게)
+    function newTitleMonster(scatter) {
+      const type = TITLE_MONSTERS[Math.floor(Math.random() * TITLE_MONSTERS.length)];
+      const a = Math.random() * Math.PI * 2;
+      const far = Math.hypot(W, H) * 0.55;
+      const dist = scatter ? 220 + Math.random() * (far - 220) : far;
+      return {
+        type, a, dist,
+        speed: 28 + Math.random() * 30,                        // 화보면 오는 속도 (느릿하게)
+        size: type === "cyclops" ? 30 : type === "bat" ? 16 : 20,
+        wobble: Math.random() * Math.PI * 2,
+      };
+    }
+
+    function titleLoop(now) {
+      if (state !== "title" && state !== "intro") return;   // 게임이 시작되면 이 루프는 조용히 종료
+      if (titleLastTime === null) titleLastTime = now;
+      let dt = (now - titleLastTime) / 1000;
+      titleLastTime = now;
+      if (dt > 0.1) dt = 0.1;
+      titleScene.t += dt;
+
+      for (const m of titleScene.monsters) {
+        m.dist -= m.speed * dt;
+        m.wobble += dt * 3;
+        if (m.dist < 150) Object.assign(m, newTitleMonster(false));   // 기사 앞까지 오면 바깥에서 다시 등장
+      }
+      drawTitleScene();
+      requestAnimationFrame(titleLoop);
+    }
+
+    function drawTitleScene() {
+      const t = titleScene.t;
+      const cx = W / 2, cy = H / 2 - 10;   // 기사 자리: 제목(위)과 버튼(아래) 사이 한가운데
+      ctx.clearRect(0, 0, W, H);
+
+      // (1) 던전 바닥: 맵 한가운데를 느리게 대각선으로 흘러가게 보여줌 (단순히 짜르는 위치만 움직임)
+      if (background) {
+        const sx = (WORLD_W - W) / 2 + Math.sin(t * 0.15) * 120;
+        const sy = (WORLD_H - H) / 2 + Math.cos(t * 0.11) * 80;
+        ctx.drawImage(background, sx, sy, W, H, 0, 0, W, H);
+      }
+
+      // (2) 몰려오는 몬스터 (기사보다 어둡게, 멀수록 더 어둡게 → 기사가 돋보임)
+      for (const m of titleScene.monsters) {
+        const x = cx + Math.cos(m.a) * m.dist;
+        const y = cy + Math.sin(m.a) * m.dist + Math.sin(m.wobble) * (m.type === "bat" ? 8 : 3);
+        const far = Math.hypot(W, H) * 0.55;
+        ctx.globalAlpha = 0.45 + 0.4 * (1 - m.dist / far);
+        drawSprite(m.type, x, y, m.size * SPRITE_SCALE, { flip: x > cx });
+      }
+      ctx.globalAlpha = 1;
+
+      // (3) 가운데 밝은 원: 몬스터와 기사 사이에 공간감 (연한 금색 바닥무늬)
+      const glow = ctx.createRadialGradient(cx, cy + 10, 10, cx, cy + 10, 200);
+      glow.addColorStop(0, "rgba(255, 214, 10, 0.16)");
+      glow.addColorStop(1, "rgba(255, 214, 10, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(cx, cy + 10, 200, 0, Math.PI * 2); ctx.fill();
+
+      // (4) 기사: 한가운데에 크게. 숨 쉬듯 위아래로 살짝 움직임. 발밑에 그림자
+      const bob = Math.sin(t * 2.2) * 4;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.beginPath(); ctx.ellipse(cx, cy + 54, 40, 11, 0, 0, Math.PI * 2); ctx.fill();
+      drawSprite("knight", cx, cy + bob, 56, { flip: Math.sin(t * 0.7) < 0 });
+
+      // (5) 기사 주위를 도는 무기 3개 (게임 안의 도끼 무기처럼). 기사(반지름 56)에 맞춰 절반 조금 넘는 크기
+      //   그림이 기사와 겹치지 않게: 기사 56 + 무기 32 = 88 이상 떨어져야 함 → 굤도의 가장 가까운 지점(위·아래, 세로 반지름)이 딱 88
+      const orbit = ["sword", "axe", "wand"];
+      const ORBIT_RX = 160, ORBIT_RY = 88;
+      for (let i = 0; i < orbit.length; i++) {
+        const a = t * 1.6 + (Math.PI * 2 * i) / orbit.length;
+        drawSprite(orbit[i], cx + Math.cos(a) * ORBIT_RX, cy + Math.sin(a) * ORBIT_RY, 32, { angle: a + Math.PI / 2 });
+      }
+
+      // (6) 가장자리 어둡게 + 위아래 띠(글자 자리)는 더 어둡게
+      if (vignetteLayer) ctx.drawImage(vignetteLayer, 0, 0);
+      const band = ctx.createLinearGradient(0, 0, 0, H);
+      band.addColorStop(0, "rgba(0, 0, 0, 0.72)");
+      band.addColorStop(0.30, "rgba(0, 0, 0, 0.12)");
+      band.addColorStop(0.60, "rgba(0, 0, 0, 0.12)");
+      band.addColorStop(1, "rgba(0, 0, 0, 0.80)");
+      ctx.fillStyle = band;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function startGame() {
+      resetGame();   // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료
+    }
+
+    function openIntro() {
+      state = "intro";
+      titleOverlay.classList.add("intro");       // 제목·버튼 대신 설명판이 보임 (배경 애니메이션은 계속)
+    }
+
+    function closeIntro() {
+      state = "title";
+      titleOverlay.classList.remove("intro");
+    }
+
+    startBtn.addEventListener("click", startGame);
+    introBtn.addEventListener("click", openIntro);
+    introClose.addEventListener("click", closeIntro);
+
+    // =====================================================================
+    // 16. 시작!
+    // =====================================================================
+    showTitle();
   </script>
 </body>
 </html>
