@@ -12,10 +12,10 @@ http://creativecommons.org/publicdomain/zero/1.0/
   (바닥 floor_plain / floor_holes / floor_pebbles 는 2026-10-06 에 다른 팩으로 바꿈 → 아래 "던전 바닥" 항목. 예전엔 tile_0000 / tile_0012 / tile_0024 를 썼음)
   chest.png = tile_0089 (닫힌 상자)   chest_open.png = tile_0091 (열린 상자)
   mimic.png = tile_0092 (미믹)
-  potion_red.png = tile_0115   potion_green.png = tile_0114   potion_blue.png = tile_0116   potion_grey.png = tile_0113 (바닥 아이템)
+  potion_green.png = tile_0114 (바닥 아이템)
   wall.png = tile_0057 (맵 경계 돌담)
   dagger.png = tile_0103   axe.png = tile_0118   spear.png = tile_0131   firebomb.png = tile_0127   staff.png = tile_0130   shield.png = tile_0101 (내 무기와 보유 목록 아이콘)
-  hammer.png = tile_0117   shield_throw.png = tile_0102   cleaver.png = tile_0105   wand.png = tile_0129   sword.png = tile_0104 (내 무기)
+  hammer.png = tile_0117   shield_throw.png = tile_0102   wand.png = tile_0129   sword.png = tile_0104 (내 무기)
 
 
 패시브 아이템 아이콘(passive_*.png)은 Kenney의 "1-Bit Pack" 색 입힌 판(colored-transparent.png)에서 가져왔습니다.
@@ -50,7 +50,6 @@ License: Creative Commons Zero (CC0)
   w_firewand.png  = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 17, 행 7 (횃불. 그대로)
   w_lightning.png = Kenney "Pixel Shmup" (CC0, https://kenney.nl/assets/pixel-shmup) Tiles/tile_0004.png (노란 번쩍임. 외곽선 색만 바꿈)
   w_aura.png      = Kenney "Pixel Shmup" (CC0) Tiles/tile_0007.png (사방으로 퍼지는 불꽃. 하늘색으로 바꾸고 외곽선 추가)
-  w_bracelet.png  = Kenney "Micro Roguelike" (CC0, https://kenney.nl/assets/micro-roguelike) Tiles/Colored/tile_0089.png (반지. 8x8 을 2배로 키우고 외곽선 추가)
   w_flames.png    = Kenney "1-Bit Pack" (CC0) colored-transparent_packed.png 열 28, 행 11 (불꽃. 주황으로 채우고 안쪽에 크림색 심, 외곽선 추가)
   w_rune.png      = 같은 1-Bit 시트 열 46, 행 6 (수정구. 하늘색으로 채우고 흰 심, 외곽선 추가)
   w_clock.png     = 같은 1-Bit 시트 열 43, 행 12 (둥근 시계. 하늘색으로 채우고 외곽선 추가)
@@ -78,7 +77,6 @@ License: Creative Commons Zero (CC0)
   item_freeze.png = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 28, 행 12 (눈꽃. 얼음색 #7DF9FF 으로 채움. 빙결 아이템)
   item_magnet.png = 직접 찍은 16x16 픽셀아트 (말굽자석. Kenney 팩에 자석 모양이 없어서 1-Bit Pack 의 빨강·흰색에 맞춰 만듦. 외곽선만 추가)
   회복 아이템은 potion_green.png (위 Tiny Dungeon tile_0114) 을 씀
-  ※ potion_red / potion_blue / potion_grey.png 는 이제 게임에서 쓰지 않음
 
 
 운석 무기 그림 (예전 '날아오는 가구'의 table.png / chair.png 를 대체. 두 파일은 삭제함. 2026-10-06 에 외곽선 있는 바위로 바꿈):
