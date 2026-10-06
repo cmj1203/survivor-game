@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>서바이버 게임</title>
+  <!-- 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 오프라인이면 기본 글꼴로 대체됨 -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css" />
   <style>
     /* ===== 꾸미기 (화면 배경, 게임오버 창, 레벨업 창) ===== */
     body {
@@ -158,7 +161,8 @@
 
     /* 사탕 상자: 무기 고르기 창 */
     #candyBox { width: 720px; max-height: calc(var(--app-h) * 0.88); padding: 20px 28px; }
-    #candyList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; overflow-y: auto; max-height: calc(var(--app-h) * 0.6); }
+    /* 작은 창에서도 카드 높이는 내용만큼 유지하고, 넘치는 목록만 스크롤 (진화 줄이 잘리지 않게) */
+    #candyList { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: max-content; gap: 8px; width: 100%; overflow-y: auto; max-height: calc(var(--app-h) * 0.6); }
     #candyList .card { padding: 8px 10px 8px 52px; min-height: 48px; font-size: 14px; background-position: 8px center; background-size: 36px 36px; }
     #candyList .card small { font-size: 11px; }
     /* 카드 아래 진화 조합 한 줄: [아이템 그림] 아이템 → 진화 무기. 그 아이템을 이미 갖고 있으면 금색 */
@@ -207,8 +211,7 @@
          - 크기 단위가 cqw 인 것은 바로 아래 #stage 설명 참고: 창이 작아지면 글자·버튼도 같은 배율로 작아짐
        ===================================================================== */
     /* 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 둘 다 무료·오프라인이면 sans-serif 로 대체됨 */
-    @import url("https://fonts.googleapis.com/css2?family=Tiny5&display=swap");
-    @import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
+    /* (글꼴 불러오기는 <head> 의 <link> 로 옮김: @import 는 style 맨 앞에만 쓸 수 있어서 여기서는 무시되고 있었음) */
 
     #titleOverlay {
       position: absolute; inset: 0; z-index: 5;
@@ -236,8 +239,17 @@
     }
     .pixel-btn:hover { background: #2e3a55; transform: translate(-0.15cqw, -0.15cqw); box-shadow: 0.65cqw 0.65cqw 0 #000; }
     .pixel-btn:active { transform: translate(0.3cqw, 0.3cqw); box-shadow: 0.2cqw 0.2cqw 0 #000; }
-    .pixel-btn.primary { background: #ffd60a; color: #111; border-color: #fff; }
-    .pixel-btn.primary:hover { background: #ffe14d; }
+    /* 노란 버튼(게임 시작·이어 하기): 진한 갈색 외곽선 + 위쪽 밝은 줄·아래쪽 어두운 줄로 도톰한 픽셀 버튼처럼 */
+    .pixel-btn.primary {
+      background: #ffd60a; color: #3a2400; border-color: #2a1606;
+      box-shadow: inset 0 0.35cqw 0 #fff1a0, inset 0 -0.5cqw 0 #c98f00, 0.5cqw 0.5cqw 0 #000;
+      text-shadow: 0.12cqw 0.12cqw 0 #fff1a0;
+    }
+    .pixel-btn.primary:hover { background: #ffe14d; box-shadow: inset 0 0.35cqw 0 #fff6c4, inset 0 -0.5cqw 0 #d9a000, 0.65cqw 0.65cqw 0 #000; }
+    .pixel-btn.primary:active { box-shadow: inset 0 0.5cqw 0 #c98f00, 0.2cqw 0.2cqw 0 #000; }
+    .btn-main { display: flex; align-items: center; justify-content: center; gap: 0.8cqw; font-size: 2cqw; }
+    .btn-main img { width: 2.4cqw; height: 2.4cqw; image-rendering: pixelated; filter: drop-shadow(0.15cqw 0.15cqw 0 #2a1606); }
+    #startBtn { width: 23cqw; padding: 0.7cqw 0 0.9cqw; }
     .title-hint { font-size: 1.1cqw; color: #aaa; margin-top: 0.3cqw; text-shadow: 0.15cqw 0.15cqw 0 #000; animation: blink 1.6s steps(2, start) infinite; }
     @keyframes blink { to { visibility: hidden; } }
     .title-credit { position: absolute; bottom: 1.4cqw; right: 1.8cqw; font-size: 1cqw; color: #666; }
@@ -258,6 +270,66 @@
     .intro-item div { font-size: 1.35cqw; line-height: 1.55; color: #ddd; }
     .intro-item b { display: block; color: #ffd60a; font-size: 1.6cqw; margin-bottom: 0.3cqw; }
     .intro-item kbd { padding: 0 0.4cqw; border: 0.15cqw solid #aaa; background: #111; font-family: inherit; font-size: 1.2cqw; }
+
+    /* =====================================================================
+       다회차: 시작 화면 버튼 줄, 금화 표시, 상점·퀘스트·캐릭터·기록 판, 일시정지
+       ===================================================================== */
+    .title-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.7cqw; max-width: 84cqw; }
+    /* 작은 버튼: 큰 버튼과 같은 각진 픽셀 모양이지만, 배경이 비쳐 보이게 반투명 + 흐린 테두리. 왼쪽에 픽셀 아이콘 */
+    .pixel-btn.small {
+      width: auto; min-width: 11cqw; padding: 0.55cqw 1.1cqw; font-size: 1.3cqw;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.6cqw;
+      color: #eadfc8; background: rgba(14, 10, 20, 0.72); border-color: rgba(255, 255, 255, 0.45);
+      box-shadow: 0.4cqw 0.4cqw 0 rgba(0, 0, 0, 0.85);
+    }
+    .pixel-btn.small img { width: 1.9cqw; height: 1.9cqw; image-rendering: pixelated; filter: drop-shadow(0.12cqw 0.12cqw 0 #000); }
+    .pixel-btn.small:hover { background: rgba(40, 30, 50, 0.9); border-color: #ffd60a; color: #ffd60a; }
+    #continueBtn { display: none; }
+    /* 게임 시작 버튼 안 두 번째 줄: 지금 고른 캐릭터·난이도 */
+    .title-sub { display: inline-block; margin-top: 0.35cqw; padding: 0.1cqw 0.9cqw; font-size: 1.05cqw; letter-spacing: 0; color: #ffe58a; background: #3a2400; text-shadow: none; }
+    .title-sub .title-warn { color: #a3260a; }
+    /* 금화: 동전 아이콘 + 숫자를 작은 픽셀 판에 */
+    .title-gold {
+      position: absolute; top: 1.6cqw; right: 2cqw; display: flex; align-items: center; gap: 0.6cqw;
+      padding: 0.45cqw 1.1cqw 0.45cqw 0.7cqw; font-size: 1.6cqw; color: #ffd60a;
+      background: rgba(14, 10, 20, 0.72); border: 0.25cqw solid rgba(255, 214, 10, 0.7); box-shadow: 0.4cqw 0.4cqw 0 rgba(0, 0, 0, 0.85);
+    }
+    .title-gold img { width: 2.2cqw; height: 2.2cqw; image-rendering: pixelated; filter: drop-shadow(0.12cqw 0.12cqw 0 #000); }
+    .title-warn { color: #ff8c42; }
+    .meta-panel {
+      display: none; flex-direction: column; align-items: center; gap: 1cqw;
+      width: 74cqw; max-height: 50cqw; padding: 1.8cqw 2.4cqw;
+      background: rgba(10, 8, 18, 0.94); border: 0.3cqw solid #ffd60a; box-shadow: 0.6cqw 0.6cqw 0 #000;
+    }
+    #titleOverlay.panel .title-head, #titleOverlay.panel .title-menu, #titleOverlay.panel .title-gold { display: none; }
+    #titleOverlay.panel .meta-panel { display: flex; }
+    .meta-panel h2 { margin: 0; font-size: 2.4cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
+    .meta-note { margin: 0; font-size: 1.2cqw; color: #aaa; text-align: center; }
+    #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-y; }
+    #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
+    .meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: 1.25cqw; color: #ddd; text-align: left; }
+    .meta-row img { width: 3.2cqw; height: 3.2cqw; flex: none; image-rendering: pixelated; }
+    .meta-row .grow { flex: 1; min-width: 0; }
+    .meta-row b { display: block; color: #fff; font-weight: normal; font-size: 1.45cqw; }
+    .meta-row small { color: #aaa; font-size: 1.1cqw; }
+    .meta-row.done { border-color: #2ecc71; }
+    .meta-row.sel { border-color: #ffd60a; background: rgba(60, 50, 10, 0.95); }
+    .meta-row.locked { opacity: 0.55; }
+    .meta-btn { flex: none; font-family: inherit; font-size: 1.25cqw; padding: 0.5cqw 1cqw; border: 0.2cqw solid #fff; border-radius: 0; background: #1e1e2e; color: #fff; cursor: pointer; box-shadow: 0.3cqw 0.3cqw 0 #000; }
+    .meta-btn:disabled { box-shadow: none; }
+    .meta-btn.buy { background: #ffd60a; color: #111; }
+    .meta-btn:disabled { opacity: 0.35; cursor: default; }
+    .pips { color: #ffd60a; letter-spacing: 0.2cqw; }
+    .bar { height: 0.6cqw; background: #333; margin-top: 0.4cqw; }
+    .bar i { display: block; height: 100%; background: #2ecc71; }
+    .meta-head { align-self: flex-start; margin: 0.4cqw 0 0; font-size: 1.4cqw; color: #ffd60a; }
+    .meta-actions { display: flex; gap: 1cqw; flex-wrap: wrap; justify-content: center; }
+    .run-reward { margin: 0; line-height: 1.7; font-size: 15px; color: #ffd60a; }
+    .run-reward span { color: #2ecc71; }
+    /* 일시정지 버튼: ? 버튼과 같은 노란 말풍선 픽셀 그림 */
+    #pauseBtn { position: absolute; top: 12px; left: 72px; z-index: 10; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    #pauseBtn img { width: 48px; height: 48px; display: block; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)); }
+    #pauseBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
   </style>
 </head>
 <body>
@@ -266,6 +338,8 @@
     <canvas id="game" width="1280" height="720"></canvas>
     <!-- ? 버튼: 무기 조합(진화)표와 무기 설명을 보여주는 도움말 (H 키로도 열림) -->
     <button id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
+    <!-- 일시정지 버튼 (Esc·P 키로도 됨) -->
+    <button id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png" alt="일시정지"></button>
     <!-- 터치 조이스틱 (휴대폰에서 화면을 누르고 있는 동안만 보임) -->
     <div id="joyBase"></div><div id="joyKnob"></div>
 
@@ -276,9 +350,18 @@
         <canvas id="titleText" role="heading" aria-level="1" aria-label="DUNGEON SURVIVOR"></canvas>
       </div>
 
+      <div class="title-gold" id="titleGold"></div>
+
       <div class="title-menu">
-        <button id="startBtn" class="pixel-btn primary">게임 시작</button>
-        <button id="introBtn" class="pixel-btn">게임 설명</button>
+        <button id="continueBtn" class="pixel-btn primary">이어 하기</button>
+        <button id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
+        <div class="title-row">
+          <button class="pixel-btn small" data-panel="select"><img src="assets/knight.png" alt="">캐릭터·난이도</button>
+          <button class="pixel-btn small" data-panel="shop"><img src="assets/coin.png" alt="">상점</button>
+          <button class="pixel-btn small" data-panel="quests"><img src="assets/chest.png" alt=""><span id="questBtn">퀘스트</span></button>
+          <button class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png" alt="">기록·저장</button>
+          <button id="introBtn" class="pixel-btn small"><img src="assets/help.png" alt="">게임 설명</button>
+        </div>
         <div class="title-hint">- PRESS ENTER -</div>
       </div>
 
@@ -294,6 +377,15 @@
         </div>
         <button id="introClose" class="pixel-btn">돌아가기</button>
       </div>
+
+      <!-- 상점·퀘스트·캐릭터와 난이도·기록과 저장: 같은 판에 내용만 바꿔서 보여줌 (panel 클래스) -->
+      <div class="meta-panel">
+        <h2 id="metaTitle"></h2>
+        <p class="meta-note" id="metaNote"></p>
+        <div id="metaBody"></div>
+        <button id="metaClose" class="pixel-btn">돌아가기</button>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
 
       <div class="title-credit">Art: Kenney Tiny Dungeon (CC0)</div>
     </div>
@@ -322,14 +414,26 @@
   <div id="gameover" class="popup">
     <h1>게임 오버</h1>
     <p id="result"></p>
+    <p class="run-reward" id="runReward"></p>
     <button id="restart">다시 시작</button>
+    <button class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
+  </div>
+
+  <!-- 일시정지 창: II 버튼·Esc 키, 앱을 내렸다 돌아왔을 때, 이어 하기로 돌아왔을 때 -->
+  <div id="pauseBox" class="popup">
+    <h1>일시정지</h1>
+    <p id="pauseText"></p>
+    <button id="pauseResume" class="ok-button">계속하기</button>
+    <button class="reroll-button to-title">시작 화면 (나중에 이어 하기)</button>
   </div>
 
   <!-- 클리어 창 (마지막 보스를 잡으면 나타남) -->
   <div id="clearBox" class="popup">
     <h1>클리어!</h1>
     <p id="clearText"></p>
+    <p class="run-reward" id="clearReward"></p>
     <button id="clearRestart" class="ok-button">다시 시작</button>
+    <button class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
   </div>
 
   <!-- 레벨업 창 (경험치가 차면 나타남, 카드 3장 중 하나 선택) -->
@@ -426,7 +530,7 @@
     //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
     //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
     // =====================================================================
-    const SPRITE_NAMES = ["knight", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
+    const SPRITE_NAMES = ["knight", "hero_hunter", "hero_berserker", "hero_saint", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                           "dagger", "axe", "spear", "firebomb", "staff", "shield",
                           "hammer", "shield_throw", "cleaver", "wand", "sword", "rock", "rock2", "bigsword",
                           "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_bracelet", "w_shadow", "w_petal", "w_flames", "w_bomb",
@@ -462,7 +566,7 @@
     const FLOOR_PLAIN = "floor_plain";                        // 민무늬 바닥 (대부분)
     const FLOOR_EXTRAS = ["floor_holes", "floor_pebbles"];    // 구멍·자갈 바닥 (가끔 섞임)
     const FLOOR_TILE_SIZE = 48;      // 바닥 타일 한 칸 크기 (16픽셀 그림을 3배로)
-    const FLOOR_EXTRA_CHANCE = 0.10; // 구멍·자갈 무늬가 나올 확률
+    const FLOOR_EXTRA_CHANCE = 0.06; // 구멍·자갈 무늬가 나올 확률
     const FLOOR_EXTRA_ALPHA = 0.30;  // 구멍·자갈 무늬의 진하기 (너무 또렷하면 물체처럼 보여서 옅게 얹음)
     const BG_DIM = 0.62;             // 바닥을 어둡게 누르는 정도 (0~1). 올리면 공격·이펙트가 더 잘 보임
 
@@ -599,9 +703,10 @@
       // --- 단검: 바라보는 방향으로 빠르게 연사 (원작 Knife). 레벨 = 단검 개수 ---
       bullet: {
         name: "단검",
-        desc: "바라보는 방향으로 단검을 빠르게 연사",
+        desc: "바라보는 방향으로 강한 단검을 연사. 적 2마리까지 관통",
         icon: "dagger",
         interval: 0.35,
+        damageMul: 3,
         upgradeDesc: "단검 +1자루, 피해 +20%",
         fire(w) {
           const dirX = player.facingX, dirY = player.facingY;
@@ -615,6 +720,7 @@
               vx: dirX * BULLET_SPEED, vy: dirY * BULLET_SPEED,
               r: BULLET_RADIUS,
               damage: weaponDamage(w),
+              pierce: 1, hitIds: new Set(),        // 앞의 적 하나에 전부 막히지 않게 두 마리까지
             });
           }
         },
@@ -625,36 +731,51 @@
         name: "마법봉",
         desc: "가장 가까운 적에게 마법탄을 자동 발사",
         icon: "wand",
-        interval: 0.75,
+        interval: 0.65,
+        damageMul: 2,
         upgradeDesc: "마법탄 +1 / 간격 -10% (번갈아), 피해 +20%",
         getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
         fire(w) {
           const target = findNearestEnemy();
           if (!target) return;
-          const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
           const count = 1 + Math.floor((w.level - 1) / 2);
+          w.pending = w.pending || [];
           for (let i = 0; i < count; i++) {
-            const angle = baseAngle + (i - (count - 1) / 2) * 0.18;
+            w.pending.push({ delay: i * 0.08 });
+          }
+        },
+        update(w, dt) {
+          if (!w.pending) return;
+          for (const p of w.pending) {
+            p.delay -= dt;
+            if (p.delay > 0) continue;
+            p.done = true;
+            // 삼연발 마법탄의 역할을 합침: 한 발씩 다시 조준해서, 앞의 적이 죽어도 헛쏘지 않음.
+            const target = findNearestEnemy();
+            if (!target) continue;
+            const angle = Math.atan2(target.y - player.y, target.x - player.x);
             bullets.push({
               kind: "magic", color: "#7df9ff",
               x: player.x, y: player.y,
-              vx: Math.cos(angle) * 420, vy: Math.sin(angle) * 420,
+              vx: Math.cos(angle) * 420 * projSpeedMul(), vy: Math.sin(angle) * 420 * projSpeedMul(),
               r: 6,
               damage: weaponDamage(w, 0.5),
             });
           }
+          w.pending = w.pending.filter((p) => !p.done);
         },
       },
 
-      // --- 검 휘두르기: 바라보는 방향 앞을 가로로 벰 (원작 Whip). Lv2·4·6·8 베기 +1(뒤, 위), Lv3·5·7 범위 +20% ---
+      // --- 검 휘두르기: 앞을 베고 밀어냄. Lv2 뒤쪽, Lv4 위쪽 베기 추가. Lv3·5·7 범위 +20% ---
       sword: {
         name: "검 휘두르기",
         desc: "바라보는 방향 앞을 크게 베고 적을 밀어냄",
         icon: "sword",
-        interval: 1.1,
-        upgradeDesc: "베기 +1 / 범위 +20% (번갈아), 피해 +20%",
+        interval: 0.9,
+        damageMul: 1.3,
+        upgradeDesc: "Lv2 뒤쪽·Lv4 위쪽 베기 추가, Lv3·5·7 범위 +20%, 피해 +20%",
         noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
-        getRadius(w) { return 70 * Math.pow(1.2, Math.floor((w.level - 1) / 2)) * areaMul(); },
+        getRadius(w) { return 85 * Math.pow(1.2, Math.floor((w.level - 1) / 2)) * areaMul(); },
         fire(w) {
           const strikes = w.level >= 4 ? 3 : w.level >= 2 ? 2 : 1;
           const f = { x: player.facingX, y: player.facingY };
@@ -690,31 +811,33 @@
       // --- 회전 도끼: 플레이어 주위를 도는 양날 도끼, 레벨 = 도끼 개수 ---
       orb: {
         name: "회전 도끼",
-        desc: "주위를 도는 도끼가 닿는 적을 계속 타격",
+        desc: "몸 가까이 도는 도끼가 적을 때리고 살짝 밀어냄",
         icon: "axe",
         interval: 0,
+        damageMul: 1.4,
         upgradeDesc: "도끼 +1개, 피해 +20% (Lv3·5·7 회전 +20%)",
-        orbitRadius: 60,       // 플레이어와의 거리
-        orbRadius: 11,         // 도끼가 맞는 범위 (그림 크기에 맞춤)
+        orbitRadius: 48,       // 몸에 붙은 적도 닿도록 궤도를 가깝게 둠
+        orbRadius: 16,         // 촛대는 궤도가 아니라 이 타격 범위를 넓힘 (안쪽 사각지대 방지)
         rotateSpeed: 3,        // 1초에 도는 각도 (라디안). Lv3·5·7 에서 +20%
-        hitCooldown: 0.3,      // 같은 적을 다시 때리기까지 시간
+        hitCooldown: 0.25,     // 같은 적을 다시 때리기까지 시간
         update(w, dt) {
           w.angle = (w.angle || 0) + this.rotateSpeed * Math.pow(1.2, Math.floor((w.level - 1) / 2)) * projSpeedMul() * dt;
           for (const pos of this.positions(w)) {
             for (const e of enemies) {
               if (e.dead || (e.cd.orb || 0) > 0) continue;
-              if (circlesTouch({ x: pos.x, y: pos.y, r: this.orbRadius }, e)) {
+              if (circlesTouch({ x: pos.x, y: pos.y, r: this.orbRadius * areaMul() }, e)) {
                 damageEnemy(e, weaponDamage(w));
+                pushEnemy(e, player.x, player.y, 8);
                 e.cd.orb = this.hitCooldown;
               }
             }
           }
         },
-        // 구체들의 현재 위치 (360도를 개수만큼 균등 분할). 개수 = 레벨 + 복제기, 거리 = 기본 × 촛대
+        // 도끼 위치 (360도를 개수만큼 균등 분할). 개수 = 레벨 + 복제기, 거리는 고정
         positions(w) {
           const list = [];
           const count = w.level + extraAmount() + (this.extraCount || 0);   // 진화하면 extraCount 만큼 더
-          const radius = this.orbitRadius * areaMul();
+          const radius = this.orbitRadius;
           for (let i = 0; i < count; i++) {
             const a = (w.angle || 0) + (Math.PI * 2 * i) / count;
             list.push({ x: player.x + Math.cos(a) * radius,
@@ -728,12 +851,12 @@
             // 하늘색 빛 (내 공격 표시)
             ctx.fillStyle = "rgba(125, 249, 255, 0.22)";
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, this.orbRadius * 1.5, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, this.orbRadius * areaMul() * 1.5, 0, Math.PI * 2);
             ctx.fill();
-            if (!drawSprite("axe", pos.x, pos.y, 16, { angle: spin })) {
+            if (!drawSprite("axe", pos.x, pos.y, 16 * areaMul(), { angle: spin })) {
               ctx.fillStyle = "#caf0f8";           // 그림이 없을 때: 하늘색 원
               ctx.beginPath();
-              ctx.arc(pos.x, pos.y, this.orbRadius, 0, Math.PI * 2);
+              ctx.arc(pos.x, pos.y, this.orbRadius * areaMul(), 0, Math.PI * 2);
               ctx.fill();
             }
           }
@@ -745,9 +868,10 @@
         name: "관통 창",
         desc: "가장 가까운 적 쪽으로 적을 뚫고 지나가는 창",
         icon: "spear",
-        interval: 1.5,
-        upgradeDesc: "발사 간격 -25%, 피해 +20%",
-        getInterval(w) { return this.interval * Math.pow(0.75, w.level - 1); },
+        interval: 1.25,
+        damageMul: 1.2,
+        upgradeDesc: "발사 간격 -15%, 피해 +20%",
+        getInterval(w) { return this.interval * Math.pow(0.85, w.level - 1); },
         fire(w) {
           const target = findNearestEnemy();
           if (!target) return;
@@ -771,9 +895,10 @@
         desc: "주변 원 안의 적에게 계속 피해를 주고 살짝 밀어냄",
         icon: "w_aura",
         interval: 0.5,
-        upgradeDesc: "범위 +20, 피해 +20%",
+        damageMul: 0.8,
+        upgradeDesc: "범위 +16, 피해 +20%",
         noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
-        getRadius(w) { return (60 + 20 * (w.level - 1)) * areaMul(); },
+        getRadius(w) { return (60 + 16 * (w.level - 1)) * areaMul(); },
         fire(w) {
           const r = this.getRadius(w);
           for (const e of enemies) {
@@ -860,16 +985,17 @@
         },
       },
 
-      // --- 던지는 망치: 위로 던져 포물선을 그리며 떨어짐, 관통, 큰 피해 (원작 Axe). Lv3·5·7 망치 +1, Lv2·4·6·8 피해 +30% ---
+      // --- 던지는 망치: 위로 던져 포물선을 그리며 떨어짐. Lv3·5·7 망치 +1, 짝수 레벨 피해 +25% ---
       hammer: {
         name: "던지는 망치",
         desc: "위로 던져 떨어지는 관통 망치. 피해가 큼",
         icon: "hammer",
-        interval: 2.0,
-        upgradeDesc: "망치 +1 / 피해 +30% (번갈아), 피해 +20%",
+        interval: 1.8,
+        damageMul: 1.2,
+        upgradeDesc: "망치 +1 / 피해 +25% (번갈아), 피해 +20%",
         fire(w) {
           const count = 1 + Math.floor((w.level - 1) / 2);
-          const bonus = Math.pow(1.3, Math.floor(w.level / 2));
+          const bonus = Math.pow(1.25, Math.floor(w.level / 2));
           for (let i = 0; i < count; i++) {
             bullets.push({
               kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 260,
@@ -945,14 +1071,16 @@
       // --- 마법 구슬: 관통하며 화면 가장자리에 튕겨 다니는 구슬 (원작 Runetracer). Lv3·5·7 구슬 +1, Lv2·4·6·8 지속 +1초 ---
       rune: {
         name: "마법 구슬",
-        desc: "화면 가장자리에 튕겨 다니며 적을 뚫는 구슬",
+        desc: "첫 구슬은 가까운 적을 조준. 벽에 튕기며 다시 관통",
         icon: "w_rune",
-        interval: 2.2,
+        interval: 1.8,
+        damageMul: 1.15,
         upgradeDesc: "구슬 +1 / 지속 +1초 (번갈아), 피해 +20%",
         fire(w) {
           const count = 1 + Math.floor((w.level - 1) / 2);
+          const target = findNearestEnemy();
           for (let i = 0; i < count; i++) {
-            const a = Math.random() * Math.PI * 2;
+            const a = i === 0 && target ? Math.atan2(target.y - player.y, target.x - player.x) : Math.random() * Math.PI * 2;
             bullets.push({
               kind: "rune", color: "#caf0f8", glow: "#7df9ff",
               x: player.x, y: player.y,
@@ -972,7 +1100,7 @@
         name: "낙뢰",
         desc: "무작위 적 머리 위에 번개. 주변 적도 함께 피해",
         icon: "w_lightning",
-        interval: 2.0,
+        interval: 1.7,
         upgradeDesc: "낙뢰 +1 / 범위 +20% (번갈아), 피해 +20%",
         fire(w) {
           const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
@@ -1025,16 +1153,16 @@
         name: "빙결 광선",
         desc: "12방향을 차례로 도는 광선. 맞은 적을 얼림 (피해 없음)",
         icon: "w_clock",
-        interval: 3.0,
+        interval: 1.5,
         upgradeDesc: "얼리는 시간 +0.5초 (Lv3: 반대쪽 광선 추가)",
         noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
         rayLength: 1500,
-        rayHalf: 12,
+        rayHalf: 18,
         fire(w) {
           w.dir = ((w.dir || 0) + 1) % 12;
           const angles = [(w.dir / 12) * Math.PI * 2];
           if (w.level >= 3) angles.push(angles[0] + Math.PI);
-          const freezeFor = (3 + 0.5 * (w.level - 1)) * durationMul();
+          const freezeFor = (3.5 + 0.5 * (w.level - 1)) * durationMul();
           for (const a of angles) {
             const ux = Math.cos(a), uy = Math.sin(a);
             for (const e of enemies) {
@@ -1049,40 +1177,14 @@
         },
       },
 
-      // --- 튕기는 칼: 식칼이 화면 가장자리에 튕기며 관통 (원작 Bone). Lv3·5·7 칼 +1, Lv2·4·6·8 튕김 +1 ---
-      bone: {
-        name: "튕기는 칼",
-        desc: "화면 가장자리에 튕기며 적을 뚫는 식칼",
-        icon: "cleaver",
-        interval: 1.6,
-        upgradeDesc: "칼 +1 / 튕김 +1회 (번갈아), 피해 +20%",
-        fire(w) {
-          const target = findNearestEnemy();
-          if (!target) return;
-          const count = 1 + Math.floor((w.level - 1) / 2);
-          const base = Math.atan2(target.y - player.y, target.x - player.x);
-          for (let i = 0; i < count; i++) {
-            const a = base + (i - (count - 1) / 2) * 0.4;
-            bullets.push({
-              kind: "bone", sprite: "cleaver", size: 15, spin: 16,
-              x: player.x, y: player.y,
-              vx: Math.cos(a) * 450, vy: Math.sin(a) * 450,
-              r: 9,
-              damage: weaponDamage(w, 1),
-              pierce: 99, hitIds: new Set(),
-              bounces: 2 + Math.floor(w.level / 2),
-              life: 6 * durationMul(),
-            });
-          }
-        },
-      },
 
       // --- 마법 지팡이: 가로줄이나 세로줄 중 적이 가장 많은 줄에 화면을 가로지르는 광선, 레벨↑ = 광선 폭↑ ---
       staff: {
         name: "마법 지팡이",
         desc: "적이 가장 많은 가로·세로줄에 화면을 가로지르는 광선",
         icon: "staff",
-        interval: 2.5,
+        interval: 2.0,
+        damageMul: 1.5,
         upgradeDesc: "광선 폭 +30%, 피해 +20%",
         noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
         getHalfWidth(w) { return 22 * Math.pow(1.3, w.level - 1) * areaMul(); },   // 광선 두께의 절반 (22 → 29 → 37 → 48 → 63)
@@ -1103,8 +1205,8 @@
         desc: "공격을 한 번 막아 주고, 시간이 지나면 다시 생김",
         icon: "shield",
         interval: 0,
-        upgradeDesc: "재충전 시간 -1.5초",
-        getRecharge(w) { return Math.max(3, 12 - 1.5 * (w.level - 1)) / durationMul(); },   // 12 → 10.5 → … → 최소 3초 (주문서로 더 짧아짐)
+        upgradeDesc: "재충전 시간 -1.1초 (최소 2.5초)",
+        getRecharge(w) { return Math.max(2.5, 10 - 1.1 * (w.level - 1)) / durationMul(); },   // 처음 10초 → 최소 2.5초 (주문서로 더 짧아짐)
         update(w, dt) {
           if (w.ready === undefined) w.ready = true;           // 처음 얻으면 바로 켜진 상태
           if (!w.ready) {
@@ -1138,73 +1240,12 @@
 
       // =================== 2·3단계 무기 (원작에서 가져온 것 중 이 게임의 그림으로 살릴 수 있는 것만) ===================
 
-      // --- 사방 단검: 상하좌우 4방향으로 고정 연사 (원작 Phiera Der Tuphello). Lv3·5 단검 +1, Lv2·4 간격 -10% ---
-      phiera: {
-        name: "사방 단검", icon: "dagger", iconMark: "cross",
-        desc: "상하좌우 4방향으로 단검을 계속 던짐",
-        interval: 0.45,
-        upgradeDesc: "단검 +1 / 간격 -10% (번갈아), 피해 +20%",
-        angles: [0, Math.PI / 2, Math.PI, -Math.PI / 2],
-        getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
-        fire(w) {
-          const count = 1 + Math.floor((w.level - 1) / 2);
-          for (const a of this.angles) {
-            const dx = Math.cos(a), dy = Math.sin(a);
-            for (let i = 0; i < count; i++) {
-              const side = (i - (count - 1) / 2) * 12;
-              bullets.push({ kind: "bullet", sprite: "dagger", size: 16, x: player.x - dy * side, y: player.y + dx * side, vx: dx * BULLET_SPEED, vy: dy * BULLET_SPEED, r: BULLET_RADIUS, damage: weaponDamage(w) });
-            }
-          }
-        },
-      },
 
-      // --- 대각 단검: 대각선 4방향 고정 연사 (원작 Eight The Sparrow) ---
-      eight: {
-        name: "대각 단검", icon: "dagger", iconMark: "x",
-        desc: "대각선 4방향으로 단검을 계속 던짐",
-        interval: 0.45,
-        upgradeDesc: "단검 +1 / 간격 -10% (번갈아), 피해 +20%",
-        angles: [Math.PI / 4, 3 * Math.PI / 4, -3 * Math.PI / 4, -Math.PI / 4],
-        getInterval(w) { return WEAPONS.phiera.getInterval.call(this, w); },
-        fire(w) { WEAPONS.phiera.fire.call(this, w); },
-      },
-
-      // --- 삼연발 마법탄: 무작위 적에게 마법탄 3발 연속 (원작 Bracelet). Lv3·5 연발 +1, Lv2·4 간격 -10% ---
-      bracelet: {
-        name: "삼연발 마법탄", icon: "w_bracelet",
-        desc: "무작위 적에게 마법탄을 3발 연속으로 쏨",
-        interval: 1.0,
-        upgradeDesc: "연발 +1 / 간격 -10% (번갈아), 피해 +20%",
-        getInterval(w) { return this.interval * Math.pow(0.9, Math.floor(w.level / 2)); },
-        fire(w) {
-          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
-          if (targets.length === 0) return;
-          const t = targets[Math.floor(Math.random() * targets.length)];
-          const shots = 3 + Math.floor((w.level - 1) / 2);
-          w.pending = w.pending || [];
-          for (let i = 0; i < shots; i++) w.pending.push({ delay: i * 0.1, target: t });
-        },
-        update(w, dt) {
-          if (!w.pending) return;
-          for (const p of w.pending) {
-            p.delay -= dt;
-            if (p.delay <= 0) {
-              p.done = true;
-              const t = p.target.dead ? findNearestEnemy() : p.target;
-              if (!t) continue;
-              const a = Math.atan2(t.y - player.y, t.x - player.x);
-              bullets.push({ kind: "magic", color: "#7df9ff", x: player.x, y: player.y, vx: Math.cos(a) * 460, vy: Math.sin(a) * 460, r: 6, damage: weaponDamage(w, 0.5) });
-            }
-          }
-          w.pending = w.pending.filter((p) => !p.done);
-        },
-      },
-
-      // --- 폭탄: 튕기다가 가끔 터지는 폭탄 (원작 Cherry Bomb). Lv3·5 폭탄 +1, Lv2·4 폭발 확률 +15% ---
+      // --- 폭탄: 닿으면 터지고 벽에서도 가끔 폭발. Lv3·5·7 폭탄 +1, 짝수 레벨 폭발 확률 +10% ---
       cherry: {
         name: "폭탄", icon: "w_bomb",
         desc: "적에 닿으면 터지고, 벽에 튕기면 가끔 터지며, 2.5초가 지나면 반드시 터짐",
-        interval: 2.2,
+        interval: 2.4,
         upgradeDesc: "폭탄 +1 / 폭발 확률 +10% (번갈아), 피해 +20%",
         fire(w) {
           const count = 1 + Math.floor((w.level - 1) / 2);
@@ -1220,7 +1261,7 @@
             bullets.push({
               kind: "cherry", sprite: "w_bomb", size: 15, spin: 9, onHit: explode,
               x: player.x, y: player.y, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, r: 8,
-              damage: weaponDamage(w, 1) * 2, bounces: 99, life: 2.5 * durationMul(),
+              damage: weaponDamage(w, 1) * 1.6, bounces: 99, life: 2.5 * durationMul(),
               onBounce(b) { if (Math.random() < chance) explode(b); },
               onExpire: explode,
             });
@@ -1231,16 +1272,19 @@
       // --- 운석: 바위가 위에서 떨어져 튕김 (원작 La Robba 의 가구를 던전 분위기에 맞게 운석으로 바꿈). Lv3·5 바위 +1, Lv2·4 튕김 +1 ---
       larobba: {
         name: "운석", icon: "rock",
-        desc: "운석이 하늘에서 떨어져 튕기며 관통",
-        interval: 2.8,
+        desc: "적 머리 위로 운석을 떨어뜨림. 튕기며 여러 번 관통",
+        interval: 2.5,
         upgradeDesc: "운석 +1 / 튕김 +1 (번갈아), 피해 +20%",
         fire(w) {
           const count = 1 + Math.floor((w.level - 1) / 2);
+          const targets = enemies.filter((e) => !e.dead && inView(e.x, e.y));
+          if (!targets.length) return;
           for (let i = 0; i < count; i++) {
+            const t = targets[Math.floor(Math.random() * targets.length)];
             bullets.push({
-              kind: "rock", sprite: i % 2 === 0 ? "rock" : "rock2", color: "#ff9a3c", size: 18, spin: 4, margin: 500,
-              x: player.x + (Math.random() - 0.5) * 500, y: player.y - 420, vx: (Math.random() - 0.5) * 120, vy: 60,
-              gravity: 900, r: 13, damage: weaponDamage(w, 1), pierce: 99, hitIds: new Set(),
+              kind: "rock", sprite: i % 2 === 0 ? "rock" : "rock2", color: "#ff9a3c", size: 21, spin: 4, margin: 500,
+              x: t.x + (Math.random() - 0.5) * 60, y: t.y - 220, vx: (Math.random() - 0.5) * 60, vy: 60,
+              gravity: 900, r: 18, damage: weaponDamage(w, 1) * 1.5, pierce: 99, hitIds: new Set(),
               bounces: 2 + Math.floor(w.level / 2), life: 5 * durationMul(),
             });
           }
@@ -1279,15 +1323,15 @@
       // --- 성풍: 검 휘두르기와 같지만 계속 움직일수록 세지고 치명타 (원작 Vento Sacro). Lv 치명타 +5%, 범위 +20% ---
       vento: {
         name: "성풍", icon: "bigsword",
-        desc: "앞뒤로 베며, 계속 움직일수록 세지고 가끔 치명타(2배)",
+        desc: "앞뒤로 베며, 5초 움직이면 피해 2배. 멈추면 서서히 약해짐",
         interval: 1.0,
         upgradeDesc: "치명타 +5% / 범위 +20% (번갈아), 피해 +20%",
         getRadius(w) { return 75 * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul(); },
-        update(w, dt) { w.moveTime = isMoving() ? Math.min((w.moveTime || 0) + dt, 10) : 0; },
+        update(w, dt) { w.moveTime = isMoving() ? Math.min((w.moveTime || 0) + dt, 5) : Math.max(0, (w.moveTime || 0) - dt * 2); },
         fire(w) {
           const r = this.getRadius(w);
           const crit = 0.05 * (1 + Math.floor((w.level - 1) / 2));
-          const power = 1 + 0.1 * (w.moveTime || 0);          // 10초 계속 움직이면 2배
+          const power = 1 + 0.2 * (w.moveTime || 0);          // 5초 계속 움직이면 2배. 잠깐 방향을 고쳐도 전부 잃지 않음
           const f = { x: player.facingX, y: player.facingY };
           for (const dir of [f, { x: -f.x, y: -f.y }]) {
             for (const e of enemies) {
@@ -1361,12 +1405,13 @@
         },
       },
 
-      // --- 화염 방사: 바라보는 방향으로 부채꼴 불길 (원작 Flames of Misspell). Lv3·5 부채꼴 +1(뒤), Lv2·4 범위 +20% ---
+      // --- 화염 방사: 바라보는 방향으로 부채꼴 불길. Lv3 뒤쪽 불길 추가, 짝수 레벨 범위 +20% ---
       flames: {
         name: "화염 방사", icon: "w_flames",
         desc: "바라보는 방향으로 부채꼴 불길을 내뿜음",
-        interval: 1.2, range: 160, halfAngle: 0.5,
-        upgradeDesc: "부채꼴 +1 / 범위 +20% (번갈아), 피해 +20%",
+        interval: 0.75, range: 180, halfAngle: 0.65,
+        damageMul: 1.2,
+        upgradeDesc: "Lv3 뒤쪽 불길 추가, 짝수 레벨 범위 +20%, 피해 +20%",
         fire(w) {
           const range = this.range * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul();
           const cones = w.level >= 3 ? 2 : 1;
@@ -1418,7 +1463,12 @@
       staff:     { to: "staff_evo",     needs: "curse" },
       clock:     { to: "clock_evo",     needs: "revival" },
       shield:    { to: "shield_evo",    needs: "move" },
-      spear:     { to: "spear_evo",     needs: "projspeed" },
+      spear:     { to: "spear_evo",     needs: "move" },
+      // 전투 패시브는 15종이라 일부는 함께 씀. 같은 패시브는 무기 두 종까지만 연결.
+      cherry:    { to: "cherry_evo",    needs: "luck" },
+      larobba:   { to: "larobba_evo",   needs: "area" },
+      shadow:    { to: "shadow_evo",    needs: "duration" },
+      flames:    { to: "flames_evo",    needs: "might" },
     };
     function evolvedDef(base, overrides) {
       return Object.assign({}, WEAPONS[base], { evolved: true, evoOf: base }, overrides);
@@ -1429,19 +1479,19 @@
         slash(w, dir) {
           const r = this.getRadius(w); let hits = 0;
           for (const e of enemies) { if (e.dead) continue; const dx = e.x - player.x, dy = e.y - player.y; if (Math.hypot(dx, dy) < r + e.r && dx * dir.x + dy * dir.y > 0) { damageEnemy(e, weaponDamage(w, 1)); pushEnemy(e, player.x, player.y, 30); hits++; } }
-          if (hits > 0) player.hp = Math.min(player.maxHp, player.hp + hits);
+          if (hits > 0) player.hp = Math.min(player.maxHp, player.hp + 1);
           effects.push({ kind: "slash", x: player.x, y: player.y, angle: Math.atan2(dir.y, dir.x), r, life: 0.2, maxLife: 0.2 });
         } }),
-      wand_evo: evolvedDef("wand", { name: "성스러운 봉", desc: "쉬지 않고 마법탄을 쏨", interval: 0.2, damageMul: 1.2 }),
-      bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.09 }),
+      wand_evo: evolvedDef("wand", { name: "성스러운 봉", desc: "쉬지 않고 마법탄을 쏨", interval: 0.3, damageMul: 2.4 }),
+      bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.16 }),
       hammer_evo: evolvedDef("hammer", { name: "죽음의 나선", desc: "망치 8개가 사방으로 회전하며 날아감", interval: 1.3,
-        fire(w) { for (let i = 0; i < 8; i++) { const a = (Math.PI * 2 * i) / 8 + stats.time; bullets.push({ kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 200, x: player.x, y: player.y, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, r: 12, damage: weaponDamage(w) * 2 * Math.pow(1.3, Math.floor(w.level / 2)), pierce: 99, hitIds: new Set(), life: 2.5 }); } } }),
+        fire(w) { for (let i = 0; i < 8; i++) { const a = (Math.PI * 2 * i) / 8 + stats.time; bullets.push({ kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 200, x: player.x, y: player.y, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, r: 12, damage: weaponDamage(w) * 2 * Math.pow(1.25, Math.floor(w.level / 2)), pierce: 99, hitIds: new Set(), life: 2.5 }); } } }),
       cross_evo: evolvedDef("cross", { name: "천상의 검", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8 }),
-      orb_evo: evolvedDef("orb", { name: "부정한 저녁기도", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 1.8 }),
-      firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.4, damageMul: 2 }),
-      aura_evo: evolvedDef("aura", { name: "영혼 포식자", desc: "더 넓은 오라. 맞힌 적마다 체력 0.5 회복", damageMul: 2,
-        getRadius(w) { return (60 + 20 * (w.level - 1)) * 1.5 * areaMul(); },
-        fire(w) { const r = this.getRadius(w); let hits = 0; for (const e of enemies) { if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 10); hits++; } } if (hits) player.hp = Math.min(player.maxHp, player.hp + 0.5 * hits); w.flash = 0.15; } }),
+      orb_evo: evolvedDef("orb", { name: "부정한 저녁기도", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 2.4 }),
+      firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.6, damageMul: 1.6 }),
+      aura_evo: evolvedDef("aura", { name: "영혼 포식자", desc: "더 넓은 오라. 맞힌 적마다 체력 0.5 회복 (발동당 최대 2)", damageMul: 1.4,
+        getRadius(w) { return WEAPONS.aura.getRadius(w) * 1.25; },
+        fire(w) { const r = this.getRadius(w); let hits = 0; for (const e of enemies) { if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 10); hits++; } } if (hits) player.hp = Math.min(player.maxHp, player.hp + Math.min(2, 0.5 * hits)); w.flash = 0.15; } }),
       bomb_evo: evolvedDef("bomb", { name: "성수의 늪", desc: "불바다가 더 크고 오래가며 나를 따라옴", damageMul: 1.2,
         fire(w) { const before = bullets.length; WEAPONS.bomb.fire.call(this, w); for (let i = before; i < bullets.length; i++) { bullets[i].zoneRadius *= 1.25; bullets[i].zoneLife *= 1.5; bullets[i].zoneFollow = true; } } }),
       rune_evo: evolvedDef("rune", { name: "미래 없음", desc: "구슬이 오래 튕기고, 튕길 때마다 폭발", damageMul: 1.5,
@@ -1449,19 +1499,94 @@
       lightning_evo: evolvedDef("lightning", { name: "천둥 고리", desc: "번개가 두 번씩 내리침", damageMul: 1.3,
         fire(w) { WEAPONS.lightning.fire.call(this, w); w.pending = [{ delay: 0.2 }]; },
         update(w, dt) { if (!w.pending) return; for (const p of w.pending) { p.delay -= dt; if (p.delay <= 0) { p.done = true; WEAPONS.lightning.fire.call(this, w); } } w.pending = w.pending.filter((p) => !p.done); } }),
-      pentagram_evo: evolvedDef("pentagram", { name: "화려한 달", desc: "자주 발동하고, 지운 적의 구슬이 전부 빨려옴", interval: 12, getInterval(w) { return this.interval; },
+      pentagram_evo: evolvedDef("pentagram", { name: "화려한 달", desc: "자주 발동하고, 지운 적의 구슬이 전부 빨려옴", interval: 6, getInterval(w) { return this.interval; },
         fire(w) { WEAPONS.pentagram.fire.call(this, w); for (const g of gems) { g.magnet = true; g.speed = Math.max(g.speed || 0, 400); } } }),
-      staff_evo: evolvedDef("staff", { name: "마나의 폭풍", desc: "가로줄과 세로줄에 동시에 두 배 굵은 광선", damageMul: 1.4,
+      staff_evo: evolvedDef("staff", { name: "마나의 폭풍", desc: "가로줄과 세로줄에 동시에 두 배 굵은 광선", damageMul: 2,
         getHalfWidth(w) { return 22 * Math.pow(1.3, w.level - 1) * 2 * areaMul(); },
         fire(w) { const half = this.getHalfWidth(w); const onScreen = enemies.filter((e) => !e.dead && inView(e.x, e.y)); for (const horizontal of [true, false]) { let best = null; for (const c of onScreen) { const line = { horizontal, pos: horizontal ? c.y : c.x }; let count = 0; for (const e of onScreen) if (isInLine(e, line, half)) count++; if (!best || count > best.count) best = { ...line, count }; } if (!best) continue; for (const e of enemies) if (!e.dead && isInLine(e, best, half)) damageEnemy(e, weaponDamage(w, 1)); effects.push({ kind: "beam", horizontal: best.horizontal, pos: best.pos, half, life: 0.35, maxLife: 0.35 }); } } }),
-      clock_evo: evolvedDef("clock", { name: "무한 회랑", desc: "4방향 광선. 얼린 적의 체력을 30% 깎음",
-        fire(w) { w.dir = ((w.dir || 0) + 1) % 12; const freezeFor = 5 * durationMul(); for (let k = 0; k < 4; k++) { const a = (w.dir / 12) * Math.PI * 2 + (k * Math.PI) / 2; const ux = Math.cos(a), uy = Math.sin(a); for (const e of enemies) { if (e.dead || e.boss) continue; const dx = e.x - player.x, dy = e.y - player.y; const along = dx * ux + dy * uy, across = Math.abs(dx * uy - dy * ux); if (along > 0 && along < this.rayLength && across < this.rayHalf + e.r) { e.frozenTimer = freezeFor; damageEnemy(e, Math.ceil(e.maxHp * 0.3)); } } effects.push({ kind: "ray", x: player.x, y: player.y, angle: a, len: this.rayLength, half: this.rayHalf, life: 0.3, maxLife: 0.3 }); } } }),
-      shield_evo: evolvedDef("shield", { name: "진홍 장막", desc: "3초마다 다시 생기고, 깨질 때 주위 적을 밀어내며 피해",
-        getRecharge(w) { return 3; },
+      clock_evo: evolvedDef("clock", { name: "무한 회랑", desc: "4방향 광선. 얼린 적의 체력을 30% 깎음", interval: 1.2,
+        fire(w) { w.dir = ((w.dir || 0) + 1) % 12; const freezeFor = (3.5 + 0.5 * (w.level - 1)) * durationMul(); for (let k = 0; k < 4; k++) { const a = (w.dir / 12) * Math.PI * 2 + (k * Math.PI) / 2; const ux = Math.cos(a), uy = Math.sin(a); for (const e of enemies) { if (e.dead || e.boss) continue; const dx = e.x - player.x, dy = e.y - player.y; const along = dx * ux + dy * uy, across = Math.abs(dx * uy - dy * ux); if (along > 0 && along < this.rayLength && across < this.rayHalf + e.r) { e.frozenTimer = freezeFor; damageEnemy(e, Math.ceil(e.maxHp * 0.3)); } } effects.push({ kind: "ray", x: player.x, y: player.y, angle: a, len: this.rayLength, half: this.rayHalf, life: 0.3, maxLife: 0.3 }); } } }),
+      shield_evo: evolvedDef("shield", { name: "진홍 장막", desc: "2초마다 다시 생기고, 깨질 때 주위 적을 밀어내며 피해",
+        getRecharge(w) { return 2 / durationMul(); },
         breakShield(w) { WEAPONS.shield.breakShield.call(this, w); const r = 120; for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, 20 * damageMul()); pushEnemy(e, player.x, player.y, 60); } } }),
-      spear_evo: evolvedDef("spear", { name: "폭풍의 창", desc: "창 3개를 더 빠르게 던짐", damageMul: 1.0,
+      spear_evo: evolvedDef("spear", { name: "폭풍의 창", desc: "더 강한 창 3개를 더 빠르게 던짐", damageMul: 1.7,
         getInterval(w) { return WEAPONS.spear.getInterval.call(this, w) * 0.7; },
         fire(w) { const target = findNearestEnemy(); if (!target) return; const base = Math.atan2(target.y - player.y, target.x - player.x); for (let i = -1; i <= 1; i++) { const a = base + i * 0.25; bullets.push({ kind: "spear", sprite: "spear", size: 21, x: player.x, y: player.y, vx: Math.cos(a) * 600, vy: Math.sin(a) * 600, r: 6, damage: weaponDamage(w, 1), pierce: 99, hitIds: new Set() }); } } }),
+      // 폭탄이 터진 자리에서 작은 파편 여섯 개가 퍼짐. 파편은 다시 갈라지지 않음.
+      cherry_evo: evolvedDef("cherry", { name: "연쇄 폭탄", desc: "폭발할 때 관통 파편 6개가 사방으로 퍼짐", interval: 2.0, damageMul: 1.15,
+        fire(w) {
+          const before = bullets.length;
+          WEAPONS.cherry.fire.call(this, w);
+          for (const b of bullets.slice(before)) {
+            const originalBlast = b.onHit;
+            const burst = (bomb) => {
+              if (bomb.dead) return;
+              originalBlast(bomb);
+              for (let i = 0; i < 6; i++) {
+                const a = stats.time + Math.PI * 2 * i / 6;
+                bullets.push({ kind: "cherry", sprite: this.icon, size: 10, spin: 12,
+                  x: bomb.x, y: bomb.y, vx: Math.cos(a) * 320 * projSpeedMul(), vy: Math.sin(a) * 320 * projSpeedMul(),
+                  r: 6, damage: bomb.damage * 0.5, pierce: 2, hitIds: new Set(), life: 1.2 * durationMul() });
+              }
+            };
+            b.onHit = burst; b.onExpire = burst; b.onBounce = burst;
+          }
+        } }),
+      // 운석은 적이나 벽에 닿으면 터지고, 그 자리에 불바다를 남겨 길목을 막음.
+      larobba_evo: evolvedDef("larobba", { name: "분화구 운석", desc: "운석이 폭발하고 떨어진 자리에 불바다를 남김", interval: 2.1, damageMul: 1.2,
+        fire(w) {
+          const before = bullets.length;
+          WEAPONS.larobba.fire.call(this, w);
+          for (const b of bullets.slice(before)) {
+            const impact = (rock) => {
+              if (rock.dead) return;
+              rock.dead = true;
+              const r = 75 * areaMul(), life = 3 * durationMul();
+              for (const e of enemies) if (!e.dead && Math.hypot(e.x - rock.x, e.y - rock.y) < r + e.r) damageEnemy(e, rock.damage * 2);
+              zones.push({ kind: "fire", x: rock.x, y: rock.y, r, life, maxLife: life, tick: 0, interval: 0.3, damage: rock.damage * 0.3 });
+              effects.push({ x: rock.x, y: rock.y, r, life: 0.35, maxLife: 0.35, rgb: "255, 120, 40" });
+            };
+            b.onHit = impact; b.onBounce = impact; b.onExpire = impact;
+          }
+        } }),
+      // 이동 중 남긴 흔적을 모았다가, 멈출 때 가까운 적에게 관통 발톱으로 날림.
+      shadow_evo: evolvedDef("shadow", { name: "밤의 행진", desc: "오래 남는 그림자 흔적. 멈추면 흔적 6개가 적을 향해 날아감", damageMul: 1.5,
+        update(w, dt) {
+          const before = zones.length, wasExploded = w.exploded;
+          WEAPONS.shadow.update.call(this, w, dt);
+          w.trails = (w.trails || []).filter((z) => z.life > 0);
+          for (const z of zones.slice(before)) {
+            z.life *= 1.4; z.maxLife = z.life;
+            w.trails.push(z);
+          }
+          if (!wasExploded && w.exploded) {
+            const target = findNearestEnemy();
+            if (!target) return;
+            for (const z of w.trails.slice(-6)) {
+              const a = Math.atan2(target.y - z.y, target.x - z.x);
+              bullets.push({ kind: "shadow", sprite: this.icon, size: 18,
+                x: z.x, y: z.y, vx: Math.cos(a) * 500 * projSpeedMul(), vy: Math.sin(a) * 500 * projSpeedMul(),
+                r: 9, damage: weaponDamage(w, 1) * 1.5, pierce: 99, hitIds: new Set(), life: 1.5 * durationMul() });
+              z.life = 0;                       // 날아간 흔적은 바닥에 남지 않음
+            }
+          }
+        } }),
+      // 바라보는 방향과 상관없이 네 갈래 불길이 회전하며 사방의 적을 훑음.
+      flames_evo: evolvedDef("flames", { name: "회전 화염", desc: "네 갈래 불길이 빙글 돌며 사방의 적을 태움", interval: 0.85, damageMul: 1.4,
+        update(w, dt) { w.angle = (w.angle || 0) + dt * 0.8; },
+        fire(w) {
+          const range = this.range * Math.pow(1.2, Math.floor(w.level / 2)) * areaMul();
+          for (let i = 0; i < 4; i++) {
+            const angle = (w.angle || 0) + Math.PI * i / 2;
+            for (const e of enemies) {
+              if (e.dead) continue;
+              const dx = e.x - player.x, dy = e.y - player.y;
+              const diff = Math.atan2(Math.sin(Math.atan2(dy, dx) - angle), Math.cos(Math.atan2(dy, dx) - angle));
+              if (Math.hypot(dx, dy) < range + e.r && Math.abs(diff) < this.halfAngle) damageEnemy(e, weaponDamage(w, 1));
+            }
+            effects.push({ kind: "cone", x: player.x, y: player.y, angle, len: range, half: this.halfAngle, life: 0.3, maxLife: 0.3 });
+          }
+        } }),
     });
     for (const base in EVOLUTIONS) { WEAPONS[base].evolvesTo = EVOLUTIONS[base].to; WEAPONS[base].needs = EVOLUTIONS[base].needs; }
 
@@ -1474,39 +1599,40 @@
     //   → 레벨업 카드로 올리든 상자에서 올리든 계산이 어긋나지 않음
     // =====================================================================
     const PASSIVES = {
-      might:     { name: "힘",        icon: "passive_might",     maxLevel: 5, desc: "무기 피해 +10%" },
+      might:     { name: "힘",        icon: "passive_might",     maxLevel: 5, desc: "무기 피해 +12%" },
       armor:     { name: "갑옷",      icon: "passive_armor",     maxLevel: 3, desc: "받는 피해 -1" },
       maxhp:     { name: "튼튼함",    icon: "passive_maxhp",     maxLevel: 3, desc: "최대 체력 +20%" },
       regen:     { name: "회복",      icon: "passive_regen",     maxLevel: 5, desc: "1초마다 체력 +0.2" },
       cooldown:  { name: "빠른 공격", icon: "passive_cooldown",  maxLevel: 5, desc: "모든 무기 발동 간격 -8%" },
       area:      { name: "촛대",      icon: "passive_area",      maxLevel: 5, desc: "공격 범위 +10%" },
       projspeed: { name: "팔보호대",  icon: "passive_projspeed", maxLevel: 5, desc: "발사체 속도 +10%" },
-      duration:  { name: "주문서",    icon: "passive_duration",  maxLevel: 5, desc: "효과 지속 시간 +10%" },
-      amount:    { name: "복제기",    icon: "passive_amount",    maxLevel: 2, desc: "발사 무기가 한 번 더 발사됨" },
+      duration:  { name: "주문서",    icon: "passive_duration",  maxLevel: 5, desc: "효과 지속 시간 +15%" },
+      amount:    { name: "복제기",    icon: "passive_amount",    maxLevel: 2, desc: "도끼 +1개. 발사 무기는 3회마다 추가 발사 (Lv2: 2회마다)" },
       move:      { name: "날개",      icon: "passive_move",      maxLevel: 5, desc: "이동 속도 +10%" },
       magnet:    { name: "자석",      icon: "passive_magnet",    maxLevel: MAGNET_MAX, desc: "구슬을 끌어당기는 범위 +30" },
-      luck:      { name: "클로버",    icon: "passive_luck",      maxLevel: 5, desc: "행운 +10% (물약 드랍, 상자 대박 확률)" },
-      growth:    { name: "왕관",      icon: "passive_growth",    maxLevel: 5, desc: "얻는 경험치 +8%" },
-      curse:     { name: "해골",      icon: "passive_curse",     maxLevel: 5, desc: "적 생성 +10%, 적 체력 +10%, 적 속도 +5% (경험치도 많이)" },
+      luck:      { name: "클로버",    icon: "passive_luck",      maxLevel: 5, desc: "행운 +15% (물약 드랍, 상자 대박 확률)" },
+      growth:    { name: "왕관",      icon: "passive_growth",    maxLevel: 5, desc: "얻는 경험치 +12%" },
+      curse:     { name: "해골",      icon: "passive_curse",     maxLevel: 5, desc: "적 생성 +10%, 체력 +6%, 속도 +3%. 대신 얻는 경험치 +8%" },
       revival:   { name: "부활",      icon: "passive_revival",   maxLevel: 2, desc: "죽으면 체력을 전부 회복하고 부활 (+1회)" },
-      choices:   { name: "선택의 폭", icon: "passive_choices",   maxLevel: MAX_CHOICES - START_CHOICES, noSlot: true, desc: "레벨업 카드 +1장 (최대 5장)" },
+      choices:   { name: "선택의 폭", icon: "passive_choices",   maxLevel: MAX_CHOICES - START_CHOICES, noSlot: true, desc: "슬롯을 쓰지 않고 레벨업 카드 +1장 (기본 최대 5장, 캐릭터 보너스는 별도)" },
     };
 
     // --- 패시브 레벨당 수치 (여기 값만 바꿔도 밸런스 조절 가능) ---
-    const P_MIGHT = 0.10;       // 힘: 피해 +10%
+    const P_MIGHT = 0.12;       // 힘: 피해 +12%
     const P_MAXHP = 0.20;       // 튼튼함: 최대 체력 +20%
     const P_REGEN = 0.2;        // 회복: 초당 +0.2
     const P_COOLDOWN = 0.08;    // 빠른 공격: 간격 -8%
     const P_AREA = 0.10;        // 촛대: 범위 +10%
     const P_PROJSPEED = 0.10;   // 팔보호대: 발사체 속도 +10%
-    const P_DURATION = 0.10;    // 주문서: 지속 +10%
+    const P_DURATION = 0.15;    // 주문서: 지속 +15%
     const P_MOVE = 0.10;        // 날개: 이동 속도 +10%
     const P_MAGNET = 30;        // 자석: 범위 +30px
-    const P_LUCK = 0.10;        // 클로버: 행운 +10%
-    const P_GROWTH = 0.08;      // 왕관: 경험치 +8%
+    const P_LUCK = 0.15;        // 클로버: 행운 +15%
+    const P_GROWTH = 0.12;      // 왕관: 경험치 +12%
     const P_CURSE_SPAWN = 0.10; // 해골: 적 생성 +10%
-    const P_CURSE_HP = 0.10;    // 해골: 적 체력 +10%
-    const P_CURSE_SPEED = 0.05; // 해골: 적 속도 +5%
+    const P_CURSE_HP = 0.06;    // 해골: 적 체력 +6%
+    const P_CURSE_SPEED = 0.03; // 해골: 적 속도 +3%
+    const P_CURSE_XP = 0.08;    // 해골: 위험을 감수한 보상으로 구슬 경험치도 +8%
     const P_REVIVE_INVINCIBLE = 2; // 부활 직후 무적 시간 (초)
 
     // 가진 패시브의 레벨 (없으면 0)
@@ -1515,26 +1641,26 @@
       return p ? p.level : 0;
     }
     // 무기 계산 때 그때그때 읽는 배수들
-    function damageMul()    { return 1 + P_MIGHT * passiveLevel("might"); }
+    function damageMul()    { return (1 + P_MIGHT * passiveLevel("might")) * upMul("might") * charDamageMul(); }   // × 상점 강화 × 캐릭터
     function areaMul()      { return 1 + P_AREA * passiveLevel("area"); }
     function projSpeedMul() { return 1 + P_PROJSPEED * passiveLevel("projspeed"); }
     function durationMul()  { return 1 + P_DURATION * passiveLevel("duration"); }
     function extraAmount()  { return passiveLevel("amount"); }
     function luckMul()      { return 1 + P_LUCK * passiveLevel("luck"); }
-    function xpMul()        { return 1 + P_GROWTH * passiveLevel("growth"); }
+    function xpMul()        { return (1 + P_GROWTH * passiveLevel("growth")) * (1 + P_CURSE_XP * curseLevel()) * upMul("growth"); }
     function curseLevel()   { return passiveLevel("curse"); }
 
     // 패시브 레벨이 바뀔 때마다 플레이어의 능력치를 '기본값 × 레벨'로 다시 계산
     //   (누적 곱셈 대신 매번 새로 계산하므로 어디서 올려도 값이 정확함)
     function recalcStats() {
       const oldMax = player.maxHp;
-      player.maxHp = Math.round(PLAYER_MAX_HP * (1 + P_MAXHP * passiveLevel("maxhp")));
+      player.maxHp = Math.round(PLAYER_MAX_HP * (1 + P_MAXHP * passiveLevel("maxhp")) * upMul("maxhp") * charDef().hp);   // × 상점 강화 × 캐릭터
       if (player.maxHp > oldMax) player.hp += player.maxHp - oldMax;   // 최대 체력이 오른 만큼 현재 체력도 +
       player.hp = Math.min(player.hp, player.maxHp);
-      player.speed = PLAYER_SPEED * (1 + P_MOVE * passiveLevel("move"));
+      player.speed = PLAYER_SPEED * (1 + P_MOVE * passiveLevel("move")) * upMul("move") * charDef().speed;
       player.attackSpeed = 1 - P_COOLDOWN * passiveLevel("cooldown");
-      player.pickupRadius = PICKUP_RADIUS + P_MAGNET * passiveLevel("magnet");
-      player.choices = START_CHOICES + passiveLevel("choices");
+      player.pickupRadius = (PICKUP_RADIUS + P_MAGNET * passiveLevel("magnet")) * upMul("magnet");
+      player.choices = START_CHOICES + passiveLevel("choices") + (charDef().choices || 0);
     }
 
     // 패시브 새로 얻기 / 한 레벨 올리기 (카드와 상자가 같이 씀)
@@ -1782,7 +1908,7 @@
         stageChangedAt: 0,        // 마지막으로 새 몬스터가 열린 시각 (새 몬스터 비율 계산용)
         enemyStage: 0,            // 지금 몬스터 단계 (시간표에서 몇 번째 칸인지)
         // --- 무기: 시작은 마법봉(자동 조준)만. 단검은 바라보는 방향으로만 나가서 시작 무기로는 어려움 ---
-        weapons: [{ type: "wand", level: 1, timer: 0 }],
+        weapons: [{ type: CHARACTERS[meta.char].weapon, level: 1, timer: 0 }],   // 캐릭터마다 시작 무기가 다름
       };
       enemies = [];
       pendingSpawns = [];
@@ -1807,8 +1933,11 @@
       spawnTimer = SPAWN_START;
       lastTime = null;
       nextEnemyId = 1;
+      startRun();                            // 다회차: 캐릭터·난이도·상점 강화 적용, 이번 판 기록 시작
 
-      gameoverBox.style.display = "none";   // 팝업 창 숨기기
+      gameoverBox.style.display = "none";
+      pauseBox.style.display = "none";
+      pauseBtn.style.display = "";   // 팝업 창 숨기기
       levelupBox.style.display = "none";
       chestBox.style.display = "none";
       clearBox.style.display = "none";
@@ -1836,6 +1965,8 @@
       // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
       if (state === "title") { if (name === "enter") startGame(); return; }
       if (state === "intro") { if (name === "enter" || name === "escape") closeIntro(); return; }
+      if (state === "paused") { if ((name === "escape" || name === "p" || name === "enter") && !e.repeat) resumeFromPause(); return; }
+      if (state === "playing" && (name === "escape" || name === "p") && !e.repeat) { pauseGame("일시정지"); return; }
       if (name === "h" && !e.repeat) { toggleHelp(); return; }          // H: 도움말 열기/닫기
       if (name === "escape" && state === "help") { toggleHelp(); return; }
       // Cmd/Ctrl/Alt 와 함께 누른 키는 단축키이므로 무시
@@ -1900,7 +2031,7 @@
     }
 
     stage.addEventListener("touchstart", (e) => {
-      if (e.target.closest("button")) return;      // ? 버튼·시작 버튼은 그대로 눌리게
+      if (e.target.closest("button, .meta-panel, input, label")) return;      // 판 안은 손가락으로 스크롤되게 + ? 버튼·시작 버튼은 그대로 눌리게
       e.preventDefault();
       if (state !== "playing" || joystick) return;
       const t = e.changedTouches[0];
@@ -2002,8 +2133,8 @@
       const curse = curseLevel();                                  // 해골(패시브): 적이 더 튼튼하고 빠름
       const speedMul = Math.min(1 + ENEMY_SPEED_PER_MINUTE * minutes, ENEMY_SPEED_CAP) * (1 + P_CURSE_SPEED * curse);
       const lateMinutes = Math.max(0, refTime() - ENEMY_HP_TIME_START) / 60;
-      const hpMul = DIFFICULTY * (1 + ENEMY_HP_PER_MINUTE_BASE * minutes) * (1 + ENEMY_HP_PER_MINUTE * lateMinutes) * (1 + P_CURSE_HP * curse);
-      const damageMul = DIFFICULTY * Math.min(1 + ENEMY_DAMAGE_PER_MINUTE * minutes, ENEMY_DAMAGE_CAP);
+      const hpMul = DIFFICULTY * diffDef().hp * (1 + ENEMY_HP_PER_MINUTE_BASE * minutes) * (1 + ENEMY_HP_PER_MINUTE * lateMinutes) * (1 + P_CURSE_HP * curse);
+      const damageMul = DIFFICULTY * diffDef().dmg * Math.min(1 + ENEMY_DAMAGE_PER_MINUTE * minutes, ENEMY_DAMAGE_CAP);
 
       const e = {
         id: nextEnemyId++,
@@ -2013,7 +2144,7 @@
         color: type.color,
         behavior: type.behavior,
         r: type.r,
-        speed: type.speed * speedMul,
+        speed: type.speed * speedMul * diffDef().speed,
         hp: Math.max(1, Math.round(type.hp * hpMul)),   // 반올림 (약한 적이 초반부터 2배로 튼튼해지지 않게)
         damage: Math.round(type.damage * damageMul),
         xp: type.xp * (cycle + 1),          // 한 바퀴 돌 때마다 경험치 2배, 3배...
@@ -2114,7 +2245,7 @@
       const { x, y } = randomEdgePosition(80);
       boss = makeEnemy(BOSS_TYPE, x, y);
       boss.boss = true;
-      boss.r = BOSS_TYPE.r; boss.hp = Math.round((BOSS_TYPE.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY); boss.maxHp = boss.hp;
+      boss.r = BOSS_TYPE.r; boss.hp = Math.round((BOSS_TYPE.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY * diffDef().boss); boss.maxHp = boss.hp;
       boss.speed = BOSS_TYPE.speed; boss.damage = Math.round(BOSS_TYPE.damage * DIFFICULTY); boss.xp = 0;
       enemies.push(boss);
       spawnParticles(x, y, "#9b5de5", 30, 260);
@@ -2170,6 +2301,7 @@
     function openChest(chest, forcedCount) {
       chest.dead = true;
       state = "chest";
+      run.chests += 1;                     // 다회차: 퀘스트용 상자 수
       effects.push({ kind: "chest", x: chest.x, y: chest.y, life: 0.8, maxLife: 0.8 });
       spawnParticles(chest.x, chest.y, "#ffd60a", 12, 160);
 
@@ -2185,6 +2317,7 @@
       if (evolvable) {
         const from = WEAPONS[evolvable.type], to = WEAPONS[from.evolvesTo];
         evolvable.type = from.evolvesTo;
+        run.evos += 1;                     // 다회차: 퀘스트용 진화 수
         evolvable.level = WEAPON_MAX_LEVEL;
         evolvable.timer = 0;
         gains.push({ title: `진화! ${from.name} → ${to.name}`, desc: to.desc, iconUrl: weaponIconUrl(evolvable.type), evolved: true });
@@ -2316,6 +2449,7 @@
       if (e.hp <= 0) {
         e.dead = true;
         stats.kills += 1;
+        if (charDef().healEvery && stats.kills % charDef().healEvery === 0) player.hp = Math.min(player.maxHp, player.hp + charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복
         if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
         spawnGem(e.x, e.y, e.xp);
         if (e.type === "mimic") {
@@ -2403,10 +2537,11 @@
             fireWeapon(w, def);
             const base = def.getInterval ? def.getInterval(w) : def.interval;
             w.timer = base * player.attackSpeed;
-            // 복제기(패시브): 발사 무기는 0.12초 간격으로 레벨만큼 한 번 더 발사 (noAmount 무기는 제외)
-            if (!def.noAmount && extraAmount() > 0) {
-              w.refire = [];
-              for (let i = 1; i <= extraAmount(); i++) w.refire.push(0.12 * i);
+            // 복제기: Lv1은 3회, Lv2는 2회마다 한 번 더. 빠른 무기도 앞서 예약한 발사를 지우지 않음.
+            w.volleyCount = (w.volleyCount || 0) + 1;
+            if (!def.noAmount && extraAmount() > 0 && w.volleyCount % (4 - extraAmount()) === 0) {
+              w.refire = w.refire || [];
+              w.refire.push(0.12);
             }
           }
         }
@@ -2474,6 +2609,7 @@
     // =====================================================================
     function update(dt) {
       stats.time += dt;
+      metaTick(dt);                          // 다회차: 1초마다 퀘스트 확인, 15초마다 이어 하기 저장
 
       // --- 플레이어 이동 ---
       let mx = 0, my = 0;
@@ -2546,7 +2682,7 @@
       eliteTimer -= dt;
       if (eliteTimer <= 0) {
         if (!boss) spawnElite();
-        eliteTimer = ELITE_INTERVAL;
+        eliteTimer = ELITE_INTERVAL * diffDef().elite;   // 난이도별 정예 간격
       }
 
       // --- 이벤트 시간표 (몬스터 떼·꽃 울타리): 시각이 되면 확률을 굴려 시작하고, repeat 번을 delay 간격으로 내보냄 ---
@@ -2761,7 +2897,7 @@
       // --- 충돌: 적 ↔ 플레이어 ---
       if (player.invincible <= 0) {
         for (const e of enemies) {
-          if (frozen && !e.boss) continue; // 빙결 중인 적은 닿아도 피해를 주지 않음 (보스는 안 얼음)
+          if ((frozen || e.frozenTimer > 0) && !e.boss) continue; // 빙결 광선으로 얼린 적도 닿아도 안전 (보스는 안 얼음)
           if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
           if (circlesTouch(e, player)) {
             hurtPlayer(e.damage);
@@ -3134,7 +3270,7 @@
 
       // 플레이어 (기사 그림, 무적 중엔 깜빡임)
       const blink = player.invincible > 0 && Math.floor(player.invincible * 20) % 2 === 0;
-      const drewKnight = drawSprite("knight", player.x, player.y, player.r * SPRITE_SCALE, {
+      const drewKnight = drawSprite(charDef().sprite, player.x, player.y, player.r * SPRITE_SCALE, {
         flip: player.facingLeft,
         white: blink,                      // 무적 중엔 흰색으로 깜빡임
       });
@@ -3460,6 +3596,7 @@
     function resumeGame() {
       for (const k in keys) keys[k] = false;   // 창 떠 있는 동안 눌린 키 초기화
       state = "playing";
+      saveRun();                                // 다회차: 카드를 고른 직후처럼 멈췄다 풀릴 때 이어 하기 저장
       lastTime = null;                          // 멈춘 시간이 dt에 한꺼번에 들어오지 않게
       requestAnimationFrame(gameLoop);
     }
@@ -3526,7 +3663,7 @@
       }
       for (const type in WEAPONS) {
         const def = WEAPONS[type];
-        if (def.evolved) continue;                 // 진화 무기는 카드로 나오지 않음 (상자에서 진화로만)
+        if (def.evolved || isWeaponLocked(type)) continue;   // 잠긴 무기(퀘스트로 해금)와 진화 무기는 카드로 안 나옴. 진화 무기는 카드로 나오지 않음 (상자에서 진화로만)
         const owned = player.weapons.find((w) => w.type === type);
         if (!owned) {
           if (!includeNewWeapons) continue;        // 보물 상자에서는 새 무기가 나오지 않음
@@ -3621,6 +3758,7 @@
       state = "gameover";
       resultText.textContent =
         `생존 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리`;
+      runReward.innerHTML = finishRun(false);   // 다회차: 금화·해금 정산
       gameoverBox.style.display = "flex";
     }
 
@@ -3635,6 +3773,7 @@
       state = "clear";
       spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
       clearText.innerHTML = `걸린 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리 · Lv.${player.level}`;
+      clearReward.innerHTML = finishRun(true);
       clearBox.style.display = "flex";
     }
     clearRestart.addEventListener("click", resetGame);
@@ -3714,7 +3853,7 @@
     // =====================================================================
     // 고를 수 있는 무기: 진화 무기가 아니고, 아직 없고, 그 진화형도 없는 것
     function candyChoices() {
-      return Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !player.weapons.some((w) => w.type === k || WEAPONS[w.type].evoOf === k));
+      return Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !isWeaponLocked(k) && !player.weapons.some((w) => w.type === k || WEAPONS[w.type].evoOf === k));
     }
 
     function openCandyBox() {
@@ -3833,8 +3972,10 @@
     function showTitle() {
       state = "title";
       helpBtn.style.display = "none";          // 게임이 없으니 ? 버튼도 숨김 (무기 보유 표시가 플레이어 정보를 쓰기 때문)
-      titleOverlay.classList.remove("intro");
+      titleOverlay.classList.remove("intro", "panel");
       titleOverlay.style.display = "flex";
+      pauseBtn.style.display = "none";
+      refreshTitleMenu();
       prepareTitleText();
       titleScene = { t: 0, monsters: [] };
       for (let i = 0; i < TITLE_MONSTER_COUNT; i++) titleScene.monsters.push(newTitleMonster(true));
@@ -3907,7 +4048,7 @@
       const bob = Math.sin(t * 2.2) * 4;
       ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
       ctx.beginPath(); ctx.ellipse(cx, cy + 54, 40, 11, 0, 0, Math.PI * 2); ctx.fill();
-      drawSprite("knight", cx, cy + bob, 56, { flip: Math.sin(t * 0.7) < 0 });
+      drawSprite(CHARACTERS[meta.char].sprite, cx, cy + bob, 56, { flip: Math.sin(t * 0.7) < 0 });
 
       // (5) 기사 주위를 도는 무기 3개 (게임 안의 도끼 무기처럼). 기사(반지름 56)에 맞춰 절반 조금 넘는 크기
       //   그림이 기사와 겹치지 않게: 기사 56 + 무기 32 = 88 이상 떨어져야 함 → 굤도의 가장 가까운 지점(위·아래, 세로 반지름)이 딱 88
@@ -3946,12 +4087,412 @@
 
     function closeIntro() {
       state = "title";
-      titleOverlay.classList.remove("intro");
+      titleOverlay.classList.remove("intro", "panel");
+      refreshTitleMenu();
     }
 
     startBtn.addEventListener("click", startGame);
     introBtn.addEventListener("click", openIntro);
     introClose.addEventListener("click", closeIntro);
+
+    // =====================================================================
+    // 15-1. 다회차: 판이 끝나도 남는 것들 (브라우저 저장소 localStorage 에 저장)
+    //   - meta     : 금화, 상점 강화, 끝낸 퀘스트, 고른 캐릭터·난이도, 누적 기록  (키: dungeon-survivor-meta)
+    //   - 이어 하기 : 하던 판의 플레이어·시간 정보 (키: dungeon-survivor-run). 몬스터·탄환은 저장하지 않음
+    //   ※ 아이폰 사파리는 7일 동안 안 들어오면 저장을 지울 수 있어서 '기록·저장'에 내보내기·불러오기가 있음
+    // =====================================================================
+    const SAVE_KEY = "dungeon-survivor-meta";
+    const RUN_KEY = "dungeon-survivor-run";
+    const SAVE_VERSION = 1;
+    const RUN_SAVE_INTERVAL = 15;      // 하던 판 저장 간격 (초)
+
+    // --- 캐릭터: 규칙이 하나씩 다름. unlock = 해금해 주는 퀘스트 id (없으면 처음부터) ---
+    const CHARACTERS = {
+      knight:    { name: "기사",   sprite: "knight",         weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
+      hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10" },
+      berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3" },
+      saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1" },
+    };
+
+    // --- 난이도: 앞 단계를 클리어하면 다음 단계가 열림. 숫자만 올리지 않고 정예 빈도·보스도 바뀜 ---
+    const DIFFS = [
+      { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   desc: "기본" },
+      // 정예를 늘리면 상자도 늘어 오히려 쉬워졌으므로, 간격은 같게 두고 적의 능력치를 올림.
+      { name: "어려움",      hp: 1.15, dmg: 1.05, speed: 1.02, elite: 1, boss: 1.1,  gold: 1.3, desc: "적 체력 +15%, 피해 +5%, 속도 +2%, 보스 체력 +10%" },
+      { name: "매우 어려움", hp: 1.35, dmg: 1.15, speed: 1.08, elite: 1, boss: 1.25, gold: 1.6, desc: "적 체력 +35%, 피해 +15%, 속도 +8%, 보스 체력 +25%" },
+      { name: "지옥",        hp: 1.6,  dmg: 1.3,  speed: 1.12, elite: 1, boss: 1.5,  gold: 2,   desc: "적 체력 +60%, 피해 +30%, 속도 +12%, 보스 체력 +50%" },
+    ];
+
+    // --- 상점 (영구 강화): 단계 상한 있음, 언제든 공짜 환불. 값 = base × (지금 단계 + 1) ---
+    const SHOP = [
+      { key: "might",  name: "공격력",    icon: "passive_might",  max: 3, base: 60,  per: 0.08 },
+      { key: "maxhp",  name: "최대 체력", icon: "passive_maxhp",  max: 2, base: 60,  per: 0.10 },
+      { key: "move",   name: "이동 속도", icon: "passive_move",   max: 2, base: 80,  per: 0.06 },
+      { key: "magnet", name: "자석 범위", icon: "passive_magnet", max: 2, base: 80,  per: 0.25 },
+      { key: "growth", name: "경험치",    icon: "passive_growth", max: 2, base: 100, per: 0.08 },
+      { key: "greed",  name: "금화 획득", icon: "chest",          max: 1, base: 150, per: 0.20 },
+    ];
+
+    // --- 퀘스트: 배우는 것(진화·상자)과 쌓이는 것(누적 처치)을 섞음. 값이 goal 이상이 되면 끝 ---
+    //   보상: weapon(무기 해금) / char(캐릭터 해금) / gold(금화)
+    const QUESTS = [
+      { id: "q_time1",    name: "첫 걸음",       desc: "1분 버티기",                                stat: "time",   goal: 60,   gold: 30 },
+      { id: "q_level10",  name: "성장",          desc: "한 판에 레벨 10 도달",                      stat: "level",  goal: 10,   weapon: "spear" },
+      { id: "q_time5",    name: "5분 버티기",    desc: "한 판에 5분 버티기",                        stat: "time",   goal: 300,  weapon: "lightning" },
+      { id: "q_chest3",   name: "보물 사냥",     desc: "보물 상자 3개 열기 (누적)",                 stat: "chests", goal: 3,    weapon: "cherry" },
+      { id: "q_kill500",  name: "몬스터 사냥꾼", desc: "500마리 처치 (누적)",                       stat: "kills",  goal: 500,  weapon: "hammer" },
+      { id: "q_time10",   name: "10분 버티기",   desc: "한 판에 10분 버티기",                       stat: "time",   goal: 600,  char: "hunter" },
+      { id: "q_evo1",     name: "첫 진화",       desc: "무기 1번 진화시키기 (? 버튼 조합표 참고)", stat: "evos",   goal: 1,    weapon: "shadow" },
+      { id: "q_time15",   name: "15분 버티기",   desc: "한 판에 15분 버티기",                       stat: "time",   goal: 900,  weapon: "pentagram" },
+      { id: "q_kill3000", name: "학살자",        desc: "3000마리 처치 (누적)",                      stat: "kills",  goal: 3000, weapon: "larobba" },
+      { id: "q_level30",  name: "강자",          desc: "한 판에 레벨 30 도달",                      stat: "level",  goal: 30,   weapon: "flames" },
+      { id: "q_evo3",     name: "진화 연구가",   desc: "무기 3번 진화시키기 (누적)",                stat: "evos",   goal: 3,    char: "berserker" },
+      { id: "q_clear",    name: "사신 퇴치",     desc: "마지막 보스 잡기 (클리어)",                 stat: "clears", goal: 1,    weapon: "victory" },
+      { id: "q_diff1",    name: "더 어둡게",     desc: "'어려움' 난이도 클리어",                    stat: "diff",   goal: 1,    char: "saint" },
+    ];
+    const WEAPON_LOCKS = {};                 // 무기 종류 → 해금해 주는 퀘스트 id
+    for (const q of QUESTS) if (q.weapon) WEAPON_LOCKS[q.weapon] = q.id;
+
+    // --- 저장 / 불러오기 ---
+    function defaultMeta() {
+      return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], char: "knight", diff: 0,
+               stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1 } };
+    }
+    // 저장된 값이 이상해도(손으로 고친 파일 등) 게임이 깨지지 않게 하나씩 확인해서 채움
+    function normalizeMeta(m) {
+      const d = defaultMeta();
+      if (!m || typeof m !== "object") return d;
+      const num = (v, min = 0) => (Number.isFinite(Number(v)) ? Math.max(min, Math.floor(Number(v))) : min);
+      d.gold = num(m.gold);
+      for (const s of SHOP) d.upgrades[s.key] = Math.min(s.max, num(m.upgrades && m.upgrades[s.key]));
+      d.quests = Array.isArray(m.quests) ? [...new Set(m.quests.filter((id) => QUESTS.some((q) => q.id === id)))] : [];
+      const st = m.stats || {};
+      for (const k in d.stats) d.stats[k] = k === "maxClearDiff" ? Math.min(DIFFS.length - 1, num(st[k], -1)) : num(st[k]);
+      if (CHARACTERS[m.char]) d.char = m.char;
+      d.diff = Math.min(num(m.diff), DIFFS.length - 1);
+      return d;
+    }
+    let storageOk = true;
+    function loadMeta() {
+      let text = null;
+      try { text = localStorage.getItem(SAVE_KEY); } catch (e) { storageOk = false; }
+      if (!text) return defaultMeta();
+      try { return normalizeMeta(JSON.parse(text)); }
+      catch (e) {
+        try { localStorage.setItem(SAVE_KEY + "-broken", text); } catch (e2) {}   // 망가진 저장은 지우지 않고 따로 보관
+        return defaultMeta();
+      }
+    }
+    function saveMeta() {
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(meta)); storageOk = true; }
+      catch (e) { storageOk = false; }     // 사생활 보호 모드 등: 저장이 안 돼도 게임은 계속
+    }
+    let meta = loadMeta();
+    let run = null;                        // 지금 판의 다회차 정보 (캐릭터, 난이도, 상자·진화 수, 새로 끝낸 퀘스트)
+
+    // --- 배수들 ---
+    function upLevel(key) { return meta.upgrades[key] || 0; }
+    function upMul(key) { const s = SHOP.find((it) => it.key === key); return 1 + (s ? s.per * upLevel(key) : 0); }
+    function charDef() { return CHARACTERS[run ? run.char : meta.char] || CHARACTERS.knight; }
+    function diffDef() { return DIFFS[run ? run.diff : meta.diff] || DIFFS[0]; }
+    function charDamageMul() {
+      const c = charDef();
+      return (c.dmg || 1) * (c.berserk && player && player.hp <= player.maxHp / 2 ? 1.6 : 1);
+    }
+    function isQuestDone(id) { return meta.quests.includes(id); }
+    function isWeaponLocked(type) { return !!WEAPON_LOCKS[type] && !isQuestDone(WEAPON_LOCKS[type]); }
+    function isCharUnlocked(key) { const c = CHARACTERS[key]; return !!c && (!c.unlock || isQuestDone(c.unlock)); }
+    function isDiffUnlocked(i) { return i <= meta.stats.maxClearDiff + 1; }
+
+    // --- 판 시작 (resetGame 이 부름) ---
+    function startRun() {
+      if (!isCharUnlocked(meta.char)) meta.char = "knight";
+      if (!isDiffUnlocked(meta.diff)) meta.diff = 0;
+      run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, newQuests: [], tick: 0, saveTimer: 0, done: false };
+      player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
+      recalcStats();
+      player.hp = player.maxHp;
+      eliteTimer = ELITE_INTERVAL * diffDef().elite;
+      clearRun();                          // 새 판을 시작하면 예전 '이어 하기'는 없앰
+    }
+
+    // --- 퀘스트 진행 값. live = 지금 판 포함, cleared = 이번 판을 클리어했는지 ---
+    function questValue(q, live, cleared) {
+      const s = meta.stats;
+      switch (q.stat) {
+        case "time":   return live ? Math.max(s.bestTime, stats.time) : s.bestTime;
+        case "level":  return live ? Math.max(s.bestLevel, player.level) : s.bestLevel;
+        case "kills":  return s.kills + (live ? stats.kills : 0);
+        case "chests": return s.chests + (live ? run.chests : 0);
+        case "evos":   return s.evos + (live ? run.evos : 0);
+        case "clears": return s.clears + (live && cleared ? 1 : 0);
+        case "diff":   return Math.max(s.maxClearDiff, live && cleared ? run.diff : -1);
+      }
+      return 0;
+    }
+    function rewardText(q) {
+      if (q.weapon) return `무기 '${WEAPONS[q.weapon].name}' 해금`;
+      if (q.char) return `캐릭터 '${CHARACTERS[q.char].name}' 해금`;
+      return `금화 ${q.gold}`;
+    }
+    function checkQuests(cleared) {
+      let changed = false;
+      for (const q of QUESTS) {
+        if (isQuestDone(q.id) || questValue(q, true, cleared) < q.goal) continue;
+        meta.quests.push(q.id);
+        run.newQuests.push(q.id);
+        if (q.gold) meta.gold += q.gold;
+        changed = true;
+        floatTexts.push({ x: player.x, y: player.y - 44, text: `퀘스트 완료! ${rewardText(q)}`, color: "#2ecc71", life: 3, maxLife: 3 });
+      }
+      if (changed) saveMeta();             // 판 중간에 풀린 무기는 다음 레벨업 카드부터 바로 나옴
+    }
+
+    // 매 프레임 (update 가 부름): 1초마다 퀘스트 확인, 15초마다 이어 하기 저장
+    function metaTick(dt) {
+      if (!run) return;
+      run.tick += dt;
+      if (run.tick >= 1) { run.tick = 0; checkQuests(false); }
+      run.saveTimer += dt;
+      if (run.saveTimer >= RUN_SAVE_INTERVAL) { run.saveTimer = 0; saveRun(); }
+    }
+
+    // --- 판 끝 정산 (게임오버·클리어): 금화 + 누적 기록 + 해금 안내 문구를 돌려줌 ---
+    function finishRun(cleared) {
+      if (!run || run.done) return "";
+      run.done = true;
+      checkQuests(cleared);
+      const s = meta.stats;
+      const firstRun = s.runs === 0;
+      const gold = Math.round((stats.time / 6 + stats.kills / 25 + (cleared ? 150 : 0) + (firstRun ? 40 : 0))
+                              * diffDef().gold * upMul("greed"));
+      const prevMaxDiff = s.maxClearDiff;
+      s.runs += 1; s.kills += stats.kills; s.chests += run.chests; s.evos += run.evos;
+      s.bestTime = Math.max(s.bestTime, Math.floor(stats.time));
+      s.bestLevel = Math.max(s.bestLevel, player.level);
+      if (cleared) { s.clears += 1; s.maxClearDiff = Math.max(s.maxClearDiff, run.diff); }
+      meta.gold += gold;
+      saveMeta();
+      clearRun();
+      let html = `+${gold} 금화 (보유 ${meta.gold})`;
+      for (const id of run.newQuests) { const q = QUESTS.find((it) => it.id === id); html += `<br><span>퀘스트 '${q.name}' 완료 → ${rewardText(q)}</span>`; }
+      if (s.maxClearDiff > prevMaxDiff && s.maxClearDiff + 1 < DIFFS.length) html += `<br><span>새 난이도 '${DIFFS[s.maxClearDiff + 1].name}' 열림</span>`;
+      if (!storageOk) html += `<br>※ 이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
+      return html;
+    }
+
+    // =====================================================================
+    // 15-2. 하던 판 이어 하기: 멈춘 순간(카드 고른 직후·일시정지)·15초마다·앱을 내릴 때 저장
+    //   돌아오면 일시정지 상태로 띄움 (바로 싸우지 않게). 몬스터는 새로 나오고, 20분이 지났으면 보스가 다시 나옴
+    // =====================================================================
+    function saveRun() {
+      if (!run || run.done || (state !== "playing" && state !== "paused")) return;   // 카드·상자 창이 떠 있는 동안은 저장 안 함
+      const p = player;
+      const snap = {
+        v: SAVE_VERSION, char: run.char, diff: run.diff,
+        player: { x: p.x, y: p.y, hp: p.hp, level: p.level, xp: p.xp, xpNeed: p.xpNeed, revivesUsed: p.revivesUsed,
+                  stageChangedAt: p.stageChangedAt, enemyStage: p.enemyStage, passives: p.passives,
+                  weapons: p.weapons.map((w) => ({ type: w.type, level: w.level })) },
+        stats: { time: stats.time, kills: stats.kills },
+        eventIndex, spawnTimer, eliteTimer,
+        run: { chests: run.chests, evos: run.evos, newQuests: run.newQuests },
+      };
+      try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch (e) {}
+    }
+    function loadRun() {
+      try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player ? s : null; }
+      catch (e) { return null; }
+    }
+    function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch (e) {} }
+
+    function continueRun() {
+      const snap = loadRun();
+      if (!snap) { refreshTitleMenu(); return; }
+      if (CHARACTERS[snap.char]) meta.char = snap.char;
+      meta.diff = Math.min(DIFFS.length - 1, snap.diff | 0);
+      resetGame();                          // 캐릭터·난이도 적용한 새 판을 만든 뒤, 저장해 둔 값으로 덮어씀
+      const sp = snap.player;
+      Object.assign(player, { x: sp.x, y: sp.y, level: sp.level, xp: sp.xp, xpNeed: sp.xpNeed, revivesUsed: sp.revivesUsed,
+                              stageChangedAt: sp.stageChangedAt, enemyStage: sp.enemyStage,
+                              passives: Array.isArray(sp.passives) ? sp.passives.filter((it) => PASSIVES[it.type]) : [] });
+      const ws = (sp.weapons || []).filter((w) => WEAPONS[w.type]).map((w) => ({ type: w.type, level: w.level, timer: 0 }));
+      if (ws.length) player.weapons = ws;
+      stats = { time: snap.stats.time, kills: snap.stats.kills };
+      eventIndex = snap.eventIndex | 0; spawnTimer = snap.spawnTimer || SPAWN_START; eliteTimer = snap.eliteTimer || ELITE_INTERVAL;
+      Object.assign(run, snap.run || {});
+      recalcStats();
+      player.hp = Math.min(player.maxHp, Math.max(1, sp.hp));
+      updateCamera();
+      pauseGame("저장해 둔 판을 불러왔어요. 준비되면 계속하기를 누르세요");
+    }
+
+    // --- 일시정지 ---
+    function pauseGame(msg) {
+      if (state !== "playing") return;
+      state = "paused";
+      endJoystick();
+      pauseText.textContent = `${msg} · ${formatTime(stats.time)} 버팀`;
+      pauseBox.style.display = "flex";
+      saveRun();
+    }
+    function resumeFromPause() {
+      if (state !== "paused") return;
+      pauseBox.style.display = "none";
+      resumeGame();
+    }
+    function toTitle() {
+      saveRun();                            // 일시정지에서 나가면 나중에 '이어 하기'
+      for (const box of [pauseBox, gameoverBox, clearBox, helpBox, levelupBox, chestBox, candyBox]) box.style.display = "none";
+      run = null;
+      showTitle();
+    }
+    // 앱을 내리거나 다른 탭으로 가면: 멈추고 저장 (휴대폰 브라우저는 내려간 페이지를 예고 없이 닫을 수 있음)
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "hidden") return;
+      if (state === "playing") pauseGame("앱을 내렸다 돌아왔어요");
+      else saveRun();
+    });
+
+    // =====================================================================
+    // 15-3. 시작 화면: 금화·캐릭터·이어 하기 표시, 상점·퀘스트·캐릭터와 난이도·기록과 저장 판
+    // =====================================================================
+    const pauseBox = document.getElementById("pauseBox");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const pauseText = document.getElementById("pauseText");
+    const runReward = document.getElementById("runReward");
+    const clearReward = document.getElementById("clearReward");
+    const continueBtn = document.getElementById("continueBtn");
+    const metaTitle = document.getElementById("metaTitle");
+    const metaNote = document.getElementById("metaNote");
+    const metaBody = document.getElementById("metaBody");
+    const importFile = document.getElementById("importFile");
+    let panelKind = "shop";
+
+    function refreshTitleMenu() {
+      document.getElementById("titleGold").innerHTML = `<img src="assets/coin.png" alt="금화">${meta.gold}`;
+      document.getElementById("titleSub").innerHTML = `${CHARACTERS[meta.char].name} · ${DIFFS[meta.diff].name}` +
+        (storageOk ? "" : ` · <span class="title-warn">저장 안 됨</span>`);
+      document.getElementById("questBtn").textContent = `퀘스트 ${meta.quests.length}/${QUESTS.length}`;
+      continueBtn.style.display = loadRun() ? "block" : "none";
+    }
+
+    function openPanel(kind) {
+      state = "intro";                      // Esc·Enter 로 닫힘 (게임 설명과 같은 처리)
+      panelKind = kind;
+      titleOverlay.classList.add("panel");
+      renderPanel();
+    }
+
+    function row(cls, icon, title, sub, right) {
+      return `<div class="meta-row ${cls}">${icon ? `<img src="${icon}" alt="">` : ""}<div class="grow"><b>${title}</b><small>${sub}</small></div>${right || ""}</div>`;
+    }
+    function bar(v, goal) { return `<div class="bar"><i style="width:${Math.min(100, (v / goal) * 100)}%"></i></div>`; }
+
+    function renderPanel() {
+      let html = "";
+      if (panelKind === "shop") {
+        metaTitle.textContent = "상점";
+        metaNote.textContent = `보유 금화 ${meta.gold} · 판이 끝나면 금화를 받아요 (죽어도 받음) · 언제든 공짜 환불`;
+        html += `<div class="meta-actions"><button class="meta-btn" data-act="refund">전부 환불 (금화 돌려받기)</button></div>`;
+        for (const s of SHOP) {
+          const lv = upLevel(s.key), cost = s.base * (lv + 1);
+          const pips = "●".repeat(lv) + "○".repeat(s.max - lv);
+          const btn = lv >= s.max ? `<button class="meta-btn" disabled>최대</button>`
+            : `<button class="meta-btn buy" data-act="buy" data-key="${s.key}" ${meta.gold < cost ? "disabled" : ""}>${cost} 금화</button>`;
+          html += row("", `assets/${s.icon}.png`, `${s.name} <span class="pips">${pips}</span>`, `지금 +${Math.round(s.per * lv * 100)}% · 단계마다 +${Math.round(s.per * 100)}%`, btn);
+        }
+      } else if (panelKind === "quests") {
+        metaTitle.textContent = "퀘스트";
+        metaNote.textContent = "조건을 채우면 무기·캐릭터가 풀려요. 죽은 판에서도 진행됩니다";
+        for (const q of QUESTS) {
+          const done = isQuestDone(q.id), v = Math.min(q.goal, Math.max(0, questValue(q, false)));
+          const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : "assets/chest.png";
+          const prog = q.stat === "time" ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.stat === "clears" ? "" : `${v} / ${q.goal}`;
+          html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
+        }
+      } else if (panelKind === "select") {
+        metaTitle.textContent = "캐릭터·난이도";
+        metaNote.textContent = "고른 캐릭터·난이도는 '게임 시작'과 '다시 시작'에 그대로 쓰여요";
+        html += `<p class="meta-head">캐릭터</p>`;
+        for (const k in CHARACTERS) {
+          const c = CHARACTERS[k], open = isCharUnlocked(k), sel = meta.char === k;
+          const right = !open ? `<button class="meta-btn" disabled>잠김</button>`
+            : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="char" data-key="${k}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
+          const sub = open ? c.rule : `잠김: 퀘스트 '${QUESTS.find((q) => q.id === c.unlock).name}' (${QUESTS.find((q) => q.id === c.unlock).desc})`;
+          html += row(sel ? "sel" : open ? "" : "locked", `assets/${c.sprite}.png`, c.name, sub, right);
+        }
+        html += `<p class="meta-head">난이도</p>`;
+        DIFFS.forEach((d, i) => {
+          const open = isDiffUnlocked(i), sel = meta.diff === i;
+          const right = !open ? `<button class="meta-btn" disabled>잠김</button>`
+            : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="diff" data-key="${i}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
+          const sub = open ? `${d.desc} · 금화 ×${d.gold}` : `잠김: '${DIFFS[i - 1].name}' 클리어하면 열림`;
+          html += row(sel ? "sel" : open ? "" : "locked", "", d.name, sub, right);
+        });
+      } else {
+        const s = meta.stats;
+        metaTitle.textContent = "기록·저장";
+        metaNote.textContent = "기록은 이 브라우저에 저장돼요. 아이폰은 7일 동안 안 들어오면 지워질 수 있으니 가끔 내보내기로 백업하세요 (홈 화면에 추가하면 안전)";
+        html += row("", "", "판 수 / 클리어", `${s.runs}판 / ${s.clears}번 클리어`);
+        html += row("", "", "누적", `처치 ${s.kills}마리 · 상자 ${s.chests}개 · 진화 ${s.evos}번`);
+        html += row("", "", "최고 기록", `${formatTime(s.bestTime)} 버팀 · 레벨 ${s.bestLevel}`);
+        if (!storageOk) html += row("locked", "", "저장 안 됨", "이 브라우저에서는 저장이 막혀 있어요 (사생활 보호 모드 등)");
+        html += `<div class="meta-actions"><button class="meta-btn buy" data-act="export">내보내기 (파일로 저장)</button><button class="meta-btn buy" data-act="import">불러오기</button><button class="meta-btn" data-act="wipe">기록 지우기</button></div>`;
+      }
+      metaBody.innerHTML = html;
+    }
+
+    metaBody.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]");
+      if (!b || b.disabled) return;
+      const act = b.dataset.act, key = b.dataset.key;
+      if (act === "buy") {
+        const s = SHOP.find((it) => it.key === key), lv = upLevel(key), cost = s.base * (lv + 1);
+        if (lv < s.max && meta.gold >= cost) { meta.gold -= cost; meta.upgrades[key] = lv + 1; }
+      } else if (act === "refund") {
+        for (const s of SHOP) { const lv = upLevel(s.key); meta.gold += (s.base * lv * (lv + 1)) / 2; meta.upgrades[s.key] = 0; }
+      } else if (act === "char") { if (isCharUnlocked(key)) meta.char = key; }
+      else if (act === "diff") { if (isDiffUnlocked(+key)) meta.diff = +key; }
+      else if (act === "export") { exportSave(); return; }
+      else if (act === "import") { importFile.click(); return; }
+      else if (act === "wipe") {
+        if (!confirm("금화·강화·퀘스트·기록을 모두 지울까요? 되돌릴 수 없어요")) return;
+        meta = defaultMeta(); clearRun();
+      }
+      saveMeta();
+      renderPanel();
+    });
+
+    function exportSave() {
+      const blob = new Blob([JSON.stringify(meta, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `dungeon-survivor-save-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    importFile.addEventListener("change", async () => {
+      const file = importFile.files[0];
+      importFile.value = "";
+      if (!file) return;
+      try {
+        if (file.size > 64 * 1024) throw new Error("파일이 너무 커요");
+        const data = JSON.parse(await file.text());
+        if (!data || typeof data !== "object" || (data.version | 0) > SAVE_VERSION) throw new Error("이 게임의 저장 파일이 아니에요");
+        if (!confirm("지금 기록을 불러온 파일로 바꿀까요?")) return;
+        meta = normalizeMeta(data);
+        saveMeta();
+        renderPanel();
+        alert("불러왔어요");
+      } catch (e) { alert("불러오기 실패: " + e.message); }
+    });
+
+    for (const b of document.querySelectorAll("[data-panel]")) b.addEventListener("click", () => openPanel(b.dataset.panel));
+    document.getElementById("metaClose").addEventListener("click", closeIntro);
+    continueBtn.addEventListener("click", continueRun);
+    pauseBtn.addEventListener("click", () => pauseGame("일시정지"));
+    document.getElementById("pauseResume").addEventListener("click", resumeFromPause);
+    for (const b of document.querySelectorAll(".to-title")) b.addEventListener("click", toTitle);
 
     // =====================================================================
     // 16. 시작!

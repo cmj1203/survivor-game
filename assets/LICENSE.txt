@@ -9,7 +9,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
   ghost.png   = tile_0121    bat.png    = tile_0120    cyclops.png = tile_0109
   spider.png  = tile_0122    wizard.png = tile_0084    crab.png    = tile_0110
   knight.png  = tile_0096 (플레이어)
-  floor_plain.png = tile_0000   floor_holes.png = tile_0012   floor_pebbles.png = tile_0024 (바닥)
+  (바닥 floor_plain / floor_holes / floor_pebbles 는 2026-10-06 에 다른 팩으로 바꿈 → 아래 "던전 바닥" 항목. 예전엔 tile_0000 / tile_0012 / tile_0024 를 썼음)
   chest.png = tile_0089 (닫힌 상자)   chest_open.png = tile_0091 (열린 상자)
   mimic.png = tile_0092 (미믹)
   potion_red.png = tile_0115   potion_green.png = tile_0114   potion_blue.png = tile_0116   potion_grey.png = tile_0113 (바닥 아이템)
@@ -22,39 +22,45 @@ http://creativecommons.org/publicdomain/zero/1.0/
 https://kenney.nl/assets/1-bit-pack
 License: Creative Commons Zero (CC0)
 
-원본 위치 (타일시트 열, 행 — 0부터 셈):
-  passive_might.png = 열 34, 행 18 (힘)
+원본 위치 (타일시트 열, 행 — 0부터 셈). 2026-10-06 에 무기 아이콘과 같은 그림체로 맞춤:
+1-Bit 선화 실루엣을 원래 색으로 채우고 안쪽에 밝은 심을 넣은 뒤 Tiny Dungeon 외곽선색 #3F2631 로 1px 테두리를 둘렀음.
+  passive_might.png = 열 34, 행 18 (힘, 시금치)
   passive_armor.png = 열 37, 행 1 (갑옷)
-  passive_maxhp.png = 열 40, 행 10 (튼튼함)
-  passive_regen.png = 열 43, 행 11 (회복)
-  passive_cooldown.png = 열 45, 행 5 (빠른 공격)
-  passive_area.png = 열 31, 행 11 (촛대)
-  passive_projspeed.png = 열 41, 행 1 (팔보호대)
-  passive_duration.png = 열 33, 행 15 (주문서)
-  passive_amount.png = 열 45, 행 12 (복제기)
+  passive_maxhp.png = 열 40, 행 10 (튼튼함, 하트)
+  passive_cooldown.png = 열 45, 행 5 (빠른 공격, 책)
+  passive_projspeed.png = 열 41, 행 1 (팔보호대, 장갑)
+  passive_duration.png = 열 33, 행 15 (주문서, 두루마리)
   passive_move.png = 열 39, 행 0 (날개)
-  passive_magnet.png = 열 46, 행 6 (자석)
   passive_luck.png = 열 46, 행 13 (클로버)
   passive_growth.png = 열 44, 행 2 (왕관)
-  passive_curse.png = 열 34, 행 12 (해골)
-  passive_revival.png = 열 41, 행 12 (부활)
-  passive_choices.png = 열 26, 행 16 (선택의 폭)
+  passive_curse.png = 열 34, 행 12 (해골. 저주라서 보라색으로 채움)
+  passive_revival.png = 열 41, 행 12 (부활, 모래시계)
+  passive_choices.png = 열 26, 행 16 (선택의 폭, 카드)
+다른 팩으로 바꾼 것 (모양이 이름과 안 맞거나 다른 아이콘과 겹쳐서):
+  passive_regen.png  = Kenney "Pixel Shmup" (CC0) Tiles/tile_0024.png (구급상자. 외곽선 색만 바꿈. 예전엔 1-Bit 열 43, 행 11 십자 원)
+  passive_area.png   = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 20, 행 8 (삼지 촛대. 그대로. 예전엔 1-Bit 열 31, 행 11)
+  passive_amount.png = Kenney "Pixel Shmup" (CC0) Tiles/tile_0001.png (탄 두 발. 하늘색으로 바꾸고 외곽선 색 통일. 예전 1-Bit 열 45, 행 12 는 시계 모양이라 빙결 광선과 겹쳤음)
+  passive_magnet.png = item_magnet.png 와 같은 말굽자석에 외곽선 추가 (예전 1-Bit 열 46, 행 6 은 수정구 모양이라 마법 구슬과 겹쳤음)
   table.png = tile_0072   chair.png = tile_0073   bigsword.png = tile_0106 (2·3단계 무기)
 
-무기 아이콘 (Kenney "1-Bit Pack" CC0, colored-transparent_packed.png 에서 잘라 한 가지 색으로 칠함):
-  w_aura.png = 열 28, 행 12 (번개 오라)
-  w_firewand.png = 열 44, 행 3 (화염 지팡이)
-  w_rune.png = 열 46, 행 6 (마법 구슬)
-  w_lightning.png = 열 36, 행 11 (낙뢰)
-  w_pentagram.png = 열 29, 행 12 (별의 문양)
-  w_clock.png = 열 40, 행 12 (빙결 광선)
-  w_bracelet.png = 열 44, 행 6 (삼연발 마법탄)
-  w_shadow.png = 열 26, 행 11 (그림자 발톱)
-  w_flames.png = 열 28, 행 11 (화염 방사)
-  w_bomb.png = 열 43, 행 6 (폭탄)
+무기 아이콘·발사체 (2026-10-06 에 캐릭터와 같은 그림체로 맞춤. 1-Bit 선화를 한 가지 색으로 칠한 예전 그림 대신,
+외곽선이 있는 팩 타일을 쓰고 외곽선 색은 Tiny Dungeon 과 같은 #3F2631 로 통일함):
+  w_bomb.png      = Kenney "Tiny Town" (CC0, https://kenney.nl/assets/tiny-town) Tiles/tile_0105.png (폭탄. 그대로)
+  w_shadow.png    = Kenney "Tiny Dungeon" (CC0) Tiles/tile_0062.png (세 줄 발톱 자국. 흰색을 보라색으로 바꾸고 외곽선 추가)
+  w_firewand.png  = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 17, 행 7 (횃불. 그대로)
+  w_lightning.png = Kenney "Pixel Shmup" (CC0, https://kenney.nl/assets/pixel-shmup) Tiles/tile_0004.png (노란 번쩍임. 외곽선 색만 바꿈)
+  w_aura.png      = Kenney "Pixel Shmup" (CC0) Tiles/tile_0007.png (사방으로 퍼지는 불꽃. 하늘색으로 바꾸고 외곽선 추가)
+  w_bracelet.png  = Kenney "Micro Roguelike" (CC0, https://kenney.nl/assets/micro-roguelike) Tiles/Colored/tile_0089.png (반지. 8x8 을 2배로 키우고 외곽선 추가)
+  w_flames.png    = Kenney "1-Bit Pack" (CC0) colored-transparent_packed.png 열 28, 행 11 (불꽃. 주황으로 채우고 안쪽에 크림색 심, 외곽선 추가)
+  w_rune.png      = 같은 1-Bit 시트 열 46, 행 6 (수정구. 하늘색으로 채우고 흰 심, 외곽선 추가)
+  w_clock.png     = 같은 1-Bit 시트 열 43, 행 12 (둥근 시계. 하늘색으로 채우고 외곽선 추가)
+  w_pentagram.png = 같은 1-Bit 시트 열 29, 행 12 (별 문양. 금색으로 채우고 외곽선 추가)
+  (w_petal.png 는 그대로 — 아래 꽃가루 항목)
 
 도움말(?) 버튼 아이콘 (Kenney "1-Bit Pack" CC0, monochrome-transparent_packed.png 에서 잘라 금색으로 칠함):
   help.png = 열 38, 행 13 (네모 안 물음표)
+  ※ 2026-10-06: help.png · pause.png · coin.png (노란 픽셀 UI 버튼 세 개) 에 UI 테두리색 #2A1606 로 1px 외곽선을 똑같이 추가함.
+     pause.png / coin.png 의 원본 그림은 2026-10-06 새 UI 작업에서 만든 것 (그 작업 기록 참조). 여기서는 외곽선만 더함.
 
 꽃가루 아이콘 w_petal.png 는 Kenney "Roguelike/RPG pack" (CC0, roguelikeSheet_transparent.png) 열 30, 행 9 보라 꽃 타일을 분홍으로 바꾼 것입니다.
 
@@ -67,14 +73,34 @@ License: Creative Commons Zero (CC0)
   flower.png = 열 30, 행 9 (보라 꽃. 빈 여백을 잘라 10x10 으로 가운데 정렬)
 
 
-바닥 아이템 그림:
-  item_wipe.png   = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 38, 행 11 (해골. 전멸 아이템)
-  item_freeze.png = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 28, 행 12 (눈꽃. 얼음색 #7DF9FF 으로 칠함. 빙결 아이템)
-  item_magnet.png = 직접 찍은 16x16 픽셀아트 (말굽자석. Kenney 팩에 자석 모양이 없어서 1-Bit Pack 의 빨강·흰색에 맞춰 만듦)
+바닥 아이템 그림 (2026-10-06 에 위 패시브 아이콘과 같은 처리 — 채움 + 밝은 심 + #3F2631 외곽선):
+  item_wipe.png   = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 38, 행 11 (해골. 전멸 아이템. 뼈색으로 채움)
+  item_freeze.png = Kenney "1-Bit Pack" (CC0) colored-transparent.png 열 28, 행 12 (눈꽃. 얼음색 #7DF9FF 으로 채움. 빙결 아이템)
+  item_magnet.png = 직접 찍은 16x16 픽셀아트 (말굽자석. Kenney 팩에 자석 모양이 없어서 1-Bit Pack 의 빨강·흰색에 맞춰 만듦. 외곽선만 추가)
   회복 아이템은 potion_green.png (위 Tiny Dungeon tile_0114) 을 씀
   ※ potion_red / potion_blue / potion_grey.png 는 이제 게임에서 쓰지 않음
 
 
-운석 무기 그림 (예전 '날아오는 가구'의 table.png / chair.png 를 대체. 두 파일은 삭제함):
-  rock.png  = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 54, 행 21 (회색 바위. 여백을 잘라 16x16 가운데 정렬)
-  rock2.png = 같은 시트 열 56, 행 21
+운석 무기 그림 (예전 '날아오는 가구'의 table.png / chair.png 를 대체. 두 파일은 삭제함. 2026-10-06 에 외곽선 있는 바위로 바꿈):
+  rock.png  = Kenney "Roguelike Caves & Dungeons" (CC0, https://kenney.nl/assets/roguelike-caves-dungeons) roguelikeDungeon_transparent.png 열 5, 행 1 (회색 바위. 외곽선 추가)
+  rock2.png = 같은 시트 열 0, 행 0 (갈색 바위. 외곽선 추가)
+  (예전 그림은 Roguelike/RPG Pack 열 54·56, 행 21 의 바위였음)
+
+
+던전 바닥 (2026-10-06, 민무늬 갈색 바닥을 돌 벽돌 바닥으로. index.html 이 48px 로 키워 깔고 어두운 막을 덮음):
+  floor_plain.png   = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 7, 행 2 (베이지 돌 벽돌 바닥. 그대로)
+  floor_holes.png   = Kenney "Roguelike Caves & Dungeons" (CC0) roguelikeDungeon_transparent.png 열 10, 행 3 (바닥 균열. 밝은 바닥색은 지우고 균열 선만 남겨 어둡게, 55% 투명)
+  floor_pebbles.png = 같은 시트 열 3, 행 2 (해골·뼈 더미. 75% 투명)
+  (wall.png 는 그대로 — 위 Tiny Dungeon tile_0057)
+
+
+캐릭터 그림 (다회차 캐릭터, Kenney "Tiny Dungeon" (CC0) Tiles 폴더):
+  hero_berserker.png = tile_0087.png (광전사)
+  hero_hunter.png    = tile_0112.png (사냥꾼)
+  hero_saint.png     = tile_0099.png (성녀)
+
+
+시작 화면·게임 UI 버튼 그림 (2026-10-06 새 UI 작업):
+  pause.png = help.png (위 출처) 의 말풍선 모양을 그대로 쓰고, 물음표 자리를 메운 뒤 일시정지 막대 두 줄을 뚫음
+  coin.png  = 이 프로젝트에서 16x16 으로 찍은 단순한 동전 (외부 출처 없음)
+  (두 그림 모두 help.png 와 같이 UI 테두리색 #2A1606 외곽선을 넣음)
