@@ -7,6 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>서바이버 게임</title>
+  <!-- 브라우저 탭 아이콘 (없으면 브라우저가 favicon.ico 를 찾다가 404 오류를 남김) -->
+  <link rel="icon" type="image/png" href="assets/knight.png" />
   <!-- 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 오프라인이면 기본 글꼴로 대체됨 -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css" />
@@ -330,6 +332,9 @@
     #pauseBtn { position: absolute; top: 12px; left: 72px; z-index: 10; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
     #pauseBtn img { width: 48px; height: 48px; display: block; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)); }
     #pauseBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
+    /* 제목 태그: 기본 여백 없애기 (글자는 캔버스 그림), 화면 읽기 프로그램용 숨김 글자 */
+    .title-h1 { margin: 0; line-height: 0; font-size: inherit; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
@@ -337,9 +342,9 @@
   <div id="stage">
     <canvas id="game" width="1280" height="720"></canvas>
     <!-- ? 버튼: 무기 조합(진화)표와 무기 설명을 보여주는 도움말 (H 키로도 열림) -->
-    <button id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
+    <button type="button" id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
     <!-- 일시정지 버튼 (Esc·P 키로도 됨) -->
-    <button id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png" alt="일시정지"></button>
+    <button type="button" id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png" alt="일시정지"></button>
     <!-- 터치 조이스틱 (휴대폰에서 화면을 누르고 있는 동안만 보임) -->
     <div id="joyBase"></div><div id="joyKnob"></div>
 
@@ -347,20 +352,20 @@
          '게임 시작'(또는 Enter) → 게임 시작.  '게임 설명' → 제목·버튼 자리에 설명판이 대신 나옴 (intro 클래스) -->
     <div id="titleOverlay">
       <div class="title-head">
-        <canvas id="titleText" role="heading" aria-level="1" aria-label="DUNGEON SURVIVOR"></canvas>
+        <h1 class="title-h1"><span class="sr-only">DUNGEON SURVIVOR</span><canvas id="titleText" aria-hidden="true"></canvas></h1>
       </div>
 
       <div class="title-gold" id="titleGold"></div>
 
       <div class="title-menu">
-        <button id="continueBtn" class="pixel-btn primary">이어 하기</button>
-        <button id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
+        <button type="button" id="continueBtn" class="pixel-btn primary">이어 하기</button>
+        <button type="button" id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
         <div class="title-row">
-          <button class="pixel-btn small" data-panel="select"><img src="assets/knight.png" alt="">캐릭터·난이도</button>
-          <button class="pixel-btn small" data-panel="shop"><img src="assets/coin.png" alt="">상점</button>
-          <button class="pixel-btn small" data-panel="quests"><img src="assets/chest.png" alt=""><span id="questBtn">퀘스트</span></button>
-          <button class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png" alt="">기록·저장</button>
-          <button id="introBtn" class="pixel-btn small"><img src="assets/help.png" alt="">게임 설명</button>
+          <button type="button" class="pixel-btn small" data-panel="select"><img src="assets/knight.png" alt="">캐릭터·난이도</button>
+          <button type="button" class="pixel-btn small" data-panel="shop"><img src="assets/coin.png" alt="">상점</button>
+          <button type="button" class="pixel-btn small" data-panel="quests"><img src="assets/chest.png" alt=""><span id="questBtn">퀘스트</span></button>
+          <button type="button" class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png" alt="">기록·저장</button>
+          <button type="button" id="introBtn" class="pixel-btn small"><img src="assets/help.png" alt="">게임 설명</button>
         </div>
         <div class="title-hint">- PRESS ENTER -</div>
       </div>
@@ -375,15 +380,15 @@
           <div class="intro-item"><img src="assets/potion_green.png" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
           <div class="intro-item"><img src="assets/help.png" alt=""><div><b>도움말</b>게임 중 <span class="kb-only"><kbd>H</kbd> 키나 </span>왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
         </div>
-        <button id="introClose" class="pixel-btn">돌아가기</button>
+        <button type="button" id="introClose" class="pixel-btn">돌아가기</button>
       </div>
 
       <!-- 상점·퀘스트·캐릭터와 난이도·기록과 저장: 같은 판에 내용만 바꿔서 보여줌 (panel 클래스) -->
       <div class="meta-panel">
-        <h2 id="metaTitle"></h2>
+        <h2 id="metaTitle">상점</h2>
         <p class="meta-note" id="metaNote"></p>
         <div id="metaBody"></div>
-        <button id="metaClose" class="pixel-btn">돌아가기</button>
+        <button type="button" id="metaClose" class="pixel-btn">돌아가기</button>
       </div>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
 
@@ -394,12 +399,12 @@
   <div id="helpBox" class="popup">
     <h1>도움말</h1>
     <div class="help-tabs">
-      <button class="help-tab active" data-tab="combo">무기 조합 (진화)</button>
-      <button class="help-tab" data-tab="weapons">무기 설명</button>
-      <button class="help-tab" data-tab="passives">아이템 설명</button>
+      <button type="button" class="help-tab active" data-tab="combo">무기 조합 (진화)</button>
+      <button type="button" class="help-tab" data-tab="weapons">무기 설명</button>
+      <button type="button" class="help-tab" data-tab="passives">아이템 설명</button>
     </div>
     <div id="helpList"></div>
-    <button id="helpClose" class="ok-button help-close">닫기<span class="kb-only"> (H)</span></button>
+    <button type="button" id="helpClose" class="ok-button help-close">닫기<span class="kb-only"> (H)</span></button>
   </div>
 
   <!-- 사탕 상자: 원하는 무기를 직접 고르는 창 -->
@@ -407,7 +412,7 @@
     <h1>사탕 상자</h1>
     <p>원하는 무기를 하나 고르세요 <span style="color:#8fb8ff">(파란 줄 = 진화 조합, 금색 = 짝 아이템 보유 중)</span></p>
     <div id="candyList"></div>
-    <button id="candyHelp" class="reroll-button">무기 조합표 보기<span class="kb-only"> (H)</span></button>
+    <button type="button" id="candyHelp" class="reroll-button">무기 조합표 보기<span class="kb-only"> (H)</span></button>
   </div>
 
   <!-- 게임오버 창 (체력이 0이 되면 나타남) -->
@@ -415,16 +420,16 @@
     <h1>게임 오버</h1>
     <p id="result"></p>
     <p class="run-reward" id="runReward"></p>
-    <button id="restart">다시 시작</button>
-    <button class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
+    <button type="button" id="restart">다시 시작</button>
+    <button type="button" class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
   </div>
 
   <!-- 일시정지 창: II 버튼·Esc 키, 앱을 내렸다 돌아왔을 때, 이어 하기로 돌아왔을 때 -->
   <div id="pauseBox" class="popup">
     <h1>일시정지</h1>
     <p id="pauseText"></p>
-    <button id="pauseResume" class="ok-button">계속하기</button>
-    <button class="reroll-button to-title">시작 화면 (나중에 이어 하기)</button>
+    <button type="button" id="pauseResume" class="ok-button">계속하기</button>
+    <button type="button" class="reroll-button to-title">시작 화면 (나중에 이어 하기)</button>
   </div>
 
   <!-- 클리어 창 (마지막 보스를 잡으면 나타남) -->
@@ -432,8 +437,8 @@
     <h1>클리어!</h1>
     <p id="clearText"></p>
     <p class="run-reward" id="clearReward"></p>
-    <button id="clearRestart" class="ok-button">다시 시작</button>
-    <button class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
+    <button type="button" id="clearRestart" class="ok-button">다시 시작</button>
+    <button type="button" class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
   </div>
 
   <!-- 레벨업 창 (경험치가 차면 나타남, 카드 3장 중 하나 선택) -->
@@ -442,7 +447,7 @@
     <h1>보물 상자!</h1>
     <p id="chestSlot"></p>
     <div id="chestList"></div>
-    <button id="chestOk" class="ok-button">받기</button>
+    <button type="button" id="chestOk" class="ok-button">받기</button>
   </div>
 
   <div id="levelup" class="popup">
@@ -450,7 +455,7 @@
     <p id="levelText"></p>
     <div id="choices"></div>
     <!-- 다시 뽑기: 레벨업 한 번에 한 번만. 마음에 드는 카드가 없을 때 새 카드로 바꿈 -->
-    <button id="reroll" class="reroll-button">다시 뽑기 (1회)</button>
+    <button type="button" id="reroll" class="reroll-button">다시 뽑기 (1회)</button>
   </div>
 
   <script>
@@ -1933,6 +1938,7 @@
       spawnTimer = SPAWN_START;
       lastTime = null;
       nextEnemyId = 1;
+      endJoystick();                         // 손가락을 댄 채로 끝난 판의 조이스틱이 새 판에 남지 않게
       startRun();                            // 다회차: 캐릭터·난이도·상점 강화 적용, 이번 판 기록 시작
 
       gameoverBox.style.display = "none";
@@ -3758,6 +3764,7 @@
       state = "gameover";
       resultText.textContent =
         `생존 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리`;
+      endJoystick();                            // 판이 끝나면 누르던 조이스틱도 놓은 것으로
       runReward.innerHTML = finishRun(false);   // 다회차: 금화·해금 정산
       gameoverBox.style.display = "flex";
     }
@@ -3773,6 +3780,7 @@
       state = "clear";
       spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
       clearText.innerHTML = `걸린 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리 · Lv.${player.level}`;
+      endJoystick();
       clearReward.innerHTML = finishRun(true);
       clearBox.style.display = "flex";
     }
@@ -4074,10 +4082,21 @@
       // 휴대폰: 주소창을 없애고 화면을 가로로 고정 (안드로이드 크롬만 됨. 아이폰 사파리는 지원 안 해서 조용히 넘어감)
       if (IS_TOUCH && document.documentElement.requestFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen()
-          .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"))
+          .then(() => { pauseForFullscreenHint(); return screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"); })
           .catch(() => {});
       }
       resetGame();   // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료
+    }
+
+    // 안드로이드는 처음 전체 화면이 될 때 "전체 화면 모드 · 확인" 창을 띄우는데, '확인'을 누를 때까지 게임을 가림
+    //   → 이 기기에서 처음 전체 화면이 된 때만 게임을 멈추고 안내 (한 번 본 뒤로는 멈추지 않음. 저장이 막힌 브라우저는 페이지마다 한 번)
+    const FS_HINT_KEY = "dungeon-survivor-fs-hint";
+    let fsHintShownThisPage = false;
+    function pauseForFullscreenHint() {
+      let seen = fsHintShownThisPage;
+      try { seen = seen || localStorage.getItem(FS_HINT_KEY) === "1"; localStorage.setItem(FS_HINT_KEY, "1"); } catch {}
+      fsHintShownThisPage = true;
+      if (!seen) pauseGame("전체 화면 안내 창이 뜨면 '확인'을 누른 뒤 계속하기를 눌러 주세요");
     }
 
     function openIntro() {
@@ -4179,7 +4198,7 @@
       if (!text) return defaultMeta();
       try { return normalizeMeta(JSON.parse(text)); }
       catch (e) {
-        try { localStorage.setItem(SAVE_KEY + "-broken", text); } catch (e2) {}   // 망가진 저장은 지우지 않고 따로 보관
+        try { localStorage.setItem(SAVE_KEY + "-broken", text); } catch {}   // 망가진 저장은 지우지 않고 따로 보관
         return defaultMeta();
       }
     }
@@ -4323,6 +4342,7 @@
       recalcStats();
       player.hp = Math.min(player.maxHp, Math.max(1, sp.hp));
       updateCamera();
+      draw();                               // 일시정지 창 뒤에 시작 화면이 아니라 불러온 게임 화면이 보이게 한 번 그림
       pauseGame("저장해 둔 판을 불러왔어요. 준비되면 계속하기를 누르세요");
     }
 
