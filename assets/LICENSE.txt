@@ -102,3 +102,24 @@ License: Creative Commons Zero (CC0)
   pause.png = help.png (위 출처) 의 말풍선 모양을 그대로 쓰고, 물음표 자리를 메운 뒤 일시정지 막대 두 줄을 뚫음
   coin.png  = 이 프로젝트에서 16x16 으로 찍은 단순한 동전 (외부 출처 없음)
   (두 그림 모두 help.png 와 같이 UI 테두리색 #2A1606 외곽선을 넣음)
+
+
+배경 음악·효과음 (2026-10-07, 모두 CC0. 원본 wav/ogg 를 mp3 64kbps 로 줄이고 음량을 고르게 맞춤):
+  배경 음악 — Juhani Junkala (SubspaceAudio), OpenGameArt
+    https://opengameart.org/content/5-chiptunes-action
+      music_title.mp3 = Title Screen, music_stage1.mp3 = Level 1, music_stage2.mp3 = Level 2,
+      music_stage3.mp3 = Level 3, music_ending.mp3 = Ending
+    https://opengameart.org/content/4-chiptunes-adventure
+      music_boss.mp3 = 3. Boss Fight
+  효과음 — Juhani Junkala, "The Essential Retro Video Game Sound Effects Collection [512 sounds]"
+    https://opengameart.org/content/512-sound-effects-8-bit-style
+      sfx_hit = Simple Damage Sounds/sfx_damage_hit1, sfx_kill = Impacts/sfx_sounds_impact1,
+      sfx_gem = Coins/sfx_coin_single2, sfx_chest = Coins/sfx_coin_cluster3,
+      sfx_levelup = Fanfares/sfx_sounds_fanfare2, sfx_quest = Fanfares/sfx_sounds_fanfare1,
+      sfx_evolve = Positive Sounds/sfx_sounds_powerup1, sfx_item = Positive Sounds/sfx_sounds_powerup4,
+      sfx_hurt = Negative Sounds/sfx_sounds_damage1, sfx_gameover = Death Screams/Human/sfx_deathscream_human1,
+      sfx_explode = Explosions/Short/sfx_exp_short_hard1, sfx_button = Menu Sounds/sfx_menu_select1,
+      sfx_pause_in / sfx_pause_out = Pause Sounds/sfx_sounds_pause1_in / _out
+
+소리 켜기/끄기 버튼 그림 (2026-10-07):
+  sound_on.png / sound_off.png = pause.png 의 말풍선 윤곽을 그대로 쓰고, 안을 노랑으로 칠한 뒤 스피커(+물결 / +X)를 진한 갈색으로 찍음 (외부 출처 없음)

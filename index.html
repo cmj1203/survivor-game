@@ -331,6 +331,10 @@
     /* 일시정지 버튼: ? 버튼과 같은 노란 말풍선 픽셀 그림 */
     #pauseBtn { position: absolute; top: 12px; left: 72px; z-index: 10; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
     #pauseBtn img { width: 48px; height: 48px; display: block; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)); }
+    /* 소리 켜기/끄기 버튼: 일시정지 버튼과 같은 모양, 그 오른쪽 (시작 화면에서는 왼쪽 위 구석) */
+    #soundBtn { position: absolute; top: 12px; left: 128px; z-index: 10; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    #soundBtn img { width: 48px; height: 48px; display: block; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)); }
+    #soundBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
     #pauseBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
     /* 게임 중 지난 시간·처치 수: ? · II 버튼 바로 아래 (버튼 옆은 휴대폰에서 보스 체력바와 겹쳐서 아래에 둠) */
     #hudStats {
@@ -354,6 +358,8 @@
     <button type="button" id="helpBtn" title="도움말 (H)"><img src="assets/help.png" alt="?"></button>
     <!-- 일시정지 버튼 (Esc·P 키로도 됨) -->
     <button type="button" id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png" alt="일시정지"></button>
+    <!-- 소리 켜기/끄기 (M 키로도 됨) -->
+    <button type="button" id="soundBtn" title="소리 끄기 (M)"><img src="assets/sound_on.png" alt="소리"></button>
     <!-- 지난 시간 · 처치 수 (게임 중에만 보임) -->
     <div id="hudStats"><span><img src="assets/w_clock.png" alt="시간"><span id="hudTime">00:00</span></span><span><img src="assets/item_wipe.png" alt="처치"><span id="hudKills">0</span></span></div>
     <!-- 터치 조이스틱 (휴대폰에서 화면을 누르고 있는 동안만 보임) -->
@@ -1955,7 +1961,8 @@
       gameoverBox.style.display = "none";
       pauseBox.style.display = "none";
       pauseBtn.style.display = "";
-      hudStats.style.display = "flex";   // 팝업 창 숨기기
+      hudStats.style.display = "flex";
+      soundBtn.style.left = "128px";   // 팝업 창 숨기기
       levelupBox.style.display = "none";
       chestBox.style.display = "none";
       clearBox.style.display = "none";
@@ -1972,7 +1979,7 @@
     // =====================================================================
     // WASD 는 "입력된 글자"가 아니라 "키보드에서의 위치"(e.code)로 알아냄
     //   → 한글 입력 상태(W 를 누르면 'ㅈ' 이 들어옴)나 Caps Lock 이 켜져 있어도 똑같이 동작
-    const KEY_POSITIONS = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d", KeyH: "h" };
+    const KEY_POSITIONS = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d", KeyH: "h", KeyM: "m" };
 
     function keyName(e) {
       return KEY_POSITIONS[e.code] || (e.key || "").toLowerCase();
@@ -1980,6 +1987,7 @@
 
     window.addEventListener("keydown", (e) => {
       const name = keyName(e);
+      if (name === "m" && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) { toggleSound(); return; }   // M: 소리 켜기/끄기 (어느 화면에서나)
       // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
       if (state === "title") { if (name === "enter") startGame(); return; }
       if (state === "intro") { if (name === "enter" || name === "escape") closeIntro(); return; }
@@ -2325,7 +2333,8 @@
     function openChest(chest, forcedCount) {
       chest.dead = true;
       state = "chest";
-      run.chests += 1;                     // 다회차: 퀘스트용 상자 수
+      run.chests += 1;
+      playSfx("chest");                     // 다회차: 퀘스트용 상자 수
       effects.push({ kind: "chest", x: chest.x, y: chest.y, life: 0.8, maxLife: 0.8 });
       spawnParticles(chest.x, chest.y, "#ffd60a", 12, 160);
 
@@ -2341,7 +2350,8 @@
       if (evolvable) {
         const from = WEAPONS[evolvable.type], to = WEAPONS[from.evolvesTo];
         evolvable.type = from.evolvesTo;
-        run.evos += 1;                     // 다회차: 퀘스트용 진화 수
+        run.evos += 1;
+        playSfx("evolve");                     // 다회차: 퀘스트용 진화 수
         evolvable.level = WEAPON_MAX_LEVEL;
         evolvable.timer = 0;
         gains.push({ title: `진화! ${from.name} → ${to.name}`, desc: to.desc, iconUrl: weaponIconUrl(evolvable.type), evolved: true });
@@ -2373,7 +2383,8 @@
       chestBox.style.display = "flex";
 
       chestRoll = { gains, shown: 0, timers: [] };
-      if (names.length === 0) names = ["?"];
+      if (names.length === 0) names = gains.map((g) => g.title);   // 더 강화할 게 없으면(전부 만렙) 실제로 받을 보상 이름을 돌림 (예전엔 "?" 가 보였음)
+      if (names.length === 0) names = ["보물"];
       const spin = setInterval(() => {
         chestSlot.textContent = names[Math.floor(Math.random() * names.length)];
       }, 70);
@@ -2437,6 +2448,7 @@
       const type = item.type;
       floatTexts.push({ x: item.x, y: item.y - 16, text: type.text, color: type.color, life: 1.4, maxLife: 1.4 });
       spawnParticles(item.x, item.y, type.color, 8, 140);
+      playSfx(type.key === "wipe" ? "explode" : "item");   // 해골(화면 적 전멸)은 폭발음
 
       if (type.key === "heal") {
         player.hp = Math.min(player.maxHp, player.hp + ITEM_HEAL);
@@ -2468,11 +2480,13 @@
 
       // 피격 이펙트: 흰색으로 번쩍 + 작은 불꽃
       e.hitFlash = HIT_FLASH_TIME;
+      if (e.hp > 0) playSfx("hit");
       spawnParticles(e.x, e.y, "#ffffff", HIT_SPARKS, 120);
 
       if (e.hp <= 0) {
         e.dead = true;
         stats.kills += 1;
+        playSfx("kill");
         if (charDef().healEvery && stats.kills % charDef().healEvery === 0) player.hp = Math.min(player.maxHp, player.hp + charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복
         if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
         spawnGem(e.x, e.y, e.xp);
@@ -2608,6 +2622,7 @@
 
     // 플레이어가 피해를 입을 때 (적에게 닿음, 적 탄환에 맞음). 보호막이 켜져 있으면 대신 막아 줌
     function hurtPlayer(amount) {
+      playSfx("hurt");
       const shield = player.weapons.find((w) => (w.type === "shield" || w.type === "shield_evo") && w.ready);
       const victory = player.weapons.find((w) => w.type === "victory");
       if (victory) WEAPONS.victory.retaliate(victory);          // 승리의 검: 맞으면 반격
@@ -2968,7 +2983,8 @@
         // 플레이어 몸에 닿으면 획득
         if (circlesTouch(player, g)) {
           g.dead = true;
-          player.xp += g.value * xpMul();   // 왕관(패시브): 경험치 배수
+          player.xp += g.value * xpMul();
+          playSfx("gem");   // 왕관(패시브): 경험치 배수
         }
       }
       gems = gems.filter((g) => !g.dead);
@@ -3639,6 +3655,7 @@
     // 13. 레벨업: 게임을 멈추고 카드 보여주기 (기본 3장, '선택의 폭'으로 최대 5장)
     // =====================================================================
     function levelUp() {
+      playSfx("levelup");
       player.level += 1;
       player.xp -= player.xpNeed;
       player.xpNeed = xpNeedFor(player.level);
@@ -3793,6 +3810,8 @@
       resultText.textContent =
         `생존 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리`;
       endJoystick();                            // 판이 끝나면 누르던 조이스틱도 놓은 것으로
+      setMusic(null);
+      playSfx("gameover");
       runReward.innerHTML = finishRun(false);   // 다회차: 금화·해금 정산
       gameoverBox.style.display = "flex";
     }
@@ -3809,6 +3828,7 @@
       spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
       clearText.innerHTML = `걸린 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리 · Lv.${player.level}`;
       endJoystick();
+      setMusic("ending");
       clearReward.innerHTML = finishRun(true);
       clearBox.style.display = "flex";
     }
@@ -4012,6 +4032,8 @@
       titleOverlay.style.display = "flex";
       pauseBtn.style.display = "none";
       hudStats.style.display = "none";
+      soundBtn.style.left = "16px";
+      setMusic("title");
       refreshTitleMenu();
       prepareTitleText();
       titleScene = { t: 0, monsters: [] };
@@ -4293,7 +4315,7 @@
         changed = true;
         floatTexts.push({ x: player.x, y: player.y - 44, text: `퀘스트 완료! ${rewardText(q)}`, color: "#2ecc71", life: 3, maxLife: 3 });
       }
-      if (changed) saveMeta();             // 판 중간에 풀린 무기는 다음 레벨업 카드부터 바로 나옴
+      if (changed) { saveMeta(); playSfx("quest"); }             // 판 중간에 풀린 무기는 다음 레벨업 카드부터 바로 나옴
     }
 
     // 매 프레임 (update 가 부름): 1초마다 퀘스트 확인, 15초마다 이어 하기 저장
@@ -4301,6 +4323,7 @@
       if (!run) return;
       run.tick += dt;
       if (run.tick >= 1) { run.tick = 0; checkQuests(false); }
+      updateRunMusic();
       run.saveTimer += dt;
       if (run.saveTimer >= RUN_SAVE_INTERVAL) { run.saveTimer = 0; saveRun(); }
     }
@@ -4312,7 +4335,10 @@
       checkQuests(cleared);
       const s = meta.stats;
       const firstRun = s.runs === 0;
-      const gold = Math.round((stats.time / 6 + stats.kills / 25 + (cleared ? 150 : 0) + (firstRun ? 40 : 0))
+      // 금화: 버틴 시간 10초당 1 + 처치 수의 제곱근 × 1.2 + 클리어 80 + 첫 판 40
+      //   처치 수를 그대로 나누면 후반(2만 마리)에 금화가 폭발해서 상점을 한두 판에 다 사게 됨 → 제곱근으로 완만하게
+      //   예: 5분·700마리 ≈ 62, 10분·4000마리 ≈ 136, 20분 클리어·21000마리 ≈ 374 (상점 전체 1470)
+      const gold = Math.round((stats.time / 10 + Math.sqrt(stats.kills) * 1.2 + (cleared ? 80 : 0) + (firstRun ? 40 : 0))
                               * diffDef().gold * upMul("greed"));
       const prevMaxDiff = s.maxClearDiff;
       s.runs += 1; s.kills += stats.kills; s.chests += run.chests; s.evos += run.evos;
@@ -4379,6 +4405,7 @@
     function pauseGame(msg) {
       if (state !== "playing") return;
       state = "paused";
+      playSfx("pause_in");
       endJoystick();
       pauseText.textContent = `${msg} · ${formatTime(stats.time)} 버팀`;
       pauseBox.style.display = "flex";
@@ -4387,6 +4414,7 @@
     function resumeFromPause() {
       if (state !== "paused") return;
       pauseBox.style.display = "none";
+      playSfx("pause_out");
       resumeGame();
     }
     function toTitle() {
@@ -4545,6 +4573,143 @@
     pauseBtn.addEventListener("click", () => pauseGame("일시정지"));
     document.getElementById("pauseResume").addEventListener("click", resumeFromPause);
     for (const b of document.querySelectorAll(".to-title")) b.addEventListener("click", toTitle);
+
+    // =====================================================================
+    // 15-4. 소리: 배경 음악(작게)과 효과음. Web Audio 로 재생 (효과음이 많이 겹쳐도 가볍게)
+    //   - 휴대폰·브라우저는 화면을 한 번 누르거나 키를 누르기 전에는 소리를 못 냄 → 첫 입력 때 소리 장치를 켬
+    //   - 소리 켜기/끄기: 왼쪽 위 스피커 버튼 또는 M 키. 설정은 저장됨
+    //   - 음악·효과음: Juhani Junkala (CC0, OpenGameArt). 출처는 assets/LICENSE.txt
+    // =====================================================================
+    const MUSIC_VOLUME = 0.18;   // 배경 음악 크기 (사용자 요청: 작게). 효과음보다 확실히 작게
+    const SFX_VOLUME = 0.2;      // 효과음 전체 크기 (사용자 요청: 배경 음악만큼 작게)
+    const SOUND_KEY = "dungeon-survivor-sound";
+    // 효과음 목록. gap = 같은 소리를 다시 낼 수 있는 최소 간격(초): 너무 자주 나는 소리(타격·구슬)가 시끄럽지 않게
+    //              vol = 소리마다 크기 (SFX_VOLUME 에 곱함)
+    const SFX = {
+      hit:       { gap: 0.08, vol: 0.25 },
+      kill:      { gap: 0.06, vol: 0.4 },
+      gem:       { gap: 0.05, vol: 0.3 },
+      levelup:   { gap: 0.3,  vol: 0.8 },
+      chest:     { gap: 0.3,  vol: 0.8 },
+      evolve:    { gap: 0.3,  vol: 0.9 },
+      item:      { gap: 0.2,  vol: 0.7 },
+      hurt:      { gap: 0.3,  vol: 0.6 },
+      gameover:  { gap: 1,    vol: 0.8 },
+      explode:   { gap: 0.15, vol: 0.6 },
+      button:    { gap: 0.05, vol: 0.5 },
+      pause_in:  { gap: 0.1,  vol: 0.6 },
+      pause_out: { gap: 0.1,  vol: 0.6 },
+      quest:     { gap: 0.5,  vol: 0.8 },
+    };
+    let soundOn = true;
+    try { soundOn = localStorage.getItem(SOUND_KEY) !== "0"; } catch {}
+    let audioCtx = null, masterGain = null, musicGain = null, sfxGain = null;
+    const audioBuffers = {};     // 파일 이름 → 풀어 둔 소리
+    const audioLoading = {};     // 파일 이름 → 불러오는 중인 약속(Promise)
+    const sfxLastAt = {};        // 효과음 이름 → 마지막으로 낸 시각
+    let musicSource = null;      // 지금 나오는 배경 음악
+    let musicNow = null;         // 지금 틀기로 한 곡 이름
+    let musicWant = null;        // 틀어야 할 곡 이름 (소리 장치가 켜지기 전에도 기억)
+
+    function loadSound(name) {
+      if (!audioLoading[name]) {
+        audioLoading[name] = fetch(`assets/${name}.mp3`)
+          .then((r) => r.arrayBuffer())
+          .then((b) => audioCtx.decodeAudioData(b))
+          .then((buf) => { audioBuffers[name] = buf; return buf; })
+          .catch(() => null);                 // 파일이 없거나 못 풀어도 게임은 계속
+      }
+      return audioLoading[name];
+    }
+
+    // 첫 클릭·터치·키 입력 때 소리 장치를 켬 (이미 켜져 있으면, 멈춰 있을 때 다시 깨움)
+    function unlockAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;                      // 소리를 못 내는 브라우저: 조용히 넘어감
+        audioCtx = new AC();
+        masterGain = audioCtx.createGain(); masterGain.gain.value = soundOn ? 1 : 0; masterGain.connect(audioCtx.destination);
+        musicGain = audioCtx.createGain(); musicGain.gain.value = MUSIC_VOLUME; musicGain.connect(masterGain);
+        sfxGain = audioCtx.createGain(); sfxGain.gain.value = SFX_VOLUME; sfxGain.connect(masterGain);
+        for (const k in SFX) loadSound("sfx_" + k);
+        const want = musicWant; musicNow = null;
+        if (want) setMusic(want);
+      }
+      if (audioCtx.state === "suspended" && document.visibilityState === "visible") audioCtx.resume().catch(() => {});
+    }
+    for (const ev of ["pointerdown", "touchend", "keydown"]) window.addEventListener(ev, unlockAudio, { capture: true });
+
+    // 효과음 한 번 내기 (소리가 꺼져 있거나 아직 안 불러왔으면 그냥 넘어감)
+    function playSfx(key) {
+      if (!soundOn || !audioCtx || audioCtx.state !== "running") return;
+      const def = SFX[key], buf = audioBuffers["sfx_" + key];
+      if (!def || !buf) return;
+      const now = audioCtx.currentTime;
+      if (now - (sfxLastAt[key] ?? -1) < def.gap) return;
+      sfxLastAt[key] = now;
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const g = audioCtx.createGain(); g.gain.value = def.vol;
+      src.connect(g).connect(sfxGain);
+      src.start();
+    }
+
+    // 배경 음악 바꾸기 (name = "title", "stage1".."stage3", "boss", "ending", null = 끄기). 같은 곡이면 그대로 이어서 틂
+    function setMusic(name) {
+      musicWant = name;
+      if (!audioCtx || musicNow === name) return;
+      if (musicSource) {                      // 앞 곡은 짧게 줄이며 끔
+        const old = musicSource, t = audioCtx.currentTime;
+        try { old.fade.gain.setTargetAtTime(0, t, 0.15); old.stop(t + 0.6); } catch {}
+        musicSource = null;
+      }
+      musicNow = name;
+      if (!name) return;
+      loadSound("music_" + name).then((buf) => {
+        if (!buf || musicNow !== name || musicSource) return;   // 불러오는 사이에 곡이 바뀌었으면 틀지 않음
+        const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const fade = audioCtx.createGain(); fade.gain.value = 1;
+        src.connect(fade).connect(musicGain);
+        src.fade = fade;
+        src.start();
+        musicSource = src;
+      });
+    }
+
+    // 게임 중 배경 음악: 0~7분 / 7~14분 / 14분~ 곡이 바뀌고, 보스가 나오면 보스 곡
+    function updateRunMusic() {
+      if (!run || run.done) return;
+      const want = boss && !boss.dead ? "boss" : stats.time < 420 ? "stage1" : stats.time < 840 ? "stage2" : "stage3";
+      if (want !== musicWant) setMusic(want);
+    }
+
+    // 소리 켜기/끄기 버튼 (왼쪽 위, 일시정지 버튼 옆. 시작 화면에서는 왼쪽 위 구석)
+    const soundBtn = document.getElementById("soundBtn");
+    function refreshSoundBtn() {
+      soundBtn.querySelector("img").src = soundOn ? "assets/sound_on.png" : "assets/sound_off.png";
+      soundBtn.title = soundOn ? "소리 끄기 (M)" : "소리 켜기 (M)";
+    }
+    function toggleSound() {
+      soundOn = !soundOn;
+      try { localStorage.setItem(SOUND_KEY, soundOn ? "1" : "0"); } catch {}
+      unlockAudio();
+      if (masterGain) masterGain.gain.value = soundOn ? 1 : 0;
+      refreshSoundBtn();
+    }
+    soundBtn.addEventListener("click", toggleSound);
+    refreshSoundBtn();
+
+    // 버튼 누르는 소리 (스피커·일시정지 버튼은 각자 소리가 따로 있어서 뺌)
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (b && b !== soundBtn && b !== pauseBtn) playSfx("button");
+    });
+
+    // 앱을 내리거나 다른 탭으로 가면 소리를 멈춤 (돌아와서 화면을 누르면 다시 남)
+    document.addEventListener("visibilitychange", () => {
+      if (!audioCtx) return;
+      if (document.visibilityState === "hidden") audioCtx.suspend().catch(() => {});
+      else audioCtx.resume().catch(() => {});
+    });
 
     // =====================================================================
     // 16. 시작!
