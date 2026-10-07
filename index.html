@@ -4147,13 +4147,18 @@
       ctx.fillRect(0, 0, W, H);
     }
 
-    function startGame() {
-      // 휴대폰: 주소창을 없애고 화면을 가로로 고정 (안드로이드 크롬만 됨. 아이폰 사파리는 지원 안 해서 조용히 넘어감)
+    // 휴대폰: 주소창을 없애고 화면을 가로로 고정 (안드로이드 크롬만 됨. 아이폰 사파리는 지원 안 해서 조용히 넘어감)
+    //   버튼을 누른 순간에만 부를 수 있음. 다른 앱에 갔다 오면 전체 화면이 풀리므로 '이어 하기'·'계속하기'에서도 다시 부름
+    function enterFullscreen() {
       if (IS_TOUCH && document.documentElement.requestFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen()
           .then(() => { pauseForFullscreenHint(); return screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape"); })
           .catch(() => {});
       }
+    }
+
+    function startGame() {
+      enterFullscreen();
       resetGame();   // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료
     }
 
@@ -4419,6 +4424,7 @@
     function continueRun() {
       const snap = loadRun();
       if (!snap) { refreshTitleMenu(); return; }
+      enterFullscreen();
       if (CHARACTERS[snap.char]) meta.char = snap.char;
       meta.diff = Math.min(DIFFS.length - 1, snap.diff | 0);
       resetGame();                          // 캐릭터·난이도 적용한 새 판을 만든 뒤, 저장해 둔 값으로 덮어씀
@@ -4450,6 +4456,7 @@
     }
     function resumeFromPause() {
       if (state !== "paused") return;
+      enterFullscreen();
       pauseBox.style.display = "none";
       playSfx("pause_out");
       resumeGame();
