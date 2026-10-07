@@ -44,8 +44,8 @@
       position: absolute; display: none; z-index: 8; pointer-events: none;
       border-radius: 50%; transform: translate(-50%, -50%);
     }
-    #joyBase { width: 110px; height: 110px; border: 3px solid rgba(255,255,255,0.45); background: rgba(0,0,0,0.25); }
-    #joyKnob { width: 50px; height: 50px; background: rgba(255,214,10,0.75); border: 3px solid rgba(255,255,255,0.8); }
+    #joyBase { width: 80px; height: 80px; border: 3px solid rgba(255,255,255,0.45); background: rgba(0,0,0,0.25); }
+    #joyKnob { width: 40px; height: 40px; background: rgba(255,214,10,0.75); border: 3px solid rgba(255,255,255,0.8); }
 
     /* 휴대폰을 세로로 들었을 때: 웹페이지는 화면 방향을 못 바꾸므로(아이폰은 막혀 있음), 게임 화면 전체를 90도 돌려서 보여줌
        → 세로로 든 채로도 옆으로 누운 가로 화면이 나오고, 폰을 옆으로 눕히면 똑바로 보임
@@ -2022,8 +2022,8 @@
     const stage = document.getElementById("stage");
     const joyBase = document.getElementById("joyBase");
     const joyKnob = document.getElementById("joyKnob");
-    const JOY_RADIUS = 50;      // 손잡이가 움직일 수 있는 최대 거리 (화면 px)
-    const JOY_DEADZONE = 8;     // 이보다 조금 움직이면 무시 (손가락 떨림)
+    const JOY_RADIUS = 36;      // 손잡이가 움직일 수 있는 최대 거리 (화면 px). 작을수록 조금만 끌어도 방향이 바뀜
+    const JOY_DEADZONE = 4;     // 이보다 조금 움직이면 무시 (손가락 떨림)
     let joystick = null;        // { id, ox, oy, dx, dy }  누르고 있지 않으면 null
 
     function placeJoy(el, x, y) { el.style.left = x + "px"; el.style.top = y + "px"; el.style.display = "block"; }
@@ -2067,7 +2067,13 @@
         const p = touchToStage(t);
         let dx = p.x - joystick.ox, dy = p.y - joystick.oy;
         const len = Math.hypot(dx, dy);
-        if (len > JOY_RADIUS) { dx *= JOY_RADIUS / len; dy *= JOY_RADIUS / len; }
+        if (len > JOY_RADIUS) {
+          // 손가락이 원 밖으로 나가면 조이스틱 중심이 손가락을 따라옴 → 멀리 끌고 간 뒤에도 조금만 되돌리면 바로 방향이 바뀜
+          const over = (len - JOY_RADIUS) / len;
+          joystick.ox += dx * over; joystick.oy += dy * over;
+          dx *= JOY_RADIUS / len; dy *= JOY_RADIUS / len;
+          placeJoy(joyBase, joystick.ox, joystick.oy);
+        }
         joystick.dx = dx; joystick.dy = dy;
         placeJoy(joyKnob, joystick.ox + dx, joystick.oy + dy);
       }
