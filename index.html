@@ -139,27 +139,39 @@
     #helpBtn:hover img { filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.8)) brightness(1.3); }
 
     /* 도움말 창: 조합표 + 무기 설명 */
-    #helpBox { width: 760px; max-height: calc(var(--app-h) * 0.88); padding: 20px 28px; gap: 8px; z-index: 20; }   /* 레벨업·상자 창보다 위에 뜨게 */
-    #helpBox h1 { font-size: 26px; }
-    .help-tabs { display: flex; gap: 8px; }
-    .help-tab { padding: 6px 16px; border: 2px solid #4a90e2; border-radius: 6px; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; }
-    .help-tab.active { background: #4a90e2; }
-    #helpList { width: 100%; overflow-y: auto; max-height: calc(var(--app-h) * 0.62); display: flex; flex-direction: column; gap: 6px; text-align: left; }
-    .combo {                                          /* 조합표 한 줄: [무기] + [패시브] → [진화] */
-      display: flex; align-items: center; gap: 10px;
-      padding: 6px 10px; border: 2px solid rgba(255,255,255,0.25); border-radius: 6px; background: #1e1e2e; font-size: 14px;
+    /*   한 화면에 최대한 많이 보이게: 창을 화면 가득 넓게 쓰고, 목록은 두 줄(2열)로, 제목·탭·닫기는 맨 위 한 줄에 모음
+         창 전체가 --ui-zoom 배로 줄어들기 때문에, 화면 크기로 잡는 값은 --ui-zoom 으로 나눠야 실제 화면에 맞음
+         (예전에는 안 나눠서 휴대폰에서 창이 화면의 절반 남짓만 썼음) */
+    #helpBox {
+      width: min(1160px, calc(var(--app-w) * 0.96 / var(--ui-zoom))); max-height: calc(var(--app-h) * 0.96 / var(--ui-zoom));
+      box-sizing: border-box;                         /* 테두리·안쪽 여백까지 합쳐서 위 크기 안에 들어오게 */
+      padding: 12px 16px; gap: 8px; z-index: 20;      /* z-index: 레벨업·상자 창보다 위에 뜨게 */
     }
-    .combo .piece { display: flex; align-items: center; gap: 6px; min-width: 150px; }
+    #helpBox h1 { font-size: 22px; }
+    .help-head { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .help-tabs { display: flex; gap: 8px; flex: 1; }
+    .help-tab { padding: 6px 14px; border: 2px solid #4a90e2; border-radius: 6px; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; }
+    .help-tab.active { background: #4a90e2; }
+    #helpList {
+      width: 100%; overflow-y: auto; flex: 1 1 auto; min-height: 0; text-align: left;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; align-content: start;
+    }
+    #helpList p { grid-column: 1 / -1; }             /* 맨 아래 안내 글은 두 열을 다 씀 */
+    .combo {                                          /* 조합표 한 줄: [무기] + [패시브] → [진화] */
+      display: flex; align-items: center; gap: 6px; min-width: 0;
+      padding: 4px 8px; border: 2px solid rgba(255,255,255,0.25); border-radius: 6px; background: #1e1e2e; font-size: 13px;
+    }
+    .combo .piece { display: flex; align-items: center; gap: 5px; min-width: 122px; }
     .combo .piece.dim { opacity: 0.35; }             /* 아직 없는 것은 흐리게 */
-    .combo .piece img { width: 30px; height: 30px; image-rendering: pixelated; }
+    .combo .piece img { width: 26px; height: 26px; flex: none; image-rendering: pixelated; }
     .combo .arrow { color: #aaa; }
-    .combo .result { flex: 1; }
-    .combo .result small { display: block; color: #aaa; font-size: 12px; }
+    .combo .result { flex: 1; min-width: 0; }
+    .combo .result small { display: block; color: #aaa; font-size: 11px; }
     .combo.ready { border-color: #ffd60a; }           /* 조건이 갖춰짐: 다음 상자에서 진화 */
     .combo.done { border-color: #ff8c42; }            /* 이미 진화함 */
-    .combo .tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #ffd60a; color: #111; font-weight: bold; }
+    .combo .tag { font-size: 11px; padding: 2px 6px; border-radius: 10px; background: #ffd60a; color: #111; font-weight: bold; flex: none; }
     .combo.done .tag { background: #ff8c42; }
-    .help-close { align-self: center; }
+    #helpBox .help-close { flex: none; padding: 6px 18px; font-size: 15px; margin: 0; }
 
     /* 사탕 상자: 무기 고르기 창 */
     #candyBox { width: 720px; max-height: calc(var(--app-h) * 0.88); padding: 20px 28px; }
@@ -414,14 +426,16 @@
   </div>
 
   <div id="helpBox" class="popup">
-    <h1>도움말</h1>
-    <div class="help-tabs">
-      <button type="button" class="help-tab active" data-tab="combo">무기 조합 (진화)</button>
-      <button type="button" class="help-tab" data-tab="weapons">무기 설명</button>
-      <button type="button" class="help-tab" data-tab="passives">아이템 설명</button>
+    <div class="help-head">
+      <h1>도움말</h1>
+      <div class="help-tabs">
+        <button type="button" class="help-tab active" data-tab="combo">무기 조합 (진화)</button>
+        <button type="button" class="help-tab" data-tab="weapons">무기 설명</button>
+        <button type="button" class="help-tab" data-tab="passives">아이템 설명</button>
+      </div>
+      <button type="button" id="helpClose" class="ok-button help-close">닫기<span class="kb-only"> (H)</span></button>
     </div>
     <div id="helpList"></div>
-    <button type="button" id="helpClose" class="ok-button help-close">닫기<span class="kb-only"> (H)</span></button>
   </div>
 
   <!-- 사탕 상자: 원하는 무기를 직접 고르는 창 -->
@@ -511,6 +525,14 @@
     const W = canvas.width;    // 화면(도화지) 가로 (1280) ← 크기를 바꾸려면 위쪽 <canvas> 태그의 숫자를 고치면 됨
     const H = canvas.height;   // 화면(도화지) 세로 (720)
 
+    // 휴대폰은 화면이 작아서 캐릭터·적이 너무 작게 보임 → 휴대폰에서만 카메라를 당겨서(확대) 크게 보여 줌
+    //   ZOOM 배만큼 크게 보이는 대신, 한 화면에 들어오는 맵은 그만큼 좁아짐 (VW × VH = 화면에 보이는 맵 크기)
+    //   태블릿은 화면이 커서 제외 (화면의 짧은 쪽이 600 미만인 터치 기기만 휴대폰으로 봄)
+    const PHONE_ZOOM = 1.4;    // 휴대폰 확대 배수 (올리면 더 크게 보이지만 시야가 좁아져 어려워짐)
+    const ZOOM = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600 ? PHONE_ZOOM : 1;
+    const VW = W / ZOOM;       // 화면에 보이는 맵 가로 (PC 1280, 휴대폰 약 914)
+    const VH = H / ZOOM;       // 화면에 보이는 맵 세로 (PC 720, 휴대폰 약 514)
+
     // =====================================================================
     // 1-0. 큰 맵과 카메라
     //   맵(월드)은 화면보다 훨씬 크고, 카메라가 플레이어를 화면 가운데에 두고 따라다님
@@ -525,25 +547,25 @@
 
     // 카메라를 플레이어 가운데로. 맵 가장자리에서는 멈춰서 맵 밖(검은 곳)이 안 보이게
     function updateCamera() {
-      cam.x = Math.max(0, Math.min(WORLD_W - W, player.x - W / 2));
-      cam.y = Math.max(0, Math.min(WORLD_H - H, player.y - H / 2));
+      cam.x = Math.max(0, Math.min(WORLD_W - VW, player.x - VW / 2));
+      cam.y = Math.max(0, Math.min(WORLD_H - VH, player.y - VH / 2));
     }
 
     // (x, y) 가 지금 화면(카메라 사각형) 안에 있는지. margin 만큼 여유를 둠
     function inView(x, y, margin = 0) {
-      return x > cam.x - margin && x < cam.x + W + margin && y > cam.y - margin && y < cam.y + H + margin;
+      return x > cam.x - margin && x < cam.x + VW + margin && y > cam.y - margin && y < cam.y + VH + margin;
     }
 
     // 화면(카메라 사각형) 바깥 가장자리의 무작위 위치 (적·엘리트 생성용)
     //   맵 경계 밖은 안 되므로, 맵 안에 들어오는 변만 골라서 씀
     function randomEdgePosition(margin) {
       const candidates = [
-        { x: cam.x + Math.random() * W, y: cam.y - margin },          // 위
-        { x: cam.x + Math.random() * W, y: cam.y + H + margin },      // 아래
-        { x: cam.x - margin,            y: cam.y + Math.random() * H },// 왼쪽
-        { x: cam.x + W + margin,        y: cam.y + Math.random() * H },// 오른쪽
+        { x: cam.x + Math.random() * VW, y: cam.y - margin },          // 위
+        { x: cam.x + Math.random() * VW, y: cam.y + VH + margin },     // 아래
+        { x: cam.x - margin,             y: cam.y + Math.random() * VH },// 왼쪽
+        { x: cam.x + VW + margin,        y: cam.y + Math.random() * VH },// 오른쪽
       ].filter((p) => p.x >= 0 && p.x <= WORLD_W && p.y >= 0 && p.y <= WORLD_H);
-      if (candidates.length === 0) return { x: cam.x + Math.random() * W, y: cam.y - margin };   // 맵이 화면보다 작을 때 (안 생김)
+      if (candidates.length === 0) return { x: cam.x + Math.random() * VW, y: cam.y - margin };   // 맵이 화면보다 작을 때 (안 생김)
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
@@ -2873,9 +2895,9 @@
         if (b.bounces > 0) {
           let bounced = false;
           if (b.x < cam.x + b.r && b.vx < 0) { b.x = cam.x + b.r; b.vx = -b.vx; bounced = true; }
-          if (b.x > cam.x + W - b.r && b.vx > 0) { b.x = cam.x + W - b.r; b.vx = -b.vx; bounced = true; }
+          if (b.x > cam.x + VW - b.r && b.vx > 0) { b.x = cam.x + VW - b.r; b.vx = -b.vx; bounced = true; }
           if (b.y < cam.y + b.r && b.vy < 0) { b.y = cam.y + b.r; b.vy = -b.vy; bounced = true; }
-          if (b.y > cam.y + H - b.r && b.vy > 0) { b.y = cam.y + H - b.r; b.vy = -b.vy; bounced = true; }
+          if (b.y > cam.y + VH - b.r && b.vy > 0) { b.y = cam.y + VH - b.r; b.vy = -b.vy; bounced = true; }
           if (bounced) { b.bounces -= 1; if (b.hitIds) b.hitIds.clear(); if (b.onBounce) b.onBounce(b); }
         }
 
@@ -3059,11 +3081,12 @@
 
       // --- 여기부터는 월드 좌표: 카메라 위치만큼 옮겨서 그림 ---
       ctx.save();
+      ctx.scale(ZOOM, ZOOM);                                   // 휴대폰: 확대 (PC 는 1배라 그대로)
       ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
       if (background) {
-        // 던전 바닥: 맵 전체 그림에서 지금 화면에 보이는 부분만 잘라서 그림
-        const sx = Math.round(cam.x), sy = Math.round(cam.y);
-        ctx.drawImage(background, sx, sy, W, H, sx, sy, W, H);
+        // 던전 바닥: 맵 전체 그림에서 지금 화면에 보이는 부분만 잘라서 그림 (확대했을 때 가장자리가 비지 않게 올림)
+        const sx = Math.round(cam.x), sy = Math.round(cam.y), vw = Math.ceil(VW), vh = Math.ceil(VH);
+        ctx.drawImage(background, sx, sy, vw, vh, sx, sy, vw, vh);
       }
 
       // 바닥 지역: 불바다 (일렁이는 주황 원)
@@ -3439,8 +3462,8 @@
         if (c.life < CHEST_BLINK_TIME && Math.floor(c.life * 6) % 2 === 0) continue;
 
         // 화면 한가운데에서 상자 쪽으로 뻗은 선이 화면 가장자리(안쪽 여백)와 만나는 점
-        const dx = c.x - cam.x - W / 2;
-        const dy = c.y - cam.y - H / 2;
+        const dx = (c.x - cam.x) * ZOOM - W / 2;           // 월드 좌표 → 화면 좌표 (휴대폰은 확대된 만큼 곱함)
+        const dy = (c.y - cam.y) * ZOOM - H / 2;
         const scale = Math.min((W / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dx) || 1), (H / 2 - CHEST_ARROW_MARGIN) / (Math.abs(dy) || 1));
         let x = W / 2 + dx * scale;
         const y = H / 2 + dy * scale;
@@ -3912,7 +3935,7 @@
         const def = defs[k]; const owned = ownedOf(k);
         const row = document.createElement("div");
         row.className = "combo";
-        row.innerHTML = `<span class="piece${owned ? "" : " dim"}" style="min-width: 200px"><img src="${iconOf(k)}">${def.name}${owned ? ` Lv${owned.level}` : ""}</span><span class="result" style="color:#ccc">${def.desc || def.upgradeDesc || ""}</span>`;
+        row.innerHTML = `<span class="piece${owned ? "" : " dim"}" style="min-width: 150px"><img src="${iconOf(k)}">${def.name}${owned ? ` Lv${owned.level}` : ""}</span><span class="result" style="color:#ccc">${def.desc || def.upgradeDesc || ""}</span>`;
         helpList.appendChild(row);
       }
     }
