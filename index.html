@@ -606,12 +606,17 @@
       floorImages[name] = img;
     }
 
+    // 구멍·자갈 무늬 자리를 정하는 씨앗: 배경을 다시 만들어도 같은 자리에 같은 무늬가 나오게 한 번만 뽑아 둠
+    const floorSeed = Math.floor(Math.random() * 2147483647) + 1;
+
     function buildBackground() {
       const c = document.createElement("canvas");
       c.width = WORLD_W;
       c.height = WORLD_H;
       const b = c.getContext("2d");
       b.imageSmoothingEnabled = false;
+      let seed = floorSeed;
+      const rand = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };   // 씨앗으로 만드는 0~1 난수
 
       // (1) 바닥 타일 깔기: 민무늬 + 가끔 옅은 구멍·자갈 무늬 + 바둑판 음영
       for (let y = 0; y < WORLD_H; y += FLOOR_TILE_SIZE) {
@@ -619,8 +624,8 @@
           b.drawImage(floorImages[FLOOR_PLAIN], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
 
           // 가끔 구멍·자갈 무늬를 민무늬 위에 옅게 얹음
-          if (Math.random() < FLOOR_EXTRA_CHANCE) {
-            const name = FLOOR_EXTRAS[Math.floor(Math.random() * FLOOR_EXTRAS.length)];
+          if (rand() < FLOOR_EXTRA_CHANCE) {
+            const name = FLOOR_EXTRAS[Math.floor(rand() * FLOOR_EXTRAS.length)];
             b.globalAlpha = FLOOR_EXTRA_ALPHA;
             b.drawImage(floorImages[name], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
             b.globalAlpha = 1;
@@ -663,7 +668,20 @@
       vc.fillRect(0, 0, W, H);
       vignetteLayer = v;
 
+      // 브라우저가 이 큰 그림을 지웠다가 되살리면(되살아난 그림은 빈 그림) 다시 만듦
+      c.addEventListener("contextrestored", rebuildBackground);
     }
+
+    // 휴대폰은 다른 앱에 갔다 오면 메모리를 아끼려고 큰 그림(맵 전체 배경)을 지워 버릴 수 있음 → 바닥이 사라짐
+    //   그래서 화면이 다시 보일 때마다 배경을 새로 만들고, 멈춰 있는 화면이면 한 번 다시 그림
+    function rebuildBackground() {
+      if (floorLoaded < 2 + FLOOR_EXTRAS.length) return;   // 그림을 아직 다 못 불러왔으면 불러온 뒤에 알아서 만들어짐
+      buildBackground();
+      if (state !== "title" && state !== "intro" && state !== "playing") draw();   // 멈춘 화면은 저절로 다시 그려지지 않음
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") rebuildBackground();
+    });
 
     // =====================================================================
     // 2. 게임 규칙 숫자들 (여기 값만 바꿔도 난이도 조절 가능)
