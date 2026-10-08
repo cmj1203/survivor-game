@@ -319,7 +319,7 @@
     #titleOverlay.panel .meta-panel { display: flex; }
     .meta-panel h2 { margin: 0; font-size: 2.4cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
     .meta-note { margin: 0; font-size: 1.2cqw; color: #aaa; text-align: center; }
-    #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-y; }
+    #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-x pan-y; }   /* pan-x 도 허용: 세로로 들면 화면이 90도 돌아가서, 목록을 미는 손짓이 화면 기준으로는 가로 방향이 됨 */
     #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
     .meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: 1.25cqw; color: #ddd; text-align: left; }
     .meta-row img { width: 3.2cqw; height: 3.2cqw; flex: none; image-rendering: pixelated; }
@@ -2108,6 +2108,7 @@
     }, { passive: false });
 
     stage.addEventListener("touchmove", (e) => {
+      if (e.target.closest(".meta-panel")) return;       // 시작 화면의 판(상점·퀘스트·캐릭터) 안은 손가락으로 스크롤되게
       e.preventDefault();
       if (!joystick) return;
       for (const t of e.changedTouches) {
