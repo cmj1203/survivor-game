@@ -148,6 +148,7 @@
       padding: 12px 16px; gap: 8px; z-index: 20;      /* z-index: 레벨업·상자 창보다 위에 뜨게 */
     }
     #helpBox h1 { font-size: 22px; }
+    #newGameBox { z-index: 30; background: rgba(0, 0, 0, 0.95); }   /* 시작 화면(제목·버튼) 위에 뜨게. 뒤의 제목이 비치지 않게 더 진하게 */
     .help-head { display: flex; align-items: center; gap: 12px; width: 100%; }
     .help-tabs { display: flex; gap: 8px; flex: 1; }
     .help-tab { padding: 6px 14px; border: 2px solid #4a90e2; border-radius: 6px; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; }
@@ -463,13 +464,21 @@
     <button type="button" class="reroll-button to-title">시작 화면 (나중에 이어 하기)</button>
   </div>
 
+  <!-- 새로 시작 경고 창: 하던 판(이어 하기)이 남아 있는데 '게임 시작'을 누르면 나타남 -->
+  <div id="newGameBox" class="popup">
+    <h1>새로 시작할까요?</h1>
+    <p id="newGameText"></p>
+    <button type="button" id="newGameContinue" class="ok-button">하던 판 이어 하기</button>
+    <button type="button" id="newGameYes" class="reroll-button">새로 시작 (하던 판은 사라짐)</button>
+    <button type="button" id="newGameNo" class="reroll-button">취소</button>
+  </div>
+
   <!-- 클리어 창 (마지막 보스를 잡으면 나타남) -->
   <div id="clearBox" class="popup">
     <h1>클리어!</h1>
     <p id="clearText"></p>
     <p class="run-reward" id="clearReward"></p>
-    <button type="button" id="clearRestart" class="ok-button">다시 시작</button>
-    <button type="button" class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
+    <button type="button" class="ok-button to-title">시작 화면 (상점·퀘스트)</button>
   </div>
 
   <!-- 레벨업 창 (경험치가 차면 나타남, 카드 3장 중 하나 선택) -->
@@ -509,7 +518,6 @@
     const chestOk = document.getElementById("chestOk");
     const clearBox = document.getElementById("clearBox");
     const clearText = document.getElementById("clearText");
-    const clearRestart = document.getElementById("clearRestart");
     const helpBtn = document.getElementById("helpBtn");
     const helpBox = document.getElementById("helpBox");
     const helpList = document.getElementById("helpList");
@@ -1797,9 +1805,9 @@
     const GHOST_BLINK_INTERVAL = [0, 5, 4, 3];   // 유령 '순간이동': 몇 초마다
     const GHOST_BLINK_DIST = 110;                // 유령 '순간이동': 한 번에 다가오는 거리
     const GHOST_BLINK_MIN = 200;                 // 유령 '순간이동': 이보다 멀리 있을 때만 (코앞에 갑자기 나타나지 않게)
-    const CYCLOPS_HAZARD_LIFE = [0, 2, 3, 4];    // 외눈 거인 '자국': 죽은 자리에 남는 위험한 자국이 유지되는 시간(초)
-    const CYCLOPS_HAZARD_RADIUS = 44;            // 외눈 거인 '자국': 크기
-    const HAZARD_ARM_TIME = 1.0;                 // 자국이 생긴 뒤 이 시간 동안은 피해 없음 (피할 틈)
+    const CYCLOPS_HAZARD_LIFE = [0, 3, 4, 5];    // 외눈 거인 '자국': 죽은 자리에 남는 끈적한 자국이 유지되는 시간(초). 밟고 있으면 느려짐 (피해는 없음)
+    const CYCLOPS_HAZARD_RADIUS = 56;            // 외눈 거인 '자국': 크기
+    const HAZARD_ARM_TIME = 0.7;                 // 자국이 생긴 뒤 이 시간 동안은 아직 안 느려짐 (피할 틈)
     const BOSS_EXTRA_SHOTS = [0, 1, 2, 3];       // 보스: 한 번에 쏘는 탄환이 이만큼 늘어남
     const THEME_COLORS = { ice: "125, 249, 255", lava: "255, 123, 46", dark: "181, 101, 245" };   // 테마 색 (자국·껍질·순간이동 효과)
     function enemyTier() { return diffDef().tier || 0; }
@@ -1973,7 +1981,7 @@
     let chests;        // 바닥에 떨어진 보물 상자 목록
     let items;         // 바닥에 떨어진 아이템(물약) 목록
     let zones;         // 바닥에 남아 피해를 주는 지역 목록 (화염병 불바다 등)
-    let hazards;       // 적이 남긴 위험한 자국 목록 (난이도 테마: 외눈 거인이 죽은 자리. 밟으면 플레이어가 다침)
+    let hazards;       // 적이 남긴 위험한 자국 목록 (난이도 테마: 외눈 거인이 죽은 자리. 밟고 있으면 플레이어가 느려짐)
     let eliteTimer;    // 다음 엘리트가 나올 때까지 남은 시간
     let eventIndex;    // 이벤트 시간표에서 다음에 확인할 칸
     let eventQueue;    // 지금 진행 중인 이벤트 (연달아 나오는 중인 것)
@@ -2080,7 +2088,7 @@
       const name = keyName(e);
       if (name === "m" && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) { toggleSound(); return; }   // M: 소리 켜기/끄기 (어느 화면에서나)
       // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
-      if (state === "title") { if (name === "enter") startGame(); return; }
+      if (state === "title") { if (name === "enter") startGame(); else if (name === "escape") newGameBox.style.display = "none"; return; }   // Esc: 새로 시작 경고 창 닫기
       if (state === "intro") { if (name === "enter" || name === "escape") closeIntro(); return; }
       if (state === "paused") { if ((name === "escape" || name === "p" || name === "enter") && !e.repeat) resumeFromPause(); return; }
       if (state === "playing" && (name === "escape" || name === "p") && !e.repeat) { pauseGame("일시정지"); return; }
@@ -2542,11 +2550,11 @@
     function spawnItem(x, y, forcedKey) {
       let type = ITEM_TYPES.find((t) => t.key === forcedKey);
       if (!type) {
-        // 뽑기: 난이도가 높으면 회복·빙결·전멸의 몫이 줄고, 줄어든 만큼은 '꽝'(아무것도 안 떨어짐). 자석이 나올 확률은 그대로
+        // 뽑기: 난이도가 높으면 모든 아이템의 몫이 줄고, 줄어든 만큼은 '꽝'(아무것도 안 떨어짐)
         const total = ITEM_TYPES.reduce((sum, t) => sum + t.weight, 0);
         let roll = Math.random() * total;
         for (const t of ITEM_TYPES) {
-          const w = t.weight * (t.key === "magnet" ? 1 : diffDef().item || 1);
+          const w = t.weight * (diffDef().item || 1);
           if (roll < w) { type = t; break; }
           roll -= w;
         }
@@ -2560,6 +2568,7 @@
     // 아이템에 닿았을 때: 종류에 따라 바로 발동
     function useItem(item) {
       item.dead = true;
+      if (run) run.items += 1;                       // 퀘스트 '줍줍'용
       const type = item.type;
       floatTexts.push({ x: item.x, y: item.y - 16, text: type.text, color: type.color, life: 1.4, maxLife: 1.4 });
       spawnParticles(item.x, item.y, type.color, 8, 140);
@@ -2594,6 +2603,7 @@
       // 난이도 테마 · 붉은 게의 껍질: 남아 있으면 이번 공격은 껍질만 깨고 끝 (피해 없음)
       if (e.shell > 0) {
         e.shell -= 1;
+        if (run) run.shells += 1;                    // 퀘스트 '껍질 까기'용
         e.hitFlash = HIT_FLASH_TIME;
         playSfx("hit");
         spawnParticles(e.x, e.y, themeColor(1), 6, 160);
@@ -2628,7 +2638,7 @@
         // 난이도 테마 · 외눈 거인: 죽은 자리에 위험한 자국을 남김 (잠깐 뒤부터 밟으면 다침)
         if (e.leavesHazard) {
           const life = CYCLOPS_HAZARD_LIFE[enemyTier()] + HAZARD_ARM_TIME;
-          hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME, damage: Math.max(1, Math.round(e.damage * 0.5)) });
+          hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME });
         }
 
         // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴
@@ -2815,6 +2825,8 @@
       // 맵 밖(돌담)으로 못 나가게 가둠 + 카메라가 따라옴
       player.x = Math.max(WALL_SIZE + player.r, Math.min(WORLD_W - WALL_SIZE - player.r, player.x));
       player.y = Math.max(WALL_SIZE + player.r, Math.min(WORLD_H - WALL_SIZE - player.r, player.y));
+      // 퀘스트 '탐험가'용: 맵 구석(가로·세로 400 안)에 들어가면 그 구석을 가 본 것으로 기억
+      if (run && (player.x < 400 || player.x > WORLD_W - 400) && (player.y < 400 || player.y > WORLD_H - 400)) run.corners |= 1 << ((player.x < 400 ? 0 : 1) + (player.y < 400 ? 0 : 2));
       updateCamera();
 
       // 무적 시간 줄이기
@@ -3091,17 +3103,20 @@
         }
       }
 
-      // --- 난이도 테마 · 위험한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟으면 피해 ---
+      // --- 난이도 테마 · 끈적한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟고 있으면 느려짐 (피해는 없음) ---
       for (const h of hazards) {
         h.life -= dt;
         if (h.arm > 0) { h.arm -= dt; continue; }
-        if (!frozen && player.invincible <= 0 && circlesTouch(h, player)) hurtPlayer(h.damage);
+        if (circlesTouch(h, player)) {
+          player.slowTimer = Math.max(player.slowTimer || 0, 0.25);   // 밟는 동안 계속 느림, 벗어나면 0.25초 뒤 풀림
+          if (!h.stepped) { h.stepped = true; if (run) run.puddles += 1; }   // 퀘스트 '끈적끈적'용: 자국 하나당 한 번만 셈
+        }
       }
       hazards = hazards.filter((h) => h.life > 0);
 
       // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
       for (const b of enemyBullets) {
-        if (frozen) continue;              // 빙결 중엔 적 탄환도 멈춤
+        // 탄환은 보스만 쏘고, 보스는 빙결에 안 얼므로 빙결 중에도 탄환은 그대로 날아감 (예전엔 공중에서 멈춰서 보스 공격이 끊겼음)
         b.x += b.vx * dt;
         b.y += b.vy * dt;
         if (circlesTouch(b, player)) {
@@ -3784,7 +3799,7 @@
       }
 
       // 빙결 중: 옅은 하늘색으로 덮음
-      if (freezeTimer > 0 || e.frozenTimer > 0) {
+      if ((freezeTimer > 0 || e.frozenTimer > 0) && !e.boss) {   // 보스는 안 얼므로 얼음 색도 안 덮음
         ctx.fillStyle = "rgba(125, 249, 255, 0.35)";
         ctx.beginPath();
         ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
@@ -4023,7 +4038,6 @@
       clearReward.innerHTML = finishRun(true);
       clearBox.style.display = "flex";
     }
-    clearRestart.addEventListener("click", resetGame);
 
     // =====================================================================
     // 14-1. ? 도움말: 무기 조합(진화)표, 무기 설명, 아이템 설명. 열려 있는 동안 게임이 멈춤
@@ -4331,7 +4345,17 @@
       }
     }
 
-    function startGame() {
+    // force = true 면 경고 없이 바로 시작 (경고 창에서 '새로 시작'을 눌렀을 때)
+    function startGame(force) {
+      const saved = force === true ? null : loadRun();
+      if (saved) {
+        // 하던 판이 있으면 바로 시작하지 않고 먼저 물어봄 (새로 시작하면 그 판이 지워지므로)
+        const who = (CHARACTERS[saved.char] || CHARACTERS.knight).name, where = (DIFFS[saved.diff | 0] || DIFFS[0]).name;
+        document.getElementById("newGameText").textContent = `하던 판이 있어요: ${who} · ${where} · ${formatTime(saved.stats.time)} 버팀. 새로 시작하면 이 판은 사라져요.`;
+        newGameBox.style.display = "flex";
+        return;
+      }
+      newGameBox.style.display = "none";
       enterFullscreen();
       resetGame();   // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료
     }
@@ -4358,7 +4382,11 @@
       refreshTitleMenu();
     }
 
-    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("click", () => startGame());
+    const newGameBox = document.getElementById("newGameBox");
+    document.getElementById("newGameYes").addEventListener("click", () => startGame(true));
+    document.getElementById("newGameNo").addEventListener("click", () => { newGameBox.style.display = "none"; });
+    document.getElementById("newGameContinue").addEventListener("click", () => { newGameBox.style.display = "none"; continueRun(); });
     introBtn.addEventListener("click", openIntro);
     introClose.addEventListener("click", closeIntro);
 
@@ -4383,14 +4411,14 @@
 
     // --- 난이도: 앞 단계를 클리어하면 다음 단계가 열림. 숫자만 올리지 않고 정예 빈도·보스도 바뀜 ---
     const DIFFS = [
-      //   item: 회복·빙결·전멸 아이템이 떨어지는 양의 배수 (자석은 그대로). 난이도가 높을수록 덜 나옴
+      //   item: 바닥 아이템(회복·자석·빙결·전멸)이 떨어지는 양의 배수. 난이도가 높을수록 덜 나옴
       //   theme: 배경·적 그림 테마 (null = 기본 던전)   place: 장소 이름   tier: 적 특성 단계 (위 '난이도 테마의 적 특성' 참고)
       { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   tier: 0, theme: null,   place: "던전",          item: 1,    desc: "기본" },
       // 정예를 늘리면 상자도 늘어 오히려 쉬워졌으므로, 간격은 같게 둠.
-      // 적 특성(tier)이 난이도를 올리므로 능력치 배수는 예전보다 낮춤 (측정 기록: 특성만 얹으면 예전보다 훨씬 어려워졌음)
-      { name: "어려움",      hp: 1,    dmg: 1,    speed: 1,    elite: 1, boss: 1,    gold: 1.3, tier: 1, theme: "ice",  place: "얼음 동굴",     item: 0.75, desc: "적마다 특성이 생김 · 맞으면 잠깐 느려짐 · 회복·빙결·전멸 아이템 -25%" },
-      { name: "매우 어려움", hp: 1.1,  dmg: 1.05, speed: 1.03, elite: 1, boss: 1.15, gold: 1.6, tier: 2, theme: "lava", place: "용암 굴",       item: 0.55, desc: "적 특성 강화 · 적 체력 +10%, 피해 +5%, 속도 +3%, 보스 체력 +15% · 회복·빙결·전멸 아이템 -45%" },
-      { name: "지옥",        hp: 1.25, dmg: 1.15, speed: 1.06, elite: 1, boss: 1.3,  gold: 2,   tier: 3, theme: "dark", place: "저주받은 어둠", item: 0.4,  desc: "적 특성 최대 · 적 체력 +25%, 피해 +15%, 속도 +6%, 보스 체력 +30% · 회복·빙결·전멸 아이템 -60%" },
+      // 능력치 배수는 특성을 넣기 전과 같은 값 (한때 낮췄다가 '너무 쉽다'는 의견으로 되돌림)
+      { name: "어려움",      hp: 1.15, dmg: 1.05, speed: 1.02, elite: 1, boss: 1.1,  gold: 1.3, tier: 1, theme: "ice",  place: "얼음 동굴",     item: 0.75, desc: "적 특성 등장 · 적 체력 +15%, 피해 +5%, 속도 +2%, 보스 체력 +10% · 아이템 -25%" },
+      { name: "매우 어려움", hp: 1.35, dmg: 1.15, speed: 1.08, elite: 1, boss: 1.25, gold: 1.6, tier: 2, theme: "lava", place: "용암 굴",       item: 0.55, desc: "적 특성 강화 · 적 체력 +35%, 피해 +15%, 속도 +8%, 보스 체력 +25% · 아이템 -45%" },
+      { name: "지옥",        hp: 1.6,  dmg: 1.3,  speed: 1.12, elite: 1, boss: 1.5,  gold: 2,   tier: 3, theme: "dark", place: "저주받은 어둠", item: 0.4,  desc: "적 특성 최대 · 적 체력 +60%, 피해 +30%, 속도 +12%, 보스 체력 +50% · 아이템 -60%" },
     ];
 
     // --- 상점 (영구 강화): 단계 상한 있음, 언제든 공짜 환불. 값 = base × (지금 단계 + 1) ---
@@ -4436,6 +4464,15 @@
       { id: "q_diff3",     name: "지옥에서 온 자",  desc: "'지옥' 난이도 클리어",           stat: "diff",      goal: 3,      gold: 300 },
       { id: "q_clear10",   name: "던전의 주인",     desc: "10번 클리어 (누적)",             stat: "clears",    goal: 10,     gold: 250 },
       { id: "q_kill400k",  name: "전설의 사냥꾼",   desc: "40만 마리 처치 (누적)",          stat: "kills",     goal: 400000, gold: 250 },
+      // --- 난이도 테마·넓어진 맵에 맞춘 퀘스트 (보상은 금화). d = 그 난이도에서 버틴 시간을 봄 (1 어려움, 2 매우 어려움, 3 지옥) ---
+      { id: "q_items50",   name: "줍줍",            desc: "바닥 아이템 50개 줍기 (누적)",           stat: "items",    goal: 50,  gold: 60 },
+      { id: "q_corners",   name: "탐험가",          desc: "한 판에 맵의 네 구석 모두 가 보기",      stat: "corners",  goal: 4,   gold: 80 },
+      { id: "q_ice10",     name: "얼음 위의 산책",  desc: "얼음 동굴(어려움)에서 10분 버티기",      stat: "difftime", goal: 600, gold: 80,  d: 1 },
+      { id: "q_shell100",  name: "껍질 까기",       desc: "붉은 게의 껍질 100번 깨기 (누적)",       stat: "shells",   goal: 100, gold: 80 },
+      { id: "q_sticky",    name: "끈적끈적",        desc: "외눈 거인의 자국 30번 밟기 (누적)",      stat: "puddles",  goal: 30,  gold: 60 },
+      { id: "q_lava10",    name: "불 위를 걷는 자", desc: "용암 굴(매우 어려움)에서 10분 버티기",   stat: "difftime", goal: 600, gold: 120, d: 2 },
+      { id: "q_dark5",     name: "어둠 속 한 걸음", desc: "저주받은 어둠(지옥)에서 5분 버티기",     stat: "difftime", goal: 300, gold: 150, d: 3 },
+      { id: "q_dark10",    name: "어둠에 익숙한 눈", desc: "저주받은 어둠(지옥)에서 10분 버티기",   stat: "difftime", goal: 600, gold: 250, d: 3 },
     ];
     const WEAPON_LOCKS = {};                 // 무기 종류 → 해금해 주는 퀘스트 id
     for (const q of QUESTS) if (q.weapon) WEAPON_LOCKS[q.weapon] = q.id;
@@ -4444,7 +4481,9 @@
     function defaultMeta() {
       return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], char: "knight", diff: 0,
                stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1,
-                        clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0 } };   // clear_○○ = 그 캐릭터로 클리어한 횟수
+                        clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
+                        time_d1: 0, time_d2: 0, time_d3: 0,                                         // time_d○ = 그 난이도에서 가장 오래 버틴 시간(초)
+                        items: 0, shells: 0, puddles: 0, corners: 0 } };                            // 주운 아이템, 깬 껍질, 밟은 자국(누적), 한 판에 가 본 구석 수(최고)
     }
     // 저장된 값이 이상해도(손으로 고친 파일 등) 게임이 깨지지 않게 하나씩 확인해서 채움
     function normalizeMeta(m) {
@@ -4496,7 +4535,7 @@
     function startRun() {
       if (!isCharUnlocked(meta.char)) meta.char = "knight";
       if (!isDiffUnlocked(meta.diff)) meta.diff = 0;
-      run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, newQuests: [], tick: 0, saveTimer: 0, done: false };
+      run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, items: 0, shells: 0, puddles: 0, corners: 0, newQuests: [], tick: 0, saveTimer: 0, done: false };
       setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
       if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
       player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
@@ -4507,6 +4546,7 @@
     }
 
     // --- 퀘스트 진행 값. live = 지금 판 포함, cleared = 이번 판을 클리어했는지 ---
+    function cornerCount(bits) { return (bits & 1) + ((bits >> 1) & 1) + ((bits >> 2) & 1) + ((bits >> 3) & 1); }   // 가 본 구석 수 (구석마다 비트 하나)
     function questValue(q, live, cleared) {
       const s = meta.stats;
       switch (q.stat) {
@@ -4518,6 +4558,11 @@
         case "clears": return s.clears + (live && cleared ? 1 : 0);
         case "charclear": return (s["clear_" + q.who] || 0) + (live && cleared && run.char === q.who ? 1 : 0);
         case "diff":   return Math.max(s.maxClearDiff, live && cleared ? run.diff : -1);
+        case "difftime": return Math.max(s["time_d" + q.d] || 0, live && run.diff === q.d ? stats.time : 0);
+        case "items":   return s.items + (live ? run.items : 0);
+        case "shells":  return s.shells + (live ? run.shells : 0);
+        case "puddles": return s.puddles + (live ? run.puddles : 0);
+        case "corners": return Math.max(s.corners, live ? cornerCount(run.corners) : 0);
       }
       return 0;
     }
@@ -4563,6 +4608,9 @@
                               * diffDef().gold * upMul("greed"));
       const prevMaxDiff = s.maxClearDiff;
       s.runs += 1; s.kills += stats.kills; s.chests += run.chests; s.evos += run.evos;
+      s.items += run.items; s.shells += run.shells; s.puddles += run.puddles;
+      s.corners = Math.max(s.corners, cornerCount(run.corners));
+      if (run.diff > 0) s["time_d" + run.diff] = Math.max(s["time_d" + run.diff] || 0, Math.floor(stats.time));
       s.bestTime = Math.max(s.bestTime, Math.floor(stats.time));
       s.bestLevel = Math.max(s.bestLevel, player.level);
       if (cleared) { s.clears += 1; s["clear_" + run.char] = (s["clear_" + run.char] || 0) + 1; s.maxClearDiff = Math.max(s.maxClearDiff, run.diff); }
@@ -4590,7 +4638,7 @@
                   weapons: p.weapons.map((w) => ({ type: w.type, level: w.level })) },
         stats: { time: stats.time, kills: stats.kills },
         eventIndex, spawnTimer, eliteTimer,
-        run: { chests: run.chests, evos: run.evos, newQuests: run.newQuests },
+        run: { chests: run.chests, evos: run.evos, items: run.items, shells: run.shells, puddles: run.puddles, corners: run.corners, newQuests: run.newQuests },
       };
       try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch (e) {}
     }
@@ -4711,7 +4759,7 @@
         for (const q of [...QUESTS].sort((a, b) => isQuestDone(a.id) - isQuestDone(b.id))) {
           const done = isQuestDone(q.id), v = Math.min(q.goal, Math.max(0, questValue(q, false)));
           const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : "assets/coin.png";
-          const prog = q.stat === "time" ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
+          const prog = q.stat === "time" || q.stat === "difftime" ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
           html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
         }
       } else if (panelKind === "select") {
