@@ -539,8 +539,10 @@
     //   → 게임 안의 모든 위치(플레이어, 적, 발사체 ...)는 "월드 좌표"이고,
     //     그릴 때만 카메라 위치만큼 옮겨서(ctx.translate) 화면에 보이는 부분을 그림
     // =====================================================================
-    const WORLD_W = 3840;      // 맵 가로 (화면의 3배)
-    const WORLD_H = 2160;      // 맵 세로 (화면의 3배)
+    const WORLD_W = 5760;      // 맵 가로 (화면의 4.5배. 예전 3840 의 1.5배)
+    const WORLD_H = 3264;      // 맵 세로 (예전 2160 의 1.5배 = 3240 을 타일 48 의 배수로 맞춤)
+    const BG_SCALE = 3;        // 배경 그림은 맵의 1/3 크기로 만들어 두고 3배로 늘려 그림 (타일 원본이 16픽셀이라 모양은 똑같고, 메모리는 1/9)
+                               //   맵 전체 크기 그대로 만들면 휴대폰(특히 아이폰)의 그림 크기 한도를 넘어서 바닥이 안 나옴
     const WALL_SIZE = 48;      // 맵 경계 돌담 두께 (장식용. 실제로 못 나가게 막는 건 좌표 제한)
 
     const cam = { x: 0, y: 0 };   // 카메라 왼쪽 위 모서리의 월드 좌표
@@ -582,6 +584,11 @@
                           "passive_might", "passive_armor", "passive_maxhp", "passive_regen", "passive_cooldown", "passive_area",
                           "passive_projspeed", "passive_duration", "passive_amount", "passive_move", "passive_magnet", "passive_luck",
                           "passive_growth", "passive_curse", "passive_revival", "passive_choices"];
+    // 난이도 테마 (어려움 = 얼음 동굴, 매우 어려움 = 용암 굴, 지옥 = 저주받은 어둠): 적 그림을 테마 색으로 바꾼 것. 예: bat_ice.png
+    //   파일이 없거나 아직 못 불러왔으면 원래 그림으로 그림 (drawEnemy 참고)
+    const THEME_KEYS = ["ice", "lava", "dark"];
+    const THEMED_SPRITES = ["bat", "crab", "spider", "ghost", "cyclops", "flower", "wizard"];
+    for (const theme of THEME_KEYS) for (const name of THEMED_SPRITES) SPRITE_NAMES.push(`${name}_${theme}`);
     const SPRITES = {};
     for (const name of SPRITE_NAMES) {
       const sprite = { ready: false, normal: new Image(), white: null };
@@ -627,29 +634,51 @@
       img.src = `assets/${name}.png`;
       floorImages[name] = img;
     }
+    // 난이도 테마용 바닥·벽 그림 (예: floor_plain_ice.png). 늦게 불러와져도 지금 테마의 그림이면 배경을 다시 만듦
+    let bgTheme = null;              // 지금 배경에 깔린 테마 (null = 기본 던전)
+    for (const theme of THEME_KEYS) {
+      for (const name of [FLOOR_PLAIN, ...FLOOR_EXTRAS, "wall"]) {
+        const img = new Image();
+        img.onload = () => { if (bgTheme === theme) rebuildBackground(); };
+        img.src = `assets/${name}_${theme}.png`;
+        floorImages[`${name}_${theme}`] = img;
+      }
+    }
+    // 지금 테마의 바닥 그림 (없거나 아직 못 불러왔으면 기본 그림)
+    function floorImage(name) {
+      const themed = bgTheme && floorImages[`${name}_${bgTheme}`];
+      return themed && themed.complete && themed.naturalWidth > 0 ? themed : floorImages[name];
+    }
+    // 배경 테마 바꾸기 (판을 시작할 때, 시작 화면에서 난이도를 고를 때)
+    function setBackgroundTheme(theme) {
+      if (bgTheme === (theme || null)) return;
+      bgTheme = theme || null;
+      if (floorLoaded >= 2 + FLOOR_EXTRAS.length) buildBackground();
+    }
 
     // 구멍·자갈 무늬 자리를 정하는 씨앗: 배경을 다시 만들어도 같은 자리에 같은 무늬가 나오게 한 번만 뽑아 둠
     const floorSeed = Math.floor(Math.random() * 2147483647) + 1;
 
     function buildBackground() {
       const c = document.createElement("canvas");
-      c.width = WORLD_W;
-      c.height = WORLD_H;
+      c.width = WORLD_W / BG_SCALE;
+      c.height = WORLD_H / BG_SCALE;
       const b = c.getContext("2d");
       b.imageSmoothingEnabled = false;
+      b.scale(1 / BG_SCALE, 1 / BG_SCALE);            // 아래는 전부 맵 좌표로 적고, 실제로는 1/3 크기로 그려짐
       let seed = floorSeed;
       const rand = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };   // 씨앗으로 만드는 0~1 난수
 
       // (1) 바닥 타일 깔기: 민무늬 + 가끔 옅은 구멍·자갈 무늬 + 바둑판 음영
       for (let y = 0; y < WORLD_H; y += FLOOR_TILE_SIZE) {
         for (let x = 0; x < WORLD_W; x += FLOOR_TILE_SIZE) {
-          b.drawImage(floorImages[FLOOR_PLAIN], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
+          b.drawImage(floorImage(FLOOR_PLAIN), x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
 
           // 가끔 구멍·자갈 무늬를 민무늬 위에 옅게 얹음
           if (rand() < FLOOR_EXTRA_CHANCE) {
             const name = FLOOR_EXTRAS[Math.floor(rand() * FLOOR_EXTRAS.length)];
             b.globalAlpha = FLOOR_EXTRA_ALPHA;
-            b.drawImage(floorImages[name], x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
+            b.drawImage(floorImage(name), x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
             b.globalAlpha = 1;
           }
 
@@ -666,14 +695,15 @@
       b.fillRect(0, 0, WORLD_W, WORLD_H);
 
       // (3) 맵 경계 돌담: 가장자리에 한 줄 (여기가 맵 끝이라는 표시)
-      if (floorImages.wall) {
+      const wall = floorImage("wall");
+      if (wall) {
         for (let x = 0; x < WORLD_W; x += WALL_SIZE) {
-          b.drawImage(floorImages.wall, x, 0, WALL_SIZE, WALL_SIZE);
-          b.drawImage(floorImages.wall, x, WORLD_H - WALL_SIZE, WALL_SIZE, WALL_SIZE);
+          b.drawImage(wall, x, 0, WALL_SIZE, WALL_SIZE);
+          b.drawImage(wall, x, WORLD_H - WALL_SIZE, WALL_SIZE, WALL_SIZE);
         }
         for (let y = 0; y < WORLD_H; y += WALL_SIZE) {
-          b.drawImage(floorImages.wall, 0, y, WALL_SIZE, WALL_SIZE);
-          b.drawImage(floorImages.wall, WORLD_W - WALL_SIZE, y, WALL_SIZE, WALL_SIZE);
+          b.drawImage(wall, 0, y, WALL_SIZE, WALL_SIZE);
+          b.drawImage(wall, WORLD_W - WALL_SIZE, y, WALL_SIZE, WALL_SIZE);
         }
       }
       background = c;
@@ -1756,6 +1786,25 @@
       { key: "cyclops", name: "외눈 거인", shape: "cyclops", color: "#f0a860", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase" },
     ];
 
+    // --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
+    //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
+    const HIT_SLOW_TIME = 0.8;                   // 공통: 맞으면 이 시간(초) 동안 느려짐
+    const HIT_SLOW_MUL = 0.75;                   // 공통: 느려졌을 때 이동 속도 배수
+    const BAT_RUSH_RANGE = 240;                  // 박쥐 '돌격': 이 거리 안으로 들어오면 빨라짐
+    const BAT_RUSH_MUL = [1, 1.35, 1.5, 1.65];   // 박쥐 '돌격': 빨라지는 배수
+    const CRAB_SHELL = [0, 1, 1, 2];             // 붉은 게 '껍질': 공격을 이 횟수만큼 막아 냄
+    const SPIDER_SPLIT = [2, 3, 3, 4];           // 거미 '분열': 죽을 때 나오는 새끼 수
+    const GHOST_BLINK_INTERVAL = [0, 5, 4, 3];   // 유령 '순간이동': 몇 초마다
+    const GHOST_BLINK_DIST = 110;                // 유령 '순간이동': 한 번에 다가오는 거리
+    const GHOST_BLINK_MIN = 200;                 // 유령 '순간이동': 이보다 멀리 있을 때만 (코앞에 갑자기 나타나지 않게)
+    const CYCLOPS_HAZARD_LIFE = [0, 2, 3, 4];    // 외눈 거인 '자국': 죽은 자리에 남는 위험한 자국이 유지되는 시간(초)
+    const CYCLOPS_HAZARD_RADIUS = 44;            // 외눈 거인 '자국': 크기
+    const HAZARD_ARM_TIME = 1.0;                 // 자국이 생긴 뒤 이 시간 동안은 피해 없음 (피할 틈)
+    const BOSS_EXTRA_SHOTS = [0, 1, 2, 3];       // 보스: 한 번에 쏘는 탄환이 이만큼 늘어남
+    const THEME_COLORS = { ice: "125, 249, 255", lava: "255, 123, 46", dark: "181, 101, 245" };   // 테마 색 (자국·껍질·순간이동 효과)
+    function enemyTier() { return diffDef().tier || 0; }
+    function themeColor(alpha) { return `rgba(${THEME_COLORS[diffDef().theme] || "255, 255, 255"}, ${alpha})`; }
+
     // --- 마지막 보스: 사신 마법사 (원작의 '사신'처럼 정해진 시간에 나타남. 잡으면 클리어) ---
     //   일반 몬스터 목록에는 없고, BOSS_TIME 에 한 마리만 나옴. 시간·레벨 보정을 받지 않는 고정 능력치
     const BOSS_TIME = 20 * 60;           // 보스가 나타나는 시간 (초) = 20분  ← 이 숫자 하나로 게임 전체 길이가 바뀜
@@ -1924,6 +1973,7 @@
     let chests;        // 바닥에 떨어진 보물 상자 목록
     let items;         // 바닥에 떨어진 아이템(물약) 목록
     let zones;         // 바닥에 남아 피해를 주는 지역 목록 (화염병 불바다 등)
+    let hazards;       // 적이 남긴 위험한 자국 목록 (난이도 테마: 외눈 거인이 죽은 자리. 밟으면 플레이어가 다침)
     let eliteTimer;    // 다음 엘리트가 나올 때까지 남은 시간
     let eventIndex;    // 이벤트 시간표에서 다음에 확인할 칸
     let eventQueue;    // 지금 진행 중인 이벤트 (연달아 나오는 중인 것)
@@ -1981,6 +2031,7 @@
       chests = [];
       items = [];
       zones = [];
+      hazards = [];
       eliteTimer = ELITE_INTERVAL;
       eventIndex = 0;
       eventQueue = [];
@@ -2237,6 +2288,18 @@
       }
       if (e.behavior === "boss")    { e.shootTimer = BOSS_SHOT_INTERVAL; e.summonTimer = BOSS_SUMMON_INTERVAL; }
       if (e.behavior === "charger") { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+
+      // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (보통 난이도는 tier 0 이라 그대로)
+      const tier = enemyTier(), theme = diffDef().theme;
+      e.baseShape = type.shape;
+      if (theme && THEMED_SPRITES.includes(type.shape)) e.shape = `${type.shape}_${theme}`;
+      if (tier > 0) {
+        if (type.key === "crab") e.shell = CRAB_SHELL[tier];                                            // 껍질: 공격을 몇 번 막음
+        if (type.key === "spider" && !isChild) e.splitInto = SPIDER_SPLIT[tier];                        // 분열: 새끼가 더 많이
+        if (type.key === "ghost") e.blinkTimer = GHOST_BLINK_INTERVAL[tier] * (0.5 + Math.random());   // 순간이동 (적마다 박자가 어긋나게)
+        if (type.key === "cyclops") e.leavesHazard = true;                                              // 죽으면 위험한 자국
+        if (type.key === "bat") e.rush = true;                                                          // 가까이 오면 돌격
+      }
       return e;
     }
 
@@ -2477,7 +2540,18 @@
     // 바닥 아이템 (물약)
     // ---------------------------------------------------------------------
     function spawnItem(x, y, forcedKey) {
-      const type = ITEM_TYPES.find((t) => t.key === forcedKey) || pickWeighted(ITEM_TYPES);
+      let type = ITEM_TYPES.find((t) => t.key === forcedKey);
+      if (!type) {
+        // 뽑기: 난이도가 높으면 회복·빙결·전멸의 몫이 줄고, 줄어든 만큼은 '꽝'(아무것도 안 떨어짐). 자석이 나올 확률은 그대로
+        const total = ITEM_TYPES.reduce((sum, t) => sum + t.weight, 0);
+        let roll = Math.random() * total;
+        for (const t of ITEM_TYPES) {
+          const w = t.weight * (t.key === "magnet" ? 1 : diffDef().item || 1);
+          if (roll < w) { type = t; break; }
+          roll -= w;
+        }
+        if (!type) return;
+      }
       const ix = Math.max(ITEM_RADIUS, Math.min(WORLD_W - ITEM_RADIUS, x));
       const iy = Math.max(ITEM_RADIUS, Math.min(WORLD_H - ITEM_RADIUS, y));
       items.push({ x: ix, y: iy, r: ITEM_RADIUS, life: ITEM_LIFETIME, type });
@@ -2517,6 +2591,14 @@
     // 적에게 피해 주기. 죽으면 처치 수 +1, 구슬 떨어뜨림 (모든 무기가 이 함수를 씀)
     function damageEnemy(e, dmg) {
       if (e.dead) return;
+      // 난이도 테마 · 붉은 게의 껍질: 남아 있으면 이번 공격은 껍질만 깨고 끝 (피해 없음)
+      if (e.shell > 0) {
+        e.shell -= 1;
+        e.hitFlash = HIT_FLASH_TIME;
+        playSfx("hit");
+        spawnParticles(e.x, e.y, themeColor(1), 6, 160);
+        return;
+      }
       e.hp -= dmg;
 
       // 피격 이펙트: 흰색으로 번쩍 + 작은 불꽃
@@ -2542,6 +2624,12 @@
         // 처치 이펙트: 적 색깔 파편이 사방으로 퍼짐 + 바깥으로 퍼지는 고리
         spawnParticles(e.x, e.y, e.color, DEATH_PARTICLES, 180);
         effects.push({ kind: "ring", x: e.x, y: e.y, r: e.r, color: e.color, life: 0.25, maxLife: 0.25 });
+
+        // 난이도 테마 · 외눈 거인: 죽은 자리에 위험한 자국을 남김 (잠깐 뒤부터 밟으면 다침)
+        if (e.leavesHazard) {
+          const life = CYCLOPS_HAZARD_LIFE[enemyTier()] + HAZARD_ARM_TIME;
+          hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME, damage: Math.max(1, Math.round(e.damage * 0.5)) });
+        }
 
         // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴
         // (적 목록을 도는 중일 수 있어서 바로 넣지 않고 pendingSpawns에 모아둠)
@@ -2673,6 +2761,7 @@
         player.hp -= Math.max(1, amount - passiveLevel("armor"));   // 갑옷(패시브): 레벨당 -1, 최소 1
       }
       player.invincible = INVINCIBLE_TIME;   // 막았을 때도 잠깐 무적 (연달아 맞지 않게)
+      if (enemyTier() > 0) player.slowTimer = HIT_SLOW_TIME;   // 난이도 테마 공통: 맞으면 잠깐 느려짐
     }
 
     // =====================================================================
@@ -2706,9 +2795,11 @@
         const len = Math.hypot(mx, my);
         player.facingX = mx / len;                 // 바라보는 방향 기억
         player.facingY = my / len;
-        player.x += (mx / len) * player.speed * dt;
-        player.y += (my / len) * player.speed * dt;
+        const speed = player.speed * (player.slowTimer > 0 ? HIT_SLOW_MUL : 1);   // 난이도 테마: 맞은 직후엔 느려짐
+        player.x += (mx / len) * speed * dt;
+        player.y += (my / len) * speed * dt;
       }
+      if (player.slowTimer > 0) player.slowTimer -= dt;
       // 식인꽃은 벽: 겹치면 플레이어를 꽃 바깥으로 밀어냄 (뚫고 지나갈 수 없음) + 닿은 값으로 피해
       for (const e of enemies) {
         if (e.behavior !== "ring" || e.dead) continue;
@@ -2817,8 +2908,9 @@
           e.shootTimer -= dt;
           if (e.shootTimer <= 0) {
             const base = Math.atan2(dirY, dirX);
-            for (let i = 0; i < BOSS_SHOT_COUNT; i++) {
-              const a = base + (i - (BOSS_SHOT_COUNT - 1) / 2) * 0.22;
+            const shots = BOSS_SHOT_COUNT + BOSS_EXTRA_SHOTS[enemyTier()];   // 난이도 테마: 탄환이 더 많이
+            for (let i = 0; i < shots; i++) {
+              const a = base + (i - (shots - 1) / 2) * 0.22;
               enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY) });
             }
             e.shootTimer = BOSS_SHOT_INTERVAL;
@@ -2868,8 +2960,21 @@
           }
         } else {
           // 기본(chase): 플레이어 쪽으로 곧장
-          e.x += dirX * e.speed * dt;
-          e.y += dirY * e.speed * dt;
+          //   난이도 테마 · 박쥐 '돌격': 가까이 오면 빨라짐
+          const speed = e.rush && len < BAT_RUSH_RANGE ? e.speed * BAT_RUSH_MUL[enemyTier()] : e.speed;
+          e.x += dirX * speed * dt;
+          e.y += dirY * speed * dt;
+          //   난이도 테마 · 유령 '순간이동': 몇 초마다 플레이어 쪽으로 훌쩍 다가옴 (화면 안에 있고 아직 멀 때만)
+          if (e.blinkTimer !== undefined) {
+            e.blinkTimer -= dt;
+            if (e.blinkTimer <= 0 && len > GHOST_BLINK_MIN && inView(e.x, e.y)) {
+              spawnParticles(e.x, e.y, themeColor(1), 6, 120);            // 떠난 자리
+              e.x += dirX * GHOST_BLINK_DIST;
+              e.y += dirY * GHOST_BLINK_DIST;
+              effects.push({ kind: "ring", x: e.x, y: e.y, r: e.r, color: themeColor(1), life: 0.3, maxLife: 0.3 });   // 나타난 자리
+              e.blinkTimer = GHOST_BLINK_INTERVAL[enemyTier()];
+            }
+          }
         }
 
         for (const k in e.cd) if (e.cd[k] > 0) e.cd[k] -= dt;
@@ -2986,6 +3091,14 @@
         }
       }
 
+      // --- 난이도 테마 · 위험한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟으면 피해 ---
+      for (const h of hazards) {
+        h.life -= dt;
+        if (h.arm > 0) { h.arm -= dt; continue; }
+        if (!frozen && player.invincible <= 0 && circlesTouch(h, player)) hurtPlayer(h.damage);
+      }
+      hazards = hazards.filter((h) => h.life > 0);
+
       // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
       for (const b of enemyBullets) {
         if (frozen) continue;              // 빙결 중엔 적 탄환도 멈춤
@@ -3087,7 +3200,23 @@
       if (background) {
         // 던전 바닥: 맵 전체 그림에서 지금 화면에 보이는 부분만 잘라서 그림 (확대했을 때 가장자리가 비지 않게 올림)
         const sx = Math.round(cam.x), sy = Math.round(cam.y), vw = Math.ceil(VW), vh = Math.ceil(VH);
-        ctx.drawImage(background, sx, sy, vw, vh, sx, sy, vw, vh);
+        ctx.drawImage(background, sx / BG_SCALE, sy / BG_SCALE, vw / BG_SCALE, vh / BG_SCALE, sx, sy, vw, vh);
+      }
+
+      // 난이도 테마 · 위험한 자국 (외눈 거인이 죽은 자리): 테마 색 원. 준비 중엔 테두리만 깜빡이고, 그 뒤엔 속이 차서 일렁임
+      for (const h of hazards) {
+        const fade = Math.min(1, h.life / 0.6);                       // 사라지기 직전엔 옅어짐
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = themeColor(0.9 * fade);
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+        if (h.arm > 0) {
+          if (Math.floor(h.arm * 12) % 2 === 0) ctx.stroke();
+        } else {
+          ctx.fillStyle = themeColor((0.28 + 0.1 * Math.sin(stats.time * 8 + h.x)) * fade);
+          ctx.fill();
+          ctx.stroke();
+        }
       }
 
       // 바닥 지역: 불바다 (일렁이는 주황 원)
@@ -3350,6 +3479,15 @@
         if (def.draw) def.draw(w);
       }
 
+      // 난이도 테마: 맞아서 느려진 동안 발밑에 테마 색 고리 (남은 시간만큼 옅어짐)
+      if (player.slowTimer > 0) {
+        ctx.strokeStyle = themeColor(0.8 * Math.min(1, player.slowTimer / 0.4));
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(player.x, player.y + player.r * 0.9, player.r * 1.3, player.r * 0.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
       // 플레이어 (기사 그림, 무적 중엔 깜빡임)
       const blink = player.invincible > 0 && Math.floor(player.invincible * 20) % 2 === 0;
       const drewKnight = drawSprite(charDef().sprite, player.x, player.y, player.r * SPRITE_SCALE, {
@@ -3604,7 +3742,7 @@
       const white = flashing || hit || waking;
 
       // 살아 있는 느낌: 위아래로 살짝 들썩임 (박쥐는 빠르게 파닥파닥)
-      const bobSpeed = e.shape === "bat" ? 18 : 7;
+      const bobSpeed = e.baseShape === "bat" ? 18 : 7;
       const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12;
 
       // 보스: 보라색 큰 고리
@@ -3629,10 +3767,21 @@
         ctx.stroke();
       }
 
-      const drew = drawSprite(e.shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
+      // 난이도 테마 그림(예: bat_ice)을 아직 못 불러왔으면 원래 그림으로
+      const shape = SPRITES[e.shape] && SPRITES[e.shape].ready ? e.shape : e.baseShape;
+      const drew = drawSprite(shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
         flip: e.behavior === "swarm" ? e.vx < 0 : player.x < e.x,   // 플레이어가 있는 쪽을 바라봄 (박쥐 떼는 날아가는 쪽)
         white,
       });
+
+      // 난이도 테마 · 붉은 게의 껍질: 남아 있는 동안 테마 색 테두리 (두 겹이면 두 줄)
+      for (let i = 0; i < (e.shell || 0); i++) {
+        ctx.strokeStyle = themeColor(0.85);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.25 + i * 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // 빙결 중: 옅은 하늘색으로 덮음
       if (freezeTimer > 0 || e.frozenTimer > 0) {
@@ -4076,6 +4225,7 @@
       hudStats.style.display = "none";
       soundBtn.style.left = "16px";
       setMusic("title");
+      setBackgroundTheme((DIFFS[meta.diff] || DIFFS[0]).theme);   // 시작 화면 배경 = 고른 난이도의 장소
       refreshTitleMenu();
       prepareTitleText();
       titleScene = { t: 0, monsters: [] };
@@ -4125,7 +4275,7 @@
       if (background) {
         const sx = (WORLD_W - W) / 2 + Math.sin(t * 0.15) * 120;
         const sy = (WORLD_H - H) / 2 + Math.cos(t * 0.11) * 80;
-        ctx.drawImage(background, sx, sy, W, H, 0, 0, W, H);
+        ctx.drawImage(background, sx / BG_SCALE, sy / BG_SCALE, W / BG_SCALE, H / BG_SCALE, 0, 0, W, H);
       }
 
       // (2) 몰려오는 몬스터 (기사보다 어둡게, 멀수록 더 어둡게 → 기사가 돋보임)
@@ -4233,11 +4383,14 @@
 
     // --- 난이도: 앞 단계를 클리어하면 다음 단계가 열림. 숫자만 올리지 않고 정예 빈도·보스도 바뀜 ---
     const DIFFS = [
-      { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   desc: "기본" },
-      // 정예를 늘리면 상자도 늘어 오히려 쉬워졌으므로, 간격은 같게 두고 적의 능력치를 올림.
-      { name: "어려움",      hp: 1.15, dmg: 1.05, speed: 1.02, elite: 1, boss: 1.1,  gold: 1.3, desc: "적 체력 +15%, 피해 +5%, 속도 +2%, 보스 체력 +10%" },
-      { name: "매우 어려움", hp: 1.35, dmg: 1.15, speed: 1.08, elite: 1, boss: 1.25, gold: 1.6, desc: "적 체력 +35%, 피해 +15%, 속도 +8%, 보스 체력 +25%" },
-      { name: "지옥",        hp: 1.6,  dmg: 1.3,  speed: 1.12, elite: 1, boss: 1.5,  gold: 2,   desc: "적 체력 +60%, 피해 +30%, 속도 +12%, 보스 체력 +50%" },
+      //   item: 회복·빙결·전멸 아이템이 떨어지는 양의 배수 (자석은 그대로). 난이도가 높을수록 덜 나옴
+      //   theme: 배경·적 그림 테마 (null = 기본 던전)   place: 장소 이름   tier: 적 특성 단계 (위 '난이도 테마의 적 특성' 참고)
+      { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   tier: 0, theme: null,   place: "던전",          item: 1,    desc: "기본" },
+      // 정예를 늘리면 상자도 늘어 오히려 쉬워졌으므로, 간격은 같게 둠.
+      // 적 특성(tier)이 난이도를 올리므로 능력치 배수는 예전보다 낮춤 (측정 기록: 특성만 얹으면 예전보다 훨씬 어려워졌음)
+      { name: "어려움",      hp: 1,    dmg: 1,    speed: 1,    elite: 1, boss: 1,    gold: 1.3, tier: 1, theme: "ice",  place: "얼음 동굴",     item: 0.75, desc: "적마다 특성이 생김 · 맞으면 잠깐 느려짐 · 회복·빙결·전멸 아이템 -25%" },
+      { name: "매우 어려움", hp: 1.1,  dmg: 1.05, speed: 1.03, elite: 1, boss: 1.15, gold: 1.6, tier: 2, theme: "lava", place: "용암 굴",       item: 0.55, desc: "적 특성 강화 · 적 체력 +10%, 피해 +5%, 속도 +3%, 보스 체력 +15% · 회복·빙결·전멸 아이템 -45%" },
+      { name: "지옥",        hp: 1.25, dmg: 1.15, speed: 1.06, elite: 1, boss: 1.3,  gold: 2,   tier: 3, theme: "dark", place: "저주받은 어둠", item: 0.4,  desc: "적 특성 최대 · 적 체력 +25%, 피해 +15%, 속도 +6%, 보스 체력 +30% · 회복·빙결·전멸 아이템 -60%" },
     ];
 
     // --- 상점 (영구 강화): 단계 상한 있음, 언제든 공짜 환불. 값 = base × (지금 단계 + 1) ---
@@ -4344,6 +4497,8 @@
       if (!isCharUnlocked(meta.char)) meta.char = "knight";
       if (!isDiffUnlocked(meta.diff)) meta.diff = 0;
       run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, newQuests: [], tick: 0, saveTimer: 0, done: false };
+      setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
+      if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
       player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
       recalcStats();
       player.hp = player.maxHp;
@@ -4576,8 +4731,9 @@
           const right = !open ? `<button class="meta-btn" disabled>잠김</button>`
             : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="diff" data-key="${i}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
           const sub = open ? `${d.desc} · 금화 ×${d.gold}` : `잠김: '${DIFFS[i - 1].name}' 클리어하면 열림`;
-          html += row(sel ? "sel" : open ? "" : "locked", "", d.name, sub, right);
+          html += row(sel ? "sel" : open ? "" : "locked", "", `${d.name} · ${d.place}`, sub, right);
         });
+        html += `<p style="margin: 0.4cqw 0 0; color: #aaa; font-size: 1.1cqw; line-height: 1.5; text-align: left;">'어려움'부터는 장소가 바뀌고 적이 달라져요: 맞으면 잠깐 느려짐 · 박쥐는 가까이 오면 돌격 · 붉은 게는 껍질로 공격을 막음 · 거미는 더 많이 갈라짐 · 유령은 순간이동 · 외눈 거인은 죽은 자리에 위험한 자국을 남김. 난이도가 높을수록 더 강해집니다.</p>`;
       } else {
         const s = meta.stats;
         metaTitle.textContent = "기록·저장";
@@ -4601,7 +4757,7 @@
       } else if (act === "refund") {
         for (const s of SHOP) { const lv = upLevel(s.key); meta.gold += (s.base * lv * (lv + 1)) / 2; meta.upgrades[s.key] = 0; }
       } else if (act === "char") { if (isCharUnlocked(key)) meta.char = key; }
-      else if (act === "diff") { if (isDiffUnlocked(+key)) meta.diff = +key; }
+      else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
       else if (act === "export") { exportSave(); return; }
       else if (act === "import") { importFile.click(); return; }
       else if (act === "wipe") {

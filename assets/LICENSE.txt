@@ -123,3 +123,34 @@ License: Creative Commons Zero (CC0)
 
 소리 켜기/끄기 버튼 그림 (2026-10-07):
   sound_on.png / sound_off.png = pause.png 의 말풍선 윤곽을 그대로 쓰고, 안을 노랑으로 칠한 뒤 스피커(+물결 / +X)를 진한 갈색으로 찍음 (외부 출처 없음)
+
+
+난이도 테마 그림 (2026-10-09, 새 외부 그림 없이 기존 파일의 색을 바꿈):
+  floor_plain_ice.png / floor_plain_lava.png / floor_plain_dark.png
+    = floor_plain.png (위 "던전 바닥" 항목)의 픽셀 모양과 알파를 그대로 두고 테마별 팔레트로 색을 바꿈
+  floor_holes_ice.png / floor_holes_lava.png / floor_holes_dark.png
+    = floor_holes.png (위 "던전 바닥" 항목)의 픽셀 모양과 알파를 그대로 두고 테마별 균열색으로 바꿈
+  floor_pebbles_ice.png / floor_pebbles_lava.png / floor_pebbles_dark.png
+    = floor_pebbles.png (위 "던전 바닥" 항목)의 픽셀 모양과 알파를 그대로 두고 테마별 팔레트로 색을 바꿈
+  wall_ice.png / wall_lava.png / wall_dark.png
+    = wall.png (Kenney "Tiny Dungeon" tile_0057)의 픽셀 모양을 그대로 두고 테마별 팔레트로 색을 바꿈
+  bat_ice.png / bat_lava.png / bat_dark.png
+    = bat.png (Kenney "Tiny Dungeon" tile_0120)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  crab_ice.png / crab_lava.png / crab_dark.png
+    = crab.png (Kenney "Tiny Dungeon" tile_0110)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  spider_ice.png / spider_lava.png / spider_dark.png
+    = spider.png (Kenney "Tiny Dungeon" tile_0122)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  ghost_ice.png / ghost_lava.png / ghost_dark.png
+    = ghost.png (Kenney "Tiny Dungeon" tile_0121)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  cyclops_ice.png / cyclops_lava.png / cyclops_dark.png
+    = cyclops.png (Kenney "Tiny Dungeon" tile_0109)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  flower_ice.png / flower_lava.png / flower_dark.png
+    = flower.png (Kenney "Roguelike/RPG Pack" roguelikeSheet_transparent.png 열 30, 행 9)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+  wizard_ice.png / wizard_lava.png / wizard_dark.png
+    = wizard.png (Kenney "Tiny Dungeon" tile_0084)의 픽셀 모양과 알파를 그대로 두고 색을 바꿈
+
+  2026-10-09 실제 게임 화면 가독성 조정:
+    bat_ice.png = 청록 바닥과 구별되도록 몸통을 밝은 연보라빛 하늘색으로 다시 바꿈
+    bat_dark.png = 검보라 바닥과 구별되도록 몸통을 창백한 회보라·분홍빛으로 다시 바꿈
+    crab_dark.png / spider_dark.png = 검보라 바닥에서 작은 실루엣이 또렷하도록 중간색과 밝은색을 올림
+    (출처와 픽셀 모양·알파는 위 기록과 동일하며 색만 추가 조정함)
