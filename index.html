@@ -1796,8 +1796,8 @@
 
     // --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
     //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
-    const HIT_SLOW_TIME = 0.8;                   // 공통: 맞으면 이 시간(초) 동안 느려짐
-    const HIT_SLOW_MUL = 0.75;                   // 공통: 느려졌을 때 이동 속도 배수
+    const HIT_SLOW_TIME = [0, 0.6, 0.9, 1.2];    // 공통: 맞으면 이 시간(초) 동안 느려짐 (난이도가 높을수록 길게)
+    const HIT_SLOW_MUL = [1, 0.8, 0.75, 0.7];    // 공통: 느려졌을 때 이동 속도 배수 (난이도가 높을수록 더 느리게. 외눈 거인 자국도 같은 값)
     const BAT_RUSH_RANGE = 240;                  // 박쥐 '돌격': 이 거리 안으로 들어오면 빨라짐
     const BAT_RUSH_MUL = [1, 1.35, 1.5, 1.65];   // 박쥐 '돌격': 빨라지는 배수
     const CRAB_SHELL = [0, 1, 1, 2];             // 붉은 게 '껍질': 공격을 이 횟수만큼 막아 냄
@@ -2771,7 +2771,7 @@
         player.hp -= Math.max(1, amount - passiveLevel("armor"));   // 갑옷(패시브): 레벨당 -1, 최소 1
       }
       player.invincible = INVINCIBLE_TIME;   // 막았을 때도 잠깐 무적 (연달아 맞지 않게)
-      if (enemyTier() > 0) player.slowTimer = HIT_SLOW_TIME;   // 난이도 테마 공통: 맞으면 잠깐 느려짐
+      if (enemyTier() > 0) player.slowTimer = HIT_SLOW_TIME[enemyTier()];   // 난이도 테마 공통: 맞으면 잠깐 느려짐
     }
 
     // =====================================================================
@@ -2805,7 +2805,7 @@
         const len = Math.hypot(mx, my);
         player.facingX = mx / len;                 // 바라보는 방향 기억
         player.facingY = my / len;
-        const speed = player.speed * (player.slowTimer > 0 ? HIT_SLOW_MUL : 1);   // 난이도 테마: 맞은 직후엔 느려짐
+        const speed = player.speed * (player.slowTimer > 0 ? HIT_SLOW_MUL[enemyTier()] : 1);   // 난이도 테마: 맞은 직후엔 느려짐
         player.x += (mx / len) * speed * dt;
         player.y += (my / len) * speed * dt;
       }
