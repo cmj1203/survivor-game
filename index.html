@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>서바이버 게임</title>
   <!-- 브라우저 탭 아이콘 (없으면 브라우저가 favicon.ico 를 찾다가 404 오류를 남김) -->
-  <link rel="icon" type="image/png" href="assets/knight.png" />
+  <link rel="icon" type="image/png" href="assets/hero_mage.png" />
   <!-- 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 오프라인이면 기본 글꼴로 대체됨 -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css" />
@@ -111,6 +111,8 @@
     .card small { display: block; color: #aaa; margin-top: 4px; font-size: 13px; }
     .card.weapon-new { border-color: #ffd60a; }     /* 새 무기 카드는 노란 테두리 */
     .card.passive-new { border-color: #2ecc71; }    /* 새 패시브 아이템 카드는 초록 테두리 */
+    .card small.evo { color: #ffd60a; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }   /* 레벨업 카드: 지금 가진 것과 진화 짝이면 금색 줄 */
+    .card small.evo img { width: 16px; height: 16px; image-rendering: pixelated; }
 
     /* 보물 상자 창 */
     #chestBox { border-color: #ffd60a; min-width: 320px; }
@@ -394,7 +396,7 @@
         <button type="button" id="continueBtn" class="pixel-btn primary">이어 하기</button>
         <button type="button" id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
         <div class="title-row">
-          <button type="button" class="pixel-btn small" data-panel="select"><img src="assets/knight.png" alt="">캐릭터·난이도</button>
+          <button type="button" class="pixel-btn small" data-panel="select"><img src="assets/hero_mage.png" alt="">캐릭터·난이도</button>
           <button type="button" class="pixel-btn small" data-panel="shop"><img src="assets/coin.png" alt="">상점</button>
           <button type="button" class="pixel-btn small" data-panel="quests"><img src="assets/chest.png" alt=""><span id="questBtn">퀘스트</span></button>
           <button type="button" class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png" alt="">기록·저장</button>
@@ -406,7 +408,7 @@
       <div class="title-intro">
         <h2>게임 설명</h2>
         <div class="intro-grid">
-          <div class="intro-item"><img src="assets/knight.png" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
+          <div class="intro-item"><img src="assets/hero_mage.png" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
           <div class="intro-item"><img src="assets/passive_growth.png" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 초록 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
           <div class="intro-item"><img src="assets/chest.png" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
           <div class="intro-item"><img src="assets/potion_green.png" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
@@ -592,7 +594,7 @@
     //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
     //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
     // =====================================================================
-    const SPRITE_NAMES = ["knight", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
+    const SPRITE_NAMES = ["hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                           "dagger", "axe", "spear", "firebomb", "staff", "shield",
                           "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
                           "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_shadow", "w_bone", "w_flames", "w_bomb",
@@ -1594,13 +1596,13 @@
       bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.16 }),
       hammer_evo: evolvedDef("hammer", { name: "죽음의 나선", desc: "망치 8개가 사방으로 회전하며 날아감", interval: 1.3,
         fire(w) { for (let i = 0; i < 8; i++) { const a = (Math.PI * 2 * i) / 8 + stats.time; bullets.push({ kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 200, x: player.x, y: player.y, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, r: 12, damage: weaponDamage(w) * 2 * Math.pow(1.25, Math.floor(w.level / 2)), pierce: 99, hitIds: new Set(), life: 2.5 }); } } }),
-      cross_evo: evolvedDef("cross", { name: "천상의 검", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8 }),
-      orb_evo: evolvedDef("orb", { name: "부정한 저녁기도", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 2.4 }),
+      cross_evo: evolvedDef("cross", { name: "수호자의 방패", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8 }),
+      orb_evo: evolvedDef("orb", { name: "회오리 도끼", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 2.4 }),
       firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.6, damageMul: 1.6 }),
       aura_evo: evolvedDef("aura", { name: "영혼 포식자", desc: "더 넓은 오라. 맞힌 적마다 체력 0.5 회복 (발동당 최대 2)", damageMul: 1.4,
         getRadius(w) { return WEAPONS.aura.getRadius(w) * 1.25; },
         fire(w) { const r = this.getRadius(w); let hits = 0; for (const e of enemies) { if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 10); hits++; } } if (hits) player.hp = Math.min(player.maxHp, player.hp + Math.min(2, 0.5 * hits)); w.flash = 0.15; } }),
-      bomb_evo: evolvedDef("bomb", { name: "성수의 늪", desc: "불바다가 더 크고 오래가며 나를 따라옴", damageMul: 1.2,
+      bomb_evo: evolvedDef("bomb", { name: "불바다", desc: "불바다가 더 크고 오래가며 나를 따라옴", damageMul: 1.2,
         fire(w) { const before = bullets.length; WEAPONS.bomb.fire.call(this, w); for (let i = before; i < bullets.length; i++) { bullets[i].zoneRadius *= 1.25; bullets[i].zoneLife *= 1.5; bullets[i].zoneFollow = true; } } }),
       rune_evo: evolvedDef("rune", { name: "미래 없음", desc: "구슬이 오래 튕기고, 튕길 때마다 폭발", damageMul: 1.5,
         fire(w) { const before = bullets.length; WEAPONS.rune.fire.call(this, w); for (let i = before; i < bullets.length; i++) { const b = bullets[i]; b.life *= 2; b.onBounce = (x) => { const r = 60 * areaMul(); for (const e of enemies) if (!e.dead && Math.hypot(e.x - x.x, e.y - x.y) < r + e.r) damageEnemy(e, x.damage); effects.push({ x: x.x, y: x.y, r, life: 0.25, maxLife: 0.25 }); }; } } }),
@@ -3910,6 +3912,22 @@
       element.style.backgroundImage = iconUrl ? `url("${iconUrl}")` : "none";
     }
 
+    // 레벨업 카드의 진화 짝 표시: 이 카드(무기 또는 아이템)와 진화 짝이 되는 것을 지금 갖고 있으면 금색 줄로 알려 줌
+    //   kind = "weapon" 이면 key 는 무기 종류, "passive" 이면 아이템 종류. 짝이 둘이면 줄도 둘
+    function evoPairLine(kind, key) {
+      let html = "";
+      for (const base in EVOLUTIONS) {
+        const evo = EVOLUTIONS[base];
+        if (kind === "passive" && evo.needs === key && player.weapons.some((w) => w.type === base)) {
+          html += `<small class="evo">★ 진화 짝: <img src="${weaponIconUrl(base)}" alt="">${WEAPONS[base].name} → ${WEAPONS[evo.to].name}</small>`;
+        }
+        if (kind === "weapon" && base === key && passiveLevel(evo.needs) > 0) {
+          html += `<small class="evo">★ 진화 짝: <img src="${passiveIconUrl(evo.needs)}" alt="">${PASSIVES[evo.needs].name} → ${WEAPONS[evo.to].name}</small>`;
+        }
+      }
+      return html;
+    }
+
     // 강화 후보 목록 만들기 (레벨업 카드와 보물 상자가 같이 씀)
     //   includeNewWeapons = false 면 '새 무기'·'새 아이템'은 빼고, 이미 가진 무기·패시브 강화만 (보물 상자용)
     function buildUpgradePool(includeNewWeapons) {
@@ -3926,6 +3944,7 @@
             iconUrl: passiveIconUrl(key),
             desc: def.desc,
             isNew: true, isPassive: true,
+            evoLine: evoPairLine("passive", key),
             apply: () => gainPassive(key),
           });
         } else if (owned.level < def.maxLevel) {
@@ -3934,6 +3953,7 @@
             iconUrl: passiveIconUrl(key),
             desc: def.desc,
             isPassive: true,
+            evoLine: evoPairLine("passive", key),
             apply: () => gainPassive(key),
           });
         }
@@ -3955,6 +3975,7 @@
             iconUrl: weaponIconUrl(type),
             desc: def.desc,                            // 무기가 어떻게 공격하는지 한 줄 설명
             isNew: true,
+            evoLine: evoPairLine("weapon", type),
             apply: () => player.weapons.push({ type, level: 1, timer: 0 }),
           });
         } else if (owned.level < WEAPON_MAX_LEVEL) {
@@ -3962,6 +3983,7 @@
             title: `강화: ${def.name} Lv${owned.level} → Lv${owned.level + 1}`,
             iconUrl: weaponIconUrl(type),
             desc: def.upgradeDesc,
+            evoLine: evoPairLine("weapon", type),
             apply: () => { owned.level += 1; },
           });
         }
@@ -3997,7 +4019,7 @@
         for (const card of picks) {
           const btn = document.createElement("button");
           btn.className = "card" + (card.isNew ? (card.isPassive ? " passive-new" : " weapon-new") : "");
-          btn.innerHTML = `${card.title}<small>${card.desc}</small>`;
+          btn.innerHTML = `${card.title}<small>${card.desc}</small>${card.evoLine || ""}`;   // 진화 짝이면 금색 줄이 붙음
           setIcon(btn, card.iconUrl);           // 무기 카드면 왼쪽에 무기 그림
           btn.addEventListener("click", () => {
             card.apply();
@@ -4459,7 +4481,7 @@
 
     // --- 캐릭터: 규칙이 하나씩 다름. unlock = 해금해 주는 퀘스트 id (없으면 처음부터) ---
     const CHARACTERS = {
-      knight:    { name: "기사",   sprite: "knight",         weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
+      knight:    { name: "견습 마법사", sprite: "hero_mage",      weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
       hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10" },
       berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3" },
       saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1" },

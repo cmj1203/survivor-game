@@ -8,7 +8,8 @@ http://creativecommons.org/publicdomain/zero/1.0/
 원본 타일 번호:
   ghost.png   = tile_0121    bat.png    = tile_0120    cyclops.png = tile_0109
   spider.png  = tile_0122    wizard.png = tile_0084    crab.png    = tile_0110
-  knight.png  = tile_0096 (플레이어)
+  hero_mage.png = tile_0084 의 보라색 두 가지를 Tiny Dungeon 초록 물약(tile_0114) 색 #25956A·#43E1B3 으로만 바꾼 것
+                  (플레이어 "견습 마법사"·브라우저 탭 아이콘, 2026-10-12. 예전 기사 그림 knight.png = tile_0096 은 지움)
   (바닥 floor_plain / floor_holes / floor_pebbles 는 2026-10-06 에 다른 팩으로 바꿈 → 아래 "던전 바닥" 항목. 예전엔 tile_0000 / tile_0012 / tile_0024 를 썼음)
   chest.png = tile_0089 (닫힌 상자)   chest_open.png = tile_0091 (열린 상자)
   mimic.png = tile_0092 (미믹)
