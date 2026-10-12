@@ -36,6 +36,8 @@ License: Creative Commons Zero (CC0)
   passive_curse.png = 열 34, 행 12 (해골. 저주라서 보라색으로 채움)
   passive_revival.png = 열 41, 행 12 (부활, 모래시계)
   passive_choices.png = 열 26, 행 16 (선택의 폭, 카드)
+  shop_reroll.png = 열 47, 행 14 (상점 다시 뽑기, 주사위. #3F2631 1px 외곽선 추가)
+  shop_skip.png   = 열 29, 행 20 (상점 건너뛰기, 오른쪽 화살표. #3F2631 1px 외곽선 추가)
 다른 팩으로 바꾼 것 (모양이 이름과 안 맞거나 다른 아이콘과 겹쳐서):
   passive_regen.png  = Kenney "Pixel Shmup" (CC0) Tiles/tile_0024.png (구급상자. 외곽선 색만 바꿈. 예전엔 1-Bit 열 43, 행 11 십자 원)
   passive_area.png   = Kenney "Roguelike/RPG Pack" (CC0) roguelikeSheet_transparent.png 열 20, 행 8 (삼지 촛대. 그대로. 예전엔 1-Bit 열 31, 행 11)
@@ -96,6 +98,7 @@ License: Creative Commons Zero (CC0)
   hero_berserker.png = tile_0087.png (광전사)
   hero_hunter.png    = tile_0112.png (사냥꾼)
   hero_saint.png     = tile_0099.png (성녀)
+  hero_armorer.png   = tile_0100.png (떠돌이 무기상·병기공)
 
 
 시작 화면·게임 UI 버튼 그림 (2026-10-06 새 UI 작업):

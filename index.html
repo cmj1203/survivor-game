@@ -86,8 +86,11 @@
     }
     #restart:hover { background: #357abd; }
 
-    /* 레벨업 카드 (3~5장): 세로로 쌓임 */
+    /* 레벨업 카드 (3~6장): 4장까지는 세로로 쌓고, 5장부터는 두 줄(2열)로 놓음 (세로로만 쌓으면 휴대폰 화면을 넘침) */
     #choices { display: flex; flex-direction: column; gap: 8px; width: 320px; }
+    #choices.wide { display: grid; grid-template-columns: 1fr 1fr; width: 660px; }
+    #levelup { box-sizing: border-box; max-height: calc(var(--app-h) * 0.98 / var(--ui-zoom)); }   /* 혹시 넘쳐도 화면 밖으로는 안 나가게 */
+    .levelup-buttons { display: flex; gap: 10px; }   /* 다시 뽑기·건너뛰기를 한 줄에 */
     .card {
       padding: 12px 16px 12px 72px;                   /* 왼쪽 72px 은 무기 그림 자리 */
       min-height: 60px;
@@ -406,7 +409,6 @@
           <div class="intro-item"><img src="assets/knight.png" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
           <div class="intro-item"><img src="assets/passive_growth.png" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 초록 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
           <div class="intro-item"><img src="assets/chest.png" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
-          <div class="intro-item"><img src="assets/wizard.png" alt=""><div><b>클리어</b>20분을 버티면 마지막 보스 사신 마법사가 나타납니다. 잡으면 클리어!</div></div>
           <div class="intro-item"><img src="assets/potion_green.png" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
           <div class="intro-item"><img src="assets/help.png" alt=""><div><b>도움말</b>게임 중 <span class="kb-only"><kbd>H</kbd> 키나 </span>왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
         </div>
@@ -441,7 +443,7 @@
 
   <!-- 사탕 상자: 원하는 무기를 직접 고르는 창 -->
   <div id="candyBox" class="popup">
-    <h1>사탕 상자</h1>
+    <h1 id="candyTitle">사탕 상자</h1>
     <p>원하는 무기를 하나 고르세요 <span style="color:#8fb8ff">(파란 줄 = 진화 조합, 금색 = 짝 아이템 보유 중)</span></p>
     <div id="candyList"></div>
     <button type="button" id="candyHelp" class="reroll-button">무기 조합표 보기<span class="kb-only"> (H)</span></button>
@@ -495,7 +497,11 @@
     <p id="levelText"></p>
     <div id="choices"></div>
     <!-- 다시 뽑기: 상점에서 '다시 뽑기'를 산 횟수만큼 (레벨업 한 번에 최대 2번). 마음에 드는 카드가 없을 때 새 카드로 바꿈 -->
-    <button type="button" id="reroll" class="reroll-button">다시 뽑기</button>
+    <div class="levelup-buttons">
+      <button type="button" id="reroll" class="reroll-button">다시 뽑기</button>
+      <!-- 건너뛰기: 상점에서 '건너뛰기'를 샀을 때만 보임. 카드를 고르지 않고 넘기는 대신 체력을 조금 회복 -->
+      <button type="button" id="skipBtn" class="reroll-button">건너뛰기</button>
+    </div>
   </div>
 
   <script>
@@ -512,6 +518,7 @@
     const levelText = document.getElementById("levelText");
     const choicesBox = document.getElementById("choices");
     const rerollBtn = document.getElementById("reroll");
+    const skipBtn = document.getElementById("skipBtn");
     const chestBox = document.getElementById("chestBox");
     const chestSlot = document.getElementById("chestSlot");
     const chestList = document.getElementById("chestList");
@@ -524,6 +531,7 @@
     const helpClose = document.getElementById("helpClose");
     const candyBox = document.getElementById("candyBox");
     const candyList = document.getElementById("candyList");
+    const candyTitle = document.getElementById("candyTitle");
     const titleOverlay = document.getElementById("titleOverlay");
     const titleText = document.getElementById("titleText");
     const startBtn = document.getElementById("startBtn");
@@ -584,7 +592,7 @@
     //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
     //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
     // =====================================================================
-    const SPRITE_NAMES = ["knight", "hero_hunter", "hero_berserker", "hero_saint", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
+    const SPRITE_NAMES = ["knight", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                           "dagger", "axe", "spear", "firebomb", "staff", "shield",
                           "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
                           "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_shadow", "w_petal", "w_flames", "w_bomb",
@@ -1745,9 +1753,9 @@
     function projSpeedMul() { return 1 + P_PROJSPEED * passiveLevel("projspeed"); }
     function durationMul()  { return 1 + P_DURATION * passiveLevel("duration"); }
     function extraAmount()  { return passiveLevel("amount"); }
-    function luckMul()      { return 1 + P_LUCK * passiveLevel("luck"); }
+    function luckMul()      { return 1 + P_LUCK * passiveLevel("luck") + SHOP_LUCK * upLevel("luck"); }   // 클로버(게임 중) + 상점 '행운'
     function xpMul()        { return (1 + P_GROWTH * passiveLevel("growth")) * (1 + P_CURSE_XP * curseLevel()) * upMul("growth"); }
-    function curseLevel()   { return passiveLevel("curse"); }
+    function curseLevel()   { return passiveLevel("curse") + upLevel("curse"); }                        // 해골(게임 중) + 상점 '저주'
 
     // 패시브 레벨이 바뀔 때마다 플레이어의 능력치를 '기본값 × 레벨'로 다시 계산
     //   (누적 곱셈 대신 매번 새로 계산하므로 어디서 올려도 값이 정확함)
@@ -2776,7 +2784,7 @@
       if (shield) {
         WEAPONS[shield.type].breakShield(shield);
       } else {
-        player.hp -= Math.max(1, amount - passiveLevel("armor"));   // 갑옷(패시브): 레벨당 -1, 최소 1
+        player.hp -= Math.max(1, amount - passiveLevel("armor") - upLevel("armor"));   // 갑옷(게임 중) + 상점 '방어': 단계당 -1, 최소 1
       }
       player.invincible = INVINCIBLE_TIME;   // 막았을 때도 잠깐 무적 (연달아 맞지 않게)
       if (enemyTier() > 0) player.slowTimer = HIT_SLOW_TIME[enemyTier()];   // 난이도 테마 공통: 맞으면 잠깐 느려짐
@@ -3199,7 +3207,7 @@
 
       // --- 게임오버 확인 (부활 패시브가 남아 있으면 대신 부활) ---
       if (player.hp <= 0) {
-        if (player.revivesUsed < passiveLevel("revival")) {
+        if (player.revivesUsed < passiveLevel("revival") + upLevel("revival")) {   // 부활(게임 중) + 상점 '부활'
           revivePlayer();
         } else {
           player.hp = 0;
@@ -3982,6 +3990,7 @@
 
         // 카드 버튼 만들기
         choicesBox.innerHTML = "";
+        choicesBox.classList.toggle("wide", picks.length >= 5);   // 5장부터는 두 줄로
         for (const card of picks) {
           const btn = document.createElement("button");
           btn.className = "card" + (card.isNew ? (card.isPassive ? " passive-new" : " weapon-new") : "");
@@ -4010,6 +4019,16 @@
         rerollBtn.disabled = rerollsLeft <= 0 || first.poolSize <= first.picks.length;
       };
       refreshReroll();
+      // 건너뛰기: 상점에서 샀을 때만. 카드를 고르지 않고 창을 닫는 대신 체력을 SKIP_HEAL 만큼 회복 (최대 체력까지만)
+      skipBtn.style.display = upLevel("skip") > 0 ? "" : "none";
+      skipBtn.textContent = `건너뛰기 (체력 +${SKIP_HEAL})`;
+      skipBtn.onclick = () => {
+        player.hp = Math.min(player.maxHp, player.hp + SKIP_HEAL);
+        floatTexts.push({ x: player.x, y: player.y - 34, text: `체력 +${SKIP_HEAL}`, color: "#7dffb0", life: 1.2, maxLife: 1.2 });
+        levelupBox.style.display = "none";
+        if (SHOW_BANNER && bannerText) banner = { text: bannerText, life: BANNER_TIME };
+        resumeGame();
+      };
       rerollBtn.onclick = () => {
         if (rerollsLeft <= 0) return;
         rerollsLeft -= 1;
@@ -4140,9 +4159,13 @@
       return Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !isWeaponLocked(k) && !player.weapons.some((w) => w.type === k || WEAPONS[w.type].evoOf === k));
     }
 
-    function openCandyBox() {
+    // startPick = true 면 '시작 무기 고르기' (병기공): 이미 연 무기 전부에서 하나를 골라 그 무기로 판을 시작
+    function openCandyBox(startPick) {
+      startPick = startPick === true;
       state = "candy";
       candyList.innerHTML = "";
+      candyTitle.textContent = startPick ? "시작 무기 고르기" : "사탕 상자";
+      if (startPick) player.weapons = [];                // 기본 무기를 빼 두어야 그 무기도 목록에 나옴
       for (const k of candyChoices()) {
         const def = WEAPONS[k];
         const btn = document.createElement("button");
@@ -4164,7 +4187,13 @@
       candyBox.style.display = "flex";
     }
 
-    restartBtn.addEventListener("click", resetGame);
+    // 새 판 시작 (게임 시작·다시 시작 공통). 병기공이면 게임이 돌기 전에 시작 무기부터 고름. '이어 하기'는 이 함수를 안 거침
+    function beginRun() {
+      resetGame();
+      if (charDef().pick) { draw(); openCandyBox(true); }   // 창 뒤에 던전이 보이게 한 번 그린 뒤 고르기 창
+    }
+
+    restartBtn.addEventListener("click", beginRun);
     chestOk.addEventListener("click", closeChest);
 
     // =====================================================================
@@ -4380,7 +4409,7 @@
       }
       newGameBox.style.display = "none";
       enterFullscreen();
-      resetGame();   // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료
+      beginRun();    // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료 (병기공이면 무기 고르기 창부터)
     }
 
     // 안드로이드는 처음 전체 화면이 될 때 "전체 화면 모드 · 확인" 창을 띄우는데, '확인'을 누를 때까지 게임을 가림
@@ -4430,6 +4459,8 @@
       hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10" },
       berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3" },
       saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1" },
+      // pick: true = 판을 시작할 때 무기 고르기 창이 떠서, 이미 연 무기 중 하나를 골라 시작함 (weapon 은 창이 뜨기 전 잠깐 쓰는 기본값)
+      armorer:   { name: "무기상", sprite: "hero_armorer",   weapon: "wand",   hp: 1,    speed: 1,    pick: true, rule: "시작 무기를 직접 고름. 능력치는 평범", unlock: "q_armory" },
     };
 
     // --- 난이도: 앞 단계를 클리어하면 다음 단계가 열림. 숫자만 올리지 않고 정예 빈도·보스도 바뀜 ---
@@ -4445,6 +4476,9 @@
     ];
 
     // --- 상점 (영구 강화): 단계 상한 있음, 언제든 공짜 환불. 값 = base × (지금 단계 + 1) ---
+    const SKIP_HEAL = 30;                    // 상점 '건너뛰기': 레벨업 카드를 넘기면 회복하는 체력
+    const SHOP_LUCK = 0.10;                  // 상점 '행운': 단계마다 행운 +10%
+    const SHOP_CURSE_GOLD = 0.15;            // 상점 '저주': 단계마다 금화 +15%
     const SHOP = [
       //   한 번 클리어할 때쯤 전부 사 버려서, 단계를 잘게 쪼개 늘림. 다 샀을 때의 세기는 예전과 같음 (전체 값 1470 → 4950, 다시 뽑기·선택의 폭까지 6000)
       { key: "might",  name: "공격력",    icon: "passive_might",  max: 5, base: 60,  per: 0.05 },
@@ -4454,8 +4488,15 @@
       { key: "growth", name: "경험치",    icon: "passive_growth", max: 4, base: 100, per: 0.04 },
       { key: "greed",  name: "금화 획득", icon: "chest",          max: 2, base: 150, per: 0.10 },
       // 퍼센트가 아닌 강화: note(단계) 가 상점에 보일 설명을 돌려줌
-      { key: "reroll",  name: "다시 뽑기", icon: "passive_luck",    max: 2, base: 150, note: (lv) => (lv ? `레벨업 한 번에 ${lv}번까지 카드를 다시 뽑음` : "레벨업 카드를 다시 뽑을 수 있게 됨 (안 사면 못 뽑음)") + " · 단계마다 +1번" },
+      { key: "reroll",  name: "다시 뽑기", icon: "shop_reroll",     max: 2, base: 150, note: (lv) => (lv ? `레벨업 한 번에 ${lv}번까지 카드를 다시 뽑음` : "레벨업 카드를 다시 뽑을 수 있게 됨 (안 사면 못 뽑음)") + " · 단계마다 +1번" },
       { key: "choices", name: "선택의 폭", icon: "passive_choices", max: 2, base: 200, note: (lv) => `레벨업 카드 ${3 + lv}장 · 단계마다 +1장` },
+      { key: "skip",    name: "건너뛰기",  icon: "shop_skip",       max: 1, base: 250, note: (lv) => (lv ? "레벨업 창에서 카드를 안 고르고 넘길 수 있음" : "레벨업 카드를 안 고르고 넘길 수 있게 됨") + ` · 넘기면 체력 +${SKIP_HEAL}` },
+      { key: "armor",   name: "방어력",      icon: "passive_armor",   max: 2, base: 150, note: (lv) => `받는 피해 -${lv} · 단계마다 -1 (최소 1은 받음)` },
+      { key: "luck",    name: "행운",      icon: "passive_luck",    max: 2, base: 120, per: SHOP_LUCK },   // 아이템이 떨어질 확률과 상자에서 여러 개가 나올 확률
+      { key: "revival", name: "부활",      icon: "passive_revival", max: 1, base: 500, note: (lv) => (lv ? "한 판에 한 번, 죽으면 체력을 전부 회복하고 되살아남" : "죽어도 한 판에 한 번 되살아나게 됨") },
+      // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
+      { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
+        note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${lv * 15}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
     ];
 
     // --- 퀘스트: 배우는 것(진화·상자)과 쌓이는 것(누적 처치)을 섞음. 값이 goal 이상이 되면 끝 ---
@@ -4518,8 +4559,10 @@
       { id: "q_runevo6",   name: "완전체",          desc: "한 판에 무기 6개를 모두 진화시키기",          stat: "runevos",  goal: 6,     gold: 400 },
       { id: "q_clear25",   name: "살아 있는 전설",  desc: "25번 클리어 (누적)",                          stat: "clears",   goal: 25,    gold: 400 },
       { id: "q_evodex20",  name: "진화 박사",       desc: "진화 무기 20종을 전부 만들어 보기 (누적)",    stat: "evodex",   goal: 20,    gold: 500 },
-      { id: "q_hellall",   name: "지옥의 지배자",   desc: "네 캐릭터 모두로 지옥 난이도 클리어",         stat: "hellall",  goal: 4,     gold: 600 },
+      { id: "q_hellall",   name: "지옥의 지배자",   desc: "서로 다른 캐릭터 4명으로 지옥 클리어",         stat: "hellall",  goal: 4,     gold: 600 },
     ];
+    // 잠긴 무기를 전부 열면 '시작 무기를 고르는' 캐릭터가 열림 (목표 수는 무기 보상 퀘스트 수와 같음)
+    QUESTS.push({ id: "q_armory", name: "무기고", desc: `잠긴 무기 ${QUESTS.filter((q) => q.weapon).length}종을 모두 열기`, stat: "armory", goal: QUESTS.filter((q) => q.weapon).length, char: "armorer" });
     const TIME_STATS = ["time", "difftime", "nohit", "lowhp", "solo"];   // 진행 값을 '몇 분 몇 초'로 보여 줄 퀘스트 종류
     const WEAPON_LOCKS = {};                 // 무기 종류 → 해금해 주는 퀘스트 id
     for (const q of QUESTS) if (q.weapon) WEAPON_LOCKS[q.weapon] = q.id;
@@ -4528,7 +4571,7 @@
     function defaultMeta() {
       return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], char: "knight", diff: 0,
                stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1,
-                        clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
+                        clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0, clear_armorer: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
                         time_d1: 0, time_d2: 0, time_d3: 0,                                         // time_d○ = 그 난이도에서 가장 오래 버틴 시간(초)
                         items: 0, shells: 0, puddles: 0, corners: 0,                                // 주운 아이템, 깬 껍질, 밟은 자국(누적), 한 판에 가 본 구석 수(최고)
                         // 어려운 퀘스트용. best_○○ = 한 판 최고 기록, n_○○ = 해낸 횟수, mask_○○ = 해 본 것들(하나당 비트 하나)
@@ -4588,7 +4631,7 @@
       run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, items: 0, shells: 0, puddles: 0, corners: 0, newQuests: [], tick: 0, saveTimer: 0, done: false,
               // 어려운 퀘스트용: 맞은 횟수, 안 맞고 버틴 시간(지금/최고), 체력 낮은 채 버틴 시간(지금/최고), 무기 1개로 버틴 시간, 잡은 정예 수, 진화한 종류, 보스가 나온 시각
               hits: 0, noHit: 0, bestNoHit: 0, lowHp: 0, bestLowHp: 0, solo: 0, soloBroken: false, elites: 0, evoMask: 0, bossAt: null,
-              naked: SHOP.every((it) => upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지
+              naked: SHOP.every((it) => it.free || upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지 (저주처럼 스스로 불리해지는 것은 셈에서 뺌)
       setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
       if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
       player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
@@ -4630,6 +4673,7 @@
         case "naked":     return s.n_naked + (live && cleared && run.naked ? 1 : 0);
         case "fewhit":    return s.n_fewhit + (live && cleared && run.hits <= 5 ? 1 : 0);
         case "fastboss":  return s.n_fastboss + (live && cleared && isFastBoss() ? 1 : 0);
+        case "armory":    return QUESTS.filter((it) => it.weapon && isQuestDone(it.id)).length;   // 지금까지 연 무기 수
         case "hellall":   return bitCount(s.mask_hell | (live && cleared && run.diff === 3 ? charBit() : 0));
       }
       return 0;
@@ -4680,7 +4724,7 @@
       //   처치 수를 그대로 나누면 후반(2만 마리)에 금화가 폭발해서 상점을 한두 판에 다 사게 됨 → 제곱근으로 완만하게
       //   예: 5분·700마리 ≈ 31, 10분·4000마리 ≈ 68, 20분 클리어·21000마리 ≈ 187 (상점 전체 6000)
       const gold = Math.round((stats.time / 20 + Math.sqrt(stats.kills) * 0.6 + (cleared ? 40 : 0) + (firstRun ? 40 : 0))
-                              * diffDef().gold * upMul("greed"));
+                              * diffDef().gold * upMul("greed") * (1 + SHOP_CURSE_GOLD * upLevel("curse")));   // 상점 '저주'를 켠 만큼 금화도 더 받음
       const prevMaxDiff = s.maxClearDiff;
       s.runs += 1; s.kills += stats.kills; s.chests += run.chests; s.evos += run.evos;
       s.items += run.items; s.shells += run.shells; s.puddles += run.puddles;
@@ -4833,7 +4877,9 @@
         for (const s of SHOP) {
           const lv = upLevel(s.key), cost = s.base * (lv + 1);
           const pips = "●".repeat(lv) + "○".repeat(s.max - lv);
-          const btn = lv >= s.max ? `<button class="meta-btn" disabled>최대</button>`
+          const btn = s.free
+            ? `<button class="meta-btn" data-act="lower" data-key="${s.key}" ${lv <= 0 ? "disabled" : ""}>− 내리기</button> <button class="meta-btn buy" data-act="buy" data-key="${s.key}" ${lv >= s.max ? "disabled" : ""}>+ 올리기</button>`
+            : lv >= s.max ? `<button class="meta-btn" disabled>최대</button>`
             : `<button class="meta-btn buy" data-act="buy" data-key="${s.key}" ${meta.gold < cost ? "disabled" : ""}>${cost} 금화</button>`;
           html += row("", `assets/${s.icon}.png`, `${s.name} <span class="pips">${pips}</span>`, s.note ? s.note(lv) : `지금 +${Math.round(s.per * lv * 100)}% · 단계마다 +${Math.round(s.per * 100)}%`, btn);
         }
@@ -4887,6 +4933,8 @@
       if (act === "buy") {
         const s = SHOP.find((it) => it.key === key), lv = upLevel(key), cost = s.base * (lv + 1);
         if (lv < s.max && meta.gold >= cost) { meta.gold -= cost; meta.upgrades[key] = lv + 1; }
+      } else if (act === "lower") {
+        if (upLevel(key) > 0) meta.upgrades[key] = upLevel(key) - 1;          // 저주처럼 값이 없는 항목은 한 단계씩 내릴 수 있음
       } else if (act === "refund") {
         for (const s of SHOP) { const lv = upLevel(s.key); meta.gold += (s.base * lv * (lv + 1)) / 2; meta.upgrades[s.key] = 0; }
       } else if (act === "char") { if (isCharUnlocked(key)) meta.char = key; }
