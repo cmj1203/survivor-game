@@ -56,14 +56,15 @@ License: Creative Commons Zero (CC0)
   w_rune.png      = 같은 1-Bit 시트 열 46, 행 6 (수정구. 하늘색으로 채우고 흰 심, 외곽선 추가)
   w_clock.png     = 같은 1-Bit 시트 열 43, 행 12 (둥근 시계. 하늘색으로 채우고 외곽선 추가)
   w_pentagram.png = 같은 1-Bit 시트 열 29, 행 12 (별 문양. 금색으로 채우고 외곽선 추가)
-  (w_petal.png 는 그대로 — 아래 꽃가루 항목)
+  w_bone.png      = Kenney "Roguelike Caves & Dungeons" (CC0, https://kenney.nl/assets/roguelike-caves-dungeons) roguelikeDungeon_transparent.png 열 1, 행 2
+                    (뼈. 크기·색은 그대로 두고 그림을 칸 가운데로 옮김. 2026-10-12)
 
 도움말(?) 버튼 아이콘 (Kenney "1-Bit Pack" CC0, monochrome-transparent_packed.png 에서 잘라 금색으로 칠함):
   help.png = 열 38, 행 13 (네모 안 물음표)
   ※ 2026-10-06: help.png · pause.png · coin.png (노란 픽셀 UI 버튼 세 개) 에 UI 테두리색 #2A1606 로 1px 외곽선을 똑같이 추가함.
      pause.png / coin.png 의 원본 그림은 2026-10-06 새 UI 작업에서 만든 것 (그 작업 기록 참조). 여기서는 외곽선만 더함.
 
-꽃가루 아이콘 w_petal.png 는 Kenney "Roguelike/RPG pack" (CC0, roguelikeSheet_transparent.png) 열 30, 행 9 보라 꽃 타일을 분홍으로 바꾼 것입니다.
+예전 꽃가루 아이콘 w_petal.png (분홍 꽃)는 2026-10-12 에 무기 이름을 "뼈"로 바꾸면서 위 w_bone.png 로 바꾸고 지웠습니다.
 
 
 식인꽃(flower.png)은 Kenney의 "Roguelike/RPG Pack" 에서 가져왔습니다.
