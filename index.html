@@ -32,6 +32,9 @@
     /* 팝업 창 크기 배율: 화면이 작은 휴대폰이면 창 전체를 줄여서 화면 안에 들어가게 (자바스크립트 fitUi 가 정함) */
     :root { --ui-zoom: 1; --app-w: 100vw; --app-h: 100dvh; }   /* --app-h: 실제 보이는 높이 (휴대폰은 주소창을 뺀 높이) */
     .popup { zoom: var(--ui-zoom); }
+    /* 한글 줄바꿈: 낱말 중간에서 끊지 않고(keep-all), 줄 길이를 고르게 맞춰 마지막 줄에 한두 글자만 남지 않게(balance).
+       pretty 는 사파리에서 '2.5' 가운데나 여는 괄호 뒤를 끊어서 쓰지 않음 */
+    .popup, #titleOverlay { word-break: keep-all; overflow-wrap: break-word; text-wrap: balance; }
     /* 터치 기기에서는 키보드 안내를 숨기고, 터치 안내를 보여줌 */
     .touch-only { display: none; }
     html.touch .kb-only { display: none; }
@@ -281,7 +284,7 @@
       background: rgba(10, 8, 18, 0.9);
       border: 0.3cqw solid #ffd60a; box-shadow: 0.6cqw 0.6cqw 0 #000;
     }
-    #titleOverlay.intro .title-head, #titleOverlay.intro .title-menu { display: none; }
+    #titleOverlay.intro .title-head, #titleOverlay.intro .title-menu, #titleOverlay.intro .title-credit { display: none; }
     #titleOverlay.intro .title-intro { display: flex; }
     .title-intro h2 { margin: 0; font-size: 3cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
     .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1cqw 1.6cqw; width: 100%; }
@@ -321,7 +324,7 @@
       width: 74cqw; max-height: 50cqw; padding: 1.8cqw 2.4cqw;
       background: rgba(10, 8, 18, 0.94); border: 0.3cqw solid #ffd60a; box-shadow: 0.6cqw 0.6cqw 0 #000;
     }
-    #titleOverlay.panel .title-head, #titleOverlay.panel .title-menu, #titleOverlay.panel .title-gold { display: none; }
+    #titleOverlay.panel .title-head, #titleOverlay.panel .title-menu, #titleOverlay.panel .title-gold, #titleOverlay.panel .title-credit { display: none; }
     #titleOverlay.panel .meta-panel { display: flex; }
     .meta-panel h2 { margin: 0; font-size: 2.4cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
     .meta-note { margin: 0; font-size: 1.2cqw; color: #aaa; text-align: center; }
@@ -4932,10 +4935,12 @@
       panelKind = kind;
       titleOverlay.classList.add("panel");
       renderPanel();
+      metaBody.scrollTop = 0;               // 다른 창에서 내려 둔 위치가 남지 않게 맨 위부터 (창 안에서 다시 그릴 때는 위치 유지)
     }
 
     function row(cls, icon, title, sub, right) {
-      return `<div class="meta-row ${cls}">${icon ? `<img src="${icon}" alt="">` : ""}<div class="grow"><b>${title}</b><small>${sub}</small></div>${right || ""}</div>`;
+      const keep = (s) => String(s).replaceAll(" · ", "&nbsp;· ");   // 구분 기호 '·' 가 줄 첫머리로 넘어가지 않게 앞 글에 붙임
+      return `<div class="meta-row ${cls}">${icon ? `<img src="${icon}" alt="">` : ""}<div class="grow"><b>${keep(title)}</b><small>${keep(sub)}</small></div>${right || ""}</div>`;
     }
     function bar(v, goal) { return `<div class="bar"><i style="width:${Math.min(100, (v / goal) * 100)}%"></i></div>`; }
 
@@ -4988,7 +4993,7 @@
           const sub = open ? `${d.desc} · 금화 ×${d.gold}` : `잠김: '${DIFFS[i - 1].name}' 클리어하면 열림`;
           html += row(sel ? "sel" : open ? "" : "locked", "", `${d.name} · ${d.place}`, sub, right);
         });
-        html += `<p style="margin: 0.4cqw 0 0; color: #aaa; font-size: 1.1cqw; line-height: 1.5; text-align: left;">'어려움'부터는 장소가 바뀌고 적이 달라져요: 맞으면 잠깐 느려짐 · 박쥐는 가까이 오면 돌격 · 붉은 게는 껍질로 공격을 막음 · 거미는 더 많이 갈라짐 · 유령은 순간이동 · 외눈 거인은 죽은 자리에 위험한 자국을 남김. 난이도가 높을수록 더 강해집니다.</p>`;
+        html += `<p style="margin: 0.4cqw 0 0; color: #aaa; font-size: 1.1cqw; line-height: 1.5; text-align: left;">'어려움'부터는 장소가 바뀌고 적이 달라져요: 맞으면 잠깐 느려짐&nbsp;· 박쥐는 가까이 오면 돌격&nbsp;· 붉은 게는 껍질로 공격을 막음&nbsp;· 거미는 더 많이 갈라짐&nbsp;· 유령은 순간이동&nbsp;· 외눈 거인은 죽은 자리에 위험한 자국을 남김. 난이도가 높을수록 더 강해집니다.</p>`;
       } else {
         const s = meta.stats;
         metaTitle.textContent = "기록·저장";
