@@ -600,7 +600,7 @@
     const SPRITE_NAMES = ["hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                           "dagger", "axe", "spear", "firebomb", "staff", "shield",
                           "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
-                          "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_icebeam", "w_bloodsword", "w_shadow", "w_bone", "w_flames", "w_bomb",
+                          "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_icebeam", "w_bloodsword", "w_shadow", "w_bone", "w_flames", "w_bomb", "boss_shuriken",
                           // 패시브 아이템 아이콘 (Kenney "1-Bit Pack" CC0)
                           "passive_might", "passive_armor", "passive_maxhp", "passive_regen", "passive_cooldown", "passive_area",
                           "passive_projspeed", "passive_duration", "passive_amount", "passive_move", "passive_magnet", "passive_luck",
@@ -2979,7 +2979,7 @@
             const shots = BOSS_SHOT_COUNT + BOSS_EXTRA_SHOTS[enemyTier()];   // 난이도 테마: 탄환이 더 많이
             for (let i = 0; i < shots; i++) {
               const a = base + (i - (shots - 1) / 2) * 0.22;
-              enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY) });
+              enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY), sprite: "boss_shuriken", spin: 12, size: 14 });
             }
             e.shootTimer = BOSS_SHOT_INTERVAL;
           }
@@ -3528,15 +3528,19 @@
       }
       ctx.globalAlpha = 1;
 
-      // 적 탄환 (빨간 점, 흰 테두리 — 빨강 = 위험)
+      // 적 탄환 (회전 표창 — 빨간 표창이 빙글빙글 날아감)
       for (const b of enemyBullets) {
-        ctx.fillStyle = "#ff1744";
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+        const heading = Math.atan2(b.vy, b.vx);
+        const angle = b.spin ? stats.time * b.spin : heading;
+        if (!b.sprite || !drawSprite(b.sprite, b.x, b.y, b.size || 16, { angle })) {
+          ctx.fillStyle = "#ff1744";
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
       }
 
       // 플레이어에 붙어 있는 무기 (오라, 회전 도끼, 지팡이, 보호막)
