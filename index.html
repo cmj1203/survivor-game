@@ -413,7 +413,7 @@
         <h2>게임 설명</h2>
         <div class="intro-grid">
           <div class="intro-item"><img src="assets/hero_mage.png" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
-          <div class="intro-item"><img src="assets/passive_growth.png" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 초록 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
+          <div class="intro-item"><img src="assets/passive_growth.png" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 경험치 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
           <div class="intro-item"><img src="assets/chest.png" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
           <div class="intro-item"><img src="assets/potion_green.png" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
           <div class="intro-item"><img src="assets/help.png" alt=""><div><b>도움말</b>게임 중 <span class="kb-only"><kbd>H</kbd> 키나 </span>왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
@@ -1232,10 +1232,10 @@
       // --- 별의 문양: 긴 간격으로 화면의 적을 전부 지움 (원작 Pentagram). 구슬은 안 나옴(Lv5부터 나옴). 간격 -15%/레벨 ---
       pentagram: {
         name: "별의 문양",
-        desc: "긴 간격으로 화면의 적을 전부 지움 (구슬은 안 나옴)",
+        desc: "긴 간격으로 화면의 적을 전부 지움 (경험치 구슬은 안 나옴)",
         icon: "w_pentagram",
         interval: 25,
-        upgradeDesc: "간격 -15% (Lv5: 지운 적도 구슬을 남김)",
+        upgradeDesc: "간격 -15% (Lv5: 지운 적도 경험치 구슬을 남김)",
         noAmount: true,                                  // 복제기 영향 없음 (원작과 같음)
         getInterval(w) { return this.interval * Math.pow(0.85, w.level - 1); },
         fire(w) {
@@ -1612,7 +1612,7 @@
       lightning_evo: evolvedDef("lightning", { name: "천둥 고리", desc: "번개가 두 번씩 내리침", damageMul: 1.3,
         fire(w) { WEAPONS.lightning.fire.call(this, w); w.pending = [{ delay: 0.2 }]; },
         update(w, dt) { if (!w.pending) return; for (const p of w.pending) { p.delay -= dt; if (p.delay <= 0) { p.done = true; WEAPONS.lightning.fire.call(this, w); } } w.pending = w.pending.filter((p) => !p.done); } }),
-      pentagram_evo: evolvedDef("pentagram", { name: "화려한 달", desc: "자주 발동하고, 지운 적의 구슬이 전부 빨려옴", interval: 6, getInterval(w) { return this.interval; },
+      pentagram_evo: evolvedDef("pentagram", { name: "화려한 달", desc: "자주 발동하고, 지운 적의 경험치 구슬이 전부 빨려옴", interval: 6, getInterval(w) { return this.interval; },
         fire(w) { WEAPONS.pentagram.fire.call(this, w); for (const g of gems) { g.magnet = true; g.speed = Math.max(g.speed || 0, 400); } } }),
       staff_evo: evolvedDef("staff", { name: "마나의 폭풍", desc: "가로줄과 세로줄에 동시에 두 배 굵은 광선", damageMul: 2,
         getHalfWidth(w) { return 22 * Math.pow(1.3, w.level - 1) * 2 * areaMul(); },
@@ -1722,7 +1722,7 @@
       duration:  { name: "주문서",    icon: "passive_duration",  maxLevel: 5, desc: "효과 지속 시간 +15%" },
       amount:    { name: "복제기",    icon: "passive_amount",    maxLevel: 2, desc: "도끼 +1개. 발사 무기는 3회마다 추가 발사 (Lv2: 2회마다)" },
       move:      { name: "날개",      icon: "passive_move",      maxLevel: 5, desc: "이동 속도 +10%" },
-      magnet:    { name: "자석",      icon: "passive_magnet",    maxLevel: MAGNET_MAX, desc: "구슬을 끌어당기는 범위 +30" },
+      magnet:    { name: "자석",      icon: "passive_magnet",    maxLevel: MAGNET_MAX, desc: "경험치 구슬을 끌어당기는 범위 +30" },
       luck:      { name: "클로버",    icon: "passive_luck",      maxLevel: 5, desc: "행운 +15% (물약 드랍, 상자 대박 확률)" },
       growth:    { name: "왕관",      icon: "passive_growth",    maxLevel: 5, desc: "얻는 경험치 +12%" },
       curse:     { name: "해골",      icon: "passive_curse",     maxLevel: 5, desc: "적 생성 +10%, 체력 +6%, 속도 +3%. 대신 얻는 경험치 +8%" },
