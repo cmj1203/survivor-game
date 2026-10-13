@@ -2525,7 +2525,7 @@
       }
       if (gains.length === 0) {
         // 강화할 것이 하나도 없으면 룰렛 대신 고르는 창: 체력 전부 회복, 또는 금화 조금 (상자가 주려던 강화 개수만큼)
-        showCards("보물 상자", "더 강화할 것이 없어요", null, maxedPicks(count * MAXED_GOLD));
+        showCards("보물 상자", "더 강화할 것이 없어요. 하나를 고르세요", null, maxedPicks(count * MAXED_GOLD));
         return gains;
       }
 
@@ -3941,10 +3941,10 @@
       for (const base in EVOLUTIONS) {
         const evo = EVOLUTIONS[base];
         if (kind === "passive" && evo.needs === key && player.weapons.some((w) => w.type === base)) {
-          html += `<small class="evo">진화 짝: <img src="${weaponIconUrl(base)}" alt="">${WEAPONS[base].name} → ${WEAPONS[evo.to].name}</small>`;
+          html += `<small class="evo">★ 진화 짝: <img src="${weaponIconUrl(base)}" alt="">${WEAPONS[base].name} → ${WEAPONS[evo.to].name}</small>`;
         }
         if (kind === "weapon" && base === key && passiveLevel(evo.needs) > 0) {
-          html += `<small class="evo">진화 짝: <img src="${passiveIconUrl(evo.needs)}" alt="">${PASSIVES[evo.needs].name} → ${WEAPONS[evo.to].name}</small>`;
+          html += `<small class="evo">★ 진화 짝: <img src="${passiveIconUrl(evo.needs)}" alt="">${PASSIVES[evo.needs].name} → ${WEAPONS[evo.to].name}</small>`;
         }
       }
       return html;
@@ -4570,7 +4570,7 @@
       { id: "q_chest3",   name: "보물 사냥",     desc: "보물 상자 5개 열기 (누적)",                 stat: "chests", goal: 5,    weapon: "cherry" },
       { id: "q_kill500",  name: "몬스터 사냥꾼", desc: "1000마리 처치 (누적)",                       stat: "kills",  goal: 1000,  weapon: "hammer" },
       { id: "q_time10",   name: "12분 버티기",   desc: "한 판에 12분 버티기",                       stat: "time",   goal: 720,  char: "hunter" },
-      { id: "q_evo1",     name: "첫 진화",       desc: "무기 2번 진화시키기 (누적)", stat: "evos",   goal: 2,    weapon: "shadow" },
+      { id: "q_evo1",     name: "첫 진화",       desc: "무기 2번 진화시키기 (누적, ? 버튼 조합표 참고)", stat: "evos",   goal: 2,    weapon: "shadow" },
       { id: "q_time15",   name: "17분 버티기",   desc: "한 판에 17분 버티기",                       stat: "time",   goal: 1020,  weapon: "pentagram" },
       { id: "q_kill3000", name: "학살자",        desc: "6000마리 처치 (누적)",                      stat: "kills",  goal: 6000, weapon: "larobba" },
       { id: "q_level30",  name: "강자",          desc: "한 판에 레벨 40 도달",                      stat: "level",  goal: 40,   weapon: "flames" },
@@ -4820,7 +4820,7 @@
       let html = `+${gold} 금화 (보유 ${meta.gold})`;
       for (const id of run.newQuests) { const q = QUESTS.find((it) => it.id === id); html += `<br><span>퀘스트 '${q.name}' 완료 → ${rewardText(q)}</span>`; }
       if (s.maxClearDiff > prevMaxDiff && s.maxClearDiff + 1 < DIFFS.length) html += `<br><span>새 난이도 '${DIFFS[s.maxClearDiff + 1].name}' 열림</span>`;
-      if (!storageOk) html += `<br>이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
+      if (!storageOk) html += `<br>※ 이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
       return html;
     }
 
@@ -4868,7 +4868,7 @@
       player.hp = Math.min(player.maxHp, Math.max(1, sp.hp));
       updateCamera();
       draw();                               // 일시정지 창 뒤에 시작 화면이 아니라 불러온 게임 화면이 보이게 한 번 그림
-      pauseGame("저장해 둔 판을 불러왔어요");
+      pauseGame("저장해 둔 판을 불러왔어요. 준비되면 계속하기를 누르세요");
     }
 
     // --- 일시정지 ---
