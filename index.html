@@ -325,6 +325,7 @@
     #titleOverlay.panel .meta-panel { display: flex; }
     .meta-panel h2 { margin: 0; font-size: 2.4cqw; color: #ffd60a; font-weight: normal; text-shadow: 0.3cqw 0.3cqw 0 #000; }
     .meta-note { margin: 0; font-size: 1.2cqw; color: #aaa; text-align: center; }
+    .meta-note:empty { display: none; }   /* 설명 글이 없는 창에서는 자리도 차지하지 않게 */
     #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-x pan-y; }   /* pan-x 도 허용: 세로로 들면 화면이 90도 돌아가서, 목록을 미는 손짓이 화면 기준으로는 가로 방향이 됨 */
     #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
     .meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: 1.25cqw; color: #ddd; text-align: left; }
@@ -446,7 +447,6 @@
   <!-- 사탕 상자: 원하는 무기를 직접 고르는 창 -->
   <div id="candyBox" class="popup">
     <h1 id="candyTitle">사탕 상자</h1>
-    <p>원하는 무기를 하나 고르세요 <span id="candyHint" style="color:#8fb8ff">(파란 줄 = 진화 조합, 금색 = 짝 아이템 보유 중)</span></p>
     <div id="candyList"></div>
     <button type="button" id="candyHelp" class="reroll-button">무기 조합표 보기<span class="kb-only"> (H)</span></button>
   </div>
@@ -457,7 +457,7 @@
     <p id="result"></p>
     <p class="run-reward" id="runReward"></p>
     <button type="button" id="restart">다시 시작</button>
-    <button type="button" class="reroll-button to-title">시작 화면 (상점·퀘스트)</button>
+    <button type="button" class="reroll-button to-title">시작 화면</button>
   </div>
 
   <!-- 일시정지 창: II 버튼·Esc 키, 앱을 내렸다 돌아왔을 때, 이어 하기로 돌아왔을 때 -->
@@ -465,7 +465,7 @@
     <h1>일시정지</h1>
     <p id="pauseText"></p>
     <button type="button" id="pauseResume" class="ok-button">계속하기</button>
-    <button type="button" class="reroll-button to-title">시작 화면 (나중에 이어 하기)</button>
+    <button type="button" class="reroll-button to-title">시작 화면</button>
   </div>
 
   <!-- 새로 시작 경고 창: 하던 판(이어 하기)이 남아 있는데 '게임 시작'을 누르면 나타남 -->
@@ -473,7 +473,7 @@
     <h1>새로 시작할까요?</h1>
     <p id="newGameText"></p>
     <button type="button" id="newGameContinue" class="ok-button">하던 판 이어 하기</button>
-    <button type="button" id="newGameYes" class="reroll-button">새로 시작 (하던 판은 사라짐)</button>
+    <button type="button" id="newGameYes" class="reroll-button">새로 시작</button>
     <button type="button" id="newGameNo" class="reroll-button">취소</button>
   </div>
 
@@ -482,7 +482,7 @@
     <h1>클리어!</h1>
     <p id="clearText"></p>
     <p class="run-reward" id="clearReward"></p>
-    <button type="button" class="ok-button to-title">시작 화면 (상점·퀘스트)</button>
+    <button type="button" class="ok-button to-title">시작 화면</button>
   </div>
 
   <!-- 레벨업 창 (경험치가 차면 나타남, 카드 3장 중 하나 선택) -->
@@ -2525,7 +2525,7 @@
       }
       if (gains.length === 0) {
         // 강화할 것이 하나도 없으면 룰렛 대신 고르는 창: 체력 전부 회복, 또는 금화 조금 (상자가 주려던 강화 개수만큼)
-        showCards("보물 상자", "더 강화할 것이 없어요. 하나를 고르세요", null, maxedPicks(count * MAXED_GOLD));
+        showCards("보물 상자", "더 강화할 것이 없어요", null, maxedPicks(count * MAXED_GOLD));
         return gains;
       }
 
@@ -3941,10 +3941,10 @@
       for (const base in EVOLUTIONS) {
         const evo = EVOLUTIONS[base];
         if (kind === "passive" && evo.needs === key && player.weapons.some((w) => w.type === base)) {
-          html += `<small class="evo">★ 진화 짝: <img src="${weaponIconUrl(base)}" alt="">${WEAPONS[base].name} → ${WEAPONS[evo.to].name}</small>`;
+          html += `<small class="evo">진화 짝: <img src="${weaponIconUrl(base)}" alt="">${WEAPONS[base].name} → ${WEAPONS[evo.to].name}</small>`;
         }
         if (kind === "weapon" && base === key && passiveLevel(evo.needs) > 0) {
-          html += `<small class="evo">★ 진화 짝: <img src="${passiveIconUrl(evo.needs)}" alt="">${PASSIVES[evo.needs].name} → ${WEAPONS[evo.to].name}</small>`;
+          html += `<small class="evo">진화 짝: <img src="${passiveIconUrl(evo.needs)}" alt="">${PASSIVES[evo.needs].name} → ${WEAPONS[evo.to].name}</small>`;
         }
       }
       return html;
@@ -4226,7 +4226,6 @@
       state = "candy";
       candyList.innerHTML = "";
       candyTitle.textContent = startPick ? "시작 무기 고르기" : "사탕 상자";
-      document.getElementById("candyHint").style.display = startPick ? "none" : "";   // 시작 무기 고르기에서는 파란 진화 안내를 안 보여 줌
       if (startPick) player.weapons = [];                // 기본 무기를 빼 두어야 그 무기도 목록에 나옴
       for (const k of candyChoices()) {
         const def = WEAPONS[k];
@@ -4552,7 +4551,7 @@
       { key: "luck",    name: "행운",      icon: "passive_luck",    max: 2, base: 120, per: SHOP_LUCK },   // 아이템이 떨어질 확률과 상자에서 여러 개가 나올 확률
       { key: "greed",  name: "금화 획득", icon: "chest",          max: 2, base: 150, per: 0.10 },
       // 퍼센트가 아닌 강화: note(단계) 가 상점에 보일 설명을 돌려줌
-      { key: "reroll",  name: "다시 뽑기", icon: "shop_reroll",     max: 2, base: 150, note: (lv) => (lv ? `레벨업 한 번에 ${lv}번까지 카드를 다시 뽑음` : "레벨업 카드를 다시 뽑을 수 있게 됨 (안 사면 못 뽑음)") + " · 단계마다 +1번" },
+      { key: "reroll",  name: "다시 뽑기", icon: "shop_reroll",     max: 2, base: 150, note: (lv) => (lv ? `레벨업 한 번에 ${lv}번까지 카드를 다시 뽑음` : "레벨업 카드를 다시 뽑을 수 있게 됨") + " · 단계마다 +1번" },
       { key: "armor",   name: "방어력",      icon: "passive_armor",   max: 2, base: 150, note: (lv) => `받는 피해 -${lv} · 단계마다 -1 (최소 1은 받음)` },
       { key: "choices", name: "선택의 폭", icon: "passive_choices", max: 2, base: 200, note: (lv) => `레벨업 카드 ${3 + lv}장 · 단계마다 +1장` },
       { key: "skip",    name: "건너뛰기",  icon: "shop_skip",       max: 1, base: 250, note: (lv) => (lv ? "레벨업 창에서 카드를 안 고르고 넘길 수 있음" : "레벨업 카드를 안 고르고 넘길 수 있게 됨") + ` · 넘기면 체력 +${SKIP_HEAL}` },
@@ -4571,7 +4570,7 @@
       { id: "q_chest3",   name: "보물 사냥",     desc: "보물 상자 5개 열기 (누적)",                 stat: "chests", goal: 5,    weapon: "cherry" },
       { id: "q_kill500",  name: "몬스터 사냥꾼", desc: "1000마리 처치 (누적)",                       stat: "kills",  goal: 1000,  weapon: "hammer" },
       { id: "q_time10",   name: "12분 버티기",   desc: "한 판에 12분 버티기",                       stat: "time",   goal: 720,  char: "hunter" },
-      { id: "q_evo1",     name: "첫 진화",       desc: "무기 2번 진화시키기 (누적, ? 버튼 조합표 참고)", stat: "evos",   goal: 2,    weapon: "shadow" },
+      { id: "q_evo1",     name: "첫 진화",       desc: "무기 2번 진화시키기 (누적)", stat: "evos",   goal: 2,    weapon: "shadow" },
       { id: "q_time15",   name: "17분 버티기",   desc: "한 판에 17분 버티기",                       stat: "time",   goal: 1020,  weapon: "pentagram" },
       { id: "q_kill3000", name: "학살자",        desc: "6000마리 처치 (누적)",                      stat: "kills",  goal: 6000, weapon: "larobba" },
       { id: "q_level30",  name: "강자",          desc: "한 판에 레벨 40 도달",                      stat: "level",  goal: 40,   weapon: "flames" },
@@ -4821,7 +4820,7 @@
       let html = `+${gold} 금화 (보유 ${meta.gold})`;
       for (const id of run.newQuests) { const q = QUESTS.find((it) => it.id === id); html += `<br><span>퀘스트 '${q.name}' 완료 → ${rewardText(q)}</span>`; }
       if (s.maxClearDiff > prevMaxDiff && s.maxClearDiff + 1 < DIFFS.length) html += `<br><span>새 난이도 '${DIFFS[s.maxClearDiff + 1].name}' 열림</span>`;
-      if (!storageOk) html += `<br>※ 이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
+      if (!storageOk) html += `<br>이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
       return html;
     }
 
@@ -4869,7 +4868,7 @@
       player.hp = Math.min(player.maxHp, Math.max(1, sp.hp));
       updateCamera();
       draw();                               // 일시정지 창 뒤에 시작 화면이 아니라 불러온 게임 화면이 보이게 한 번 그림
-      pauseGame("저장해 둔 판을 불러왔어요. 준비되면 계속하기를 누르세요");
+      pauseGame("저장해 둔 판을 불러왔어요");
     }
 
     // --- 일시정지 ---
@@ -4944,8 +4943,8 @@
       let html = "";
       if (panelKind === "shop") {
         metaTitle.textContent = "상점";
-        metaNote.textContent = `보유 금화 ${meta.gold} · 판이 끝나면 금화를 받아요 (죽어도 받음) · 언제든 공짜 환불`;
-        html += `<div class="meta-actions"><button class="meta-btn" data-act="refund">전부 환불 (금화 돌려받기)</button></div>`;
+        metaNote.textContent = `보유 금화 ${meta.gold}`;
+        html += `<div class="meta-actions"><button class="meta-btn" data-act="refund">전부 환불</button></div>`;
         for (const s of SHOP) {
           const lv = upLevel(s.key), cost = s.base * (lv + 1);
           if (shopLocked(s.key)) {   // 아직 안 열린 항목: 어떤 퀘스트를 끝내야 하는지만 보여 줌
@@ -4962,7 +4961,7 @@
         }
       } else if (panelKind === "quests") {
         metaTitle.textContent = "퀘스트";
-        metaNote.textContent = "조건을 채우면 무기·캐릭터·상점 항목이 풀리거나 금화를 받아요. 죽은 판에서도 진행됩니다";
+        metaNote.textContent = "";
         // 아직 못 끝낸 퀘스트를 위에 보여 줌 (끝낸 것은 아래로)
         for (const q of [...QUESTS].sort((a, b) => isQuestDone(a.id) - isQuestDone(b.id))) {
           const done = isQuestDone(q.id), v = Math.min(q.goal, Math.max(0, questValue(q, false)));
@@ -4972,7 +4971,7 @@
         }
       } else if (panelKind === "select") {
         metaTitle.textContent = "캐릭터·난이도";
-        metaNote.textContent = "고른 캐릭터·난이도는 '게임 시작'과 '다시 시작'에 그대로 쓰여요";
+        metaNote.textContent = "";
         html += `<p class="meta-head">캐릭터</p>`;
         for (const k in CHARACTERS) {
           const c = CHARACTERS[k], open = isCharUnlocked(k), sel = meta.char === k;
@@ -4998,7 +4997,7 @@
         html += row("", "", "누적", `처치 ${s.kills}마리 · 상자 ${s.chests}개 · 진화 ${s.evos}번`);
         html += row("", "", "최고 기록", `${formatTime(s.bestTime)} 버팀 · 레벨 ${s.bestLevel}`);
         if (!storageOk) html += row("locked", "", "저장 안 됨", "이 브라우저에서는 저장이 막혀 있어요 (사생활 보호 모드 등)");
-        html += `<div class="meta-actions"><button class="meta-btn buy" data-act="export">내보내기 (파일로 저장)</button><button class="meta-btn buy" data-act="import">불러오기</button><button class="meta-btn" data-act="wipe">기록 지우기</button></div>`;
+        html += `<div class="meta-actions"><button class="meta-btn buy" data-act="export">내보내기</button><button class="meta-btn buy" data-act="import">불러오기</button><button class="meta-btn" data-act="wipe">기록 지우기</button></div>`;
       }
       metaBody.innerHTML = html;
     }
