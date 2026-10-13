@@ -56,6 +56,10 @@ License: Creative Commons Zero (CC0)
   w_flames.png    = Kenney "1-Bit Pack" (CC0) colored-transparent_packed.png 열 28, 행 11 (불꽃. 주황으로 채우고 안쪽에 크림색 심, 외곽선 추가)
   w_rune.png      = 같은 1-Bit 시트 열 46, 행 6 (수정구. 하늘색으로 채우고 흰 심, 외곽선 추가)
   w_clock.png     = 같은 1-Bit 시트 열 43, 행 12 (둥근 시계. 하늘색으로 채우고 외곽선 추가)
+  w_icebeam.png   = Kenney "Pixel Shmup" (CC0) Tiles/tile_0001.png 왼쪽 탄환 + tile_0005.png 중앙 광원
+                    (빙결 광선 전용. 원본 1px 크기로 조합, 얼음색으로 바꾸고 #3F2631 외곽선 추가. 2026-10-13)
+  w_bloodsword.png = Kenney "Tiny Dungeon" (CC0) tile_0104 파생
+                    (피의 검 전용. sword.png의 실루엣·투명도·갈색 손잡이를 유지하고 칼날만 붉게 바꿈. 2026-10-13)
   w_pentagram.png = 같은 1-Bit 시트 열 29, 행 12 (별 문양. 금색으로 채우고 외곽선 추가)
   w_bone.png      = Kenney "Roguelike Caves & Dungeons" (CC0, https://kenney.nl/assets/roguelike-caves-dungeons) roguelikeDungeon_transparent.png 열 1, 행 2
                     (뼈. 크기·색은 그대로 두고 그림을 칸 가운데로 옮김. 2026-10-12)
