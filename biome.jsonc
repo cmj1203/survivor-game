@@ -1,0 +1,25 @@
+{
+  // 코드 검사 설정. 실행: bunx @biomejs/biome lint js style.css tests
+  "files": { "includes": ["js/**", "style.css", "tests/**"] },
+  "formatter": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        // js/ 파일들은 한 페이지에서 차례로 불러와 함수·변수를 같이 씀. 파일 하나만 보면 다른 파일에서 쓰는 것도 '안 쓰임'으로 나와서 끔
+        "noUnusedVariables": "off"
+      }
+    }
+  },
+  "css": {
+    "linter": { "enabled": true }
+  },
+  "overrides": [
+    {
+      // 규칙 순서를 바꾸면 겹치는 규칙의 우선순위가 바뀌어 화면이 달라질 수 있어서, 순서 경고는 끔
+      "includes": ["style.css"],
+      "linter": { "rules": { "style": { "noDescendingSpecificity": "off" } } }
+    }
+  ]
+}

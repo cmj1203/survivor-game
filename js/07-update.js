@@ -1,0 +1,535 @@
+// =====================================================================
+// 10. 한 프레임 동안 세상을 움직이기 (dt = 지난 프레임 이후 흐른 초)
+// =====================================================================
+function update(dt) {
+  stats.time += dt;
+  metaTick(dt);                          // 다회차: 1초마다 퀘스트 확인, 15초마다 이어 하기 저장
+
+  updatePlayer(dt);
+  updateSpawning(dt);
+  updateEvents(dt);
+  const frozen = updateFreezeTimer(dt);
+  updateEnemies(dt, frozen);
+
+  // --- 무기 발동 ---
+  updateWeapons(dt);
+
+  updateBullets(dt);
+  updateBulletHits();
+  updateZones(dt);
+  updateEffects(dt);
+  updatePlayerDamage(dt, frozen);
+  updatePickups(dt);
+
+  // 이번 프레임에 보스를 잡아 클리어됐으면 여기서 끝 (예전엔 아래 레벨업·상자가 클리어 창 위에 떠서, 카드를 고르면 클리어 창 뒤에서 게임이 계속 돌았음)
+  if (state !== "playing") return;
+
+  const openedChest = updateChests(dt);
+  if (checkGameOver()) return;
+
+  // --- 레벨업 확인 (한 프레임에 한 번만) ---
+  if (openedChest) return;             // 상자 창이 떠 있으면 레벨업은 창을 닫은 다음 프레임에
+  checkLevelUp();
+}
+
+// 플레이어 이동·식인꽃 밀어내기·카메라·무적 시간·회복
+function updatePlayer(dt) {
+  // --- 플레이어 이동 ---
+  let mx = 0, my = 0;
+  if (keys.w || keys.arrowup)    my -= 1;
+  if (keys.s || keys.arrowdown)  my += 1;
+  if (keys.a || keys.arrowleft)  mx -= 1;
+  if (keys.d || keys.arrowright) mx += 1;
+  const joy = joystickDir();                  // 휴대폰: 조이스틱 방향 (키보드보다 우선)
+  if (joy) { mx = joy.x; my = joy.y; }
+
+  if (mx !== 0) player.facingLeft = mx < 0;   // 마지막으로 움직인 좌우 방향을 바라봄
+  if (mx !== 0 || my !== 0) {
+    // 대각선일 때 속도가 빨라지지 않게 길이를 1로 맞춤
+    const len = Math.hypot(mx, my);
+    player.facingX = mx / len;                 // 바라보는 방향 기억
+    player.facingY = my / len;
+    // 난이도 테마: 외눈 거인의 자국을 밟고 있으면 느려짐 (맞아서 느려지는 건 없음 — 모든 난이도가 보통과 같음)
+    const speed = player.speed * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1);
+    player.x += (mx / len) * speed * dt;
+    player.y += (my / len) * speed * dt;
+  }
+  if (player.slowTimer > 0) player.slowTimer -= dt;
+  if (player.puddleTimer > 0) player.puddleTimer -= dt;
+  // 식인꽃은 벽: 겹치면 플레이어를 꽃 바깥으로 밀어냄 (뚫고 지나갈 수 없음) + 닿은 값으로 피해
+  for (const e of enemies) {
+    if (e.behavior !== "ring" || e.dead) continue;
+    const dx = player.x - e.x, dy = player.y - e.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const overlap = player.r + e.r - dist;
+    if (overlap <= 0) continue;
+    player.x += (dx / dist) * overlap;
+    player.y += (dy / dist) * overlap;
+    const harmless = e.wakeTimer > 0 || freezeTimer > 0 || e.frozenTimer > 0;
+    if (player.invincible <= 0 && !harmless) hurtPlayer(e.damage);
+  }
+  // 맵 밖(돌담)으로 못 나가게 가둠 + 카메라가 따라옴
+  player.x = Math.max(WALL_SIZE + player.r, Math.min(WORLD_W - WALL_SIZE - player.r, player.x));
+  player.y = Math.max(WALL_SIZE + player.r, Math.min(WORLD_H - WALL_SIZE - player.r, player.y));
+  // 퀘스트 '탐험가'용: 맵 구석(가로·세로 400 안)에 들어가면 그 구석을 가 본 것으로 기억
+  if (run && (player.x < 400 || player.x > WORLD_W - 400) && (player.y < 400 || player.y > WORLD_H - 400)) run.corners |= 1 << ((player.x < 400 ? 0 : 1) + (player.y < 400 ? 0 : 2));
+  updateCamera();
+
+  // 무적 시간 줄이기
+  if (player.invincible > 0) player.invincible -= dt;
+
+  // 회복(패시브): 1초마다 레벨 × 0.2 만큼 체력 회복
+  if (passiveLevel("regen") > 0 && player.hp < player.maxHp) {
+    player.hp = Math.min(player.maxHp, player.hp + P_REGEN * passiveLevel("regen") * dt);
+  }
+}
+
+// 일반 적 생성·몬스터 시간표 안내·엘리트 등장
+function updateSpawning(dt) {
+  // --- 적 생성 (시간이 갈수록 간격이 짧아짐) ---
+  spawnTimer -= dt;
+  if (spawnTimer <= 0) {
+    // 최소 간격에 도달한 뒤에는 한 번에 나오는 수가 계속 늘어남 (SPAWN_DOUBLE_TIME 마다 +1마리, 그 사이는 확률로)
+    const extra = Math.max(0, (refTime() - SPAWN_RAMP_TIME) / SPAWN_DOUBLE_TIME);
+    const burst = 1 + Math.floor(extra) + (Math.random() < extra % 1 ? 1 : 0);
+    for (let i = 0; i < burst; i++) if (enemies.length < MAX_ENEMIES) spawnEnemy();
+
+    // SPAWN_RAMP_TIME 초 동안 서서히 SPAWN_START → SPAWN_MIN 으로 줄어듦
+    const progress = Math.min(refTime() / SPAWN_RAMP_TIME, 1);
+    spawnTimer = (SPAWN_START - (SPAWN_START - SPAWN_MIN) * progress) / (1 + P_CURSE_SPAWN * curseLevel()) / DIFFICULTY;   // 해골: 더 자주
+  }
+
+  // --- 몬스터 시간표: 새 단계가 시작되는 순간, 새 몬스터가 서서히 늘어나기 시작 + 화면 위 안내 문구 ---
+  const stage = enemyStage();
+  if (stage !== player.enemyStage) {
+    player.enemyStage = stage;
+    player.stageChangedAt = stats.time;
+    if (SHOW_BANNER) {
+      const name = currentEnemyType().name;
+      banner = { text: stage >= ENEMY_TYPES.length ? `더 강해진 적: ${name}` : `새로운 적: ${name}`, life: BANNER_TIME };   // 한 바퀴 돈 뒤에는 같은 종류가 더 강해져서 다시 나옴
+    }
+  }
+
+  // --- 엘리트 등장 (1분마다). 보스가 나온 뒤에는 안 나옴 ---
+  eliteTimer -= dt;
+  if (eliteTimer <= 0) {
+    if (!boss) spawnElite();
+    eliteTimer = ELITE_INTERVAL * diffDef().elite;   // 난이도별 정예 간격
+  }
+}
+
+// 이벤트 시간표(몬스터 떼·꽃 울타리)와 마지막 보스 등장
+function updateEvents(dt) {
+  // --- 이벤트 시간표 (몬스터 떼·꽃 울타리): 시각이 되면 확률을 굴려 시작하고, repeat 번을 delay 간격으로 내보냄 ---
+  while (eventIndex < EVENT_SCHEDULE.length && stats.time >= eventTime(EVENT_SCHEDULE[eventIndex])) {
+    const ev = EVENT_SCHEDULE[eventIndex++];
+    if (stats.time - eventTime(ev) > 5) continue;                 // 이미 한참 지난 칸은 건너뜀
+    if (Math.random() < (ev.chance ?? 1)) eventQueue.push({ ev, left: ev.repeat || 1, timer: 0, angle: Math.random() * Math.PI * 2 });
+  }
+  for (const q of eventQueue) {
+    q.timer -= dt;
+    if (q.timer > 0) continue;
+    if (!boss) {
+      if (q.ev.kind === "flower") spawnFlowerRing();
+      else spawnSwarm(q.ev.type, (q.ev.delay || 0) < 3 ? q.angle + (Math.random() - 0.5) * 0.25 : Math.random() * Math.PI * 2, q.ev.count);
+    }
+    q.left -= 1;
+    q.timer = q.ev.delay || 0;
+  }
+  eventQueue = eventQueue.filter((q) => q.left > 0);
+
+  // --- 마지막 보스: BOSS_TIME(20분)에 등장 (문구 없이 조용히. 화면 위 보스 체력바로 알 수 있음) ---
+  if (!boss && stats.time >= BOSS_TIME) spawnBoss();
+}
+
+// 빙결 시간 줄이기. 이번 프레임이 빙결 중이었는지 돌려줌
+function updateFreezeTimer(dt) {
+  // --- 빙결 시간 줄이기 (눈꽃 아이템) ---
+  const frozen = freezeTimer > 0;
+  if (frozen) freezeTimer -= dt;
+  return frozen;
+}
+
+// 적 이동(행동 방식별)과 무기별 재타격 대기시간 줄이기
+function updateEnemies(dt, frozen) {
+  // --- 적 이동 (행동 방식별) + 무기별 재타격 대기시간 줄이기 ---
+  for (const e of enemies) {
+    const dx = player.x - e.x;
+    const dy = player.y - e.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const dirX = dx / len;    // 플레이어 쪽 방향 (길이 1)
+    const dirY = dy / len;
+
+    // 몬스터 떼: 수명이 다하면 사라짐 (구슬·처치 수 없음). 화면 안에서 사라질 때만 파편
+    if (e.life !== undefined) {
+      e.life -= dt;
+      if (e.life <= 0) { e.dead = true; if (inView(e.x, e.y)) spawnParticles(e.x, e.y, e.color, 4, 90); continue; }
+    }
+
+    if ((frozen || e.frozenTimer > 0) && !e.boss) {
+      // 빙결 중(눈꽃 아이템 전체 빙결, 또는 빙결 광선에 맞은 개별 빙결): 움직이지도, 쏘지도, 돌진하지도 않음
+      if (e.frozenTimer > 0) e.frozenTimer -= dt;
+    } else if (e.wakeTimer > 0) {
+      // 막 정체를 드러낸 미믹: 잠깐 제자리에 있음
+      e.wakeTimer -= dt;
+    } else if (e.behavior === "boss") {
+      updateBossEnemy(e, dirX, dirY, dt);
+    } else if (e.behavior === "charger") {
+      updateChargerEnemy(e, dirX, dirY, dt);
+    } else if (e.behavior === "swarm") {
+      // 박쥐 떼: 플레이어를 쫓지 않고 처음 정해진 방향으로 곧장 날아감
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+    } else if (e.behavior === "ring") {
+      // 식인꽃(울타리): 플레이어가 아니라 울타리 중심 쪽으로 천천히 조여 오다가, FLOWER_MIN_RADIUS 까지 오면 시들어 사라짐 (구슬·처치 수 없음)
+      const rx = e.ringX - e.x, ry = e.ringY - e.y;
+      const dist = Math.hypot(rx, ry);
+      if (dist > FLOWER_MIN_RADIUS) {
+        e.x += (rx / dist) * e.speed * dt;
+        e.y += (ry / dist) * e.speed * dt;
+      } else {
+        e.dead = true;
+        if (inView(e.x, e.y)) spawnParticles(e.x, e.y, e.color, 4, 90);
+      }
+    } else {
+      updateChaseEnemy(e, dirX, dirY, len, dt);
+    }
+
+    for (const k in e.cd) if (e.cd[k] > 0) e.cd[k] -= dt;
+    if (e.hitFlash > 0) e.hitFlash -= dt;
+  }
+}
+
+// 보스 한 마리: 쫓아오기·탄환(난이도마다 패턴이 다름)·부하 소환
+function updateBossEnemy(e, dirX, dirY, dt) {
+  // 사신 마법사: 플레이어를 계속 쫓아오며 탄환을 쏘고, 주기적으로 부하를 소환
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
+  const pattern = BOSS_PATTERNS[enemyTier()];
+  if (pattern) updateBossShots(e, Math.atan2(dirY, dirX), pattern, dt);   // 보통 난이도는 공격 없음
+  e.summonTimer -= dt;
+  if (e.summonTimer <= 0) {
+    for (let i = 0; i < BOSS_SUMMON_COUNT; i++) {
+      const a = (Math.PI * 2 * i) / BOSS_SUMMON_COUNT;
+      if (enemies.length < MAX_ENEMIES) pendingSpawns.push(makeEnemy(currentEnemyType(), e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70));
+    }
+    e.summonTimer = BOSS_SUMMON_INTERVAL;
+    spawnParticles(e.x, e.y, "#9b5de5", 16, 200);
+  }
+}
+
+// 보스 탄환 패턴. aim = 플레이어 쪽 각도
+//   fan: 플레이어 쪽 부채꼴 / ring: 사방 원형 / spiral: 빙글 도는 나선 줄기 + 가끔 부채꼴
+function updateBossShots(e, aim, pattern, dt) {
+  e.shootTimer -= dt;
+  switch (pattern) {
+    case "fan":
+      if (e.shootTimer <= 0) { bossFan(e, aim); e.shootTimer = BOSS_SHOT_INTERVAL; }
+      break;
+    case "ring":
+      if (e.shootTimer <= 0) {
+        const start = Math.random() * Math.PI * 2;      // 매번 틈의 자리가 달라지게
+        for (let i = 0; i < BOSS_RING_COUNT; i++) bossBullet(e, start + (Math.PI * 2 * i) / BOSS_RING_COUNT);
+        e.shootTimer = BOSS_RING_INTERVAL;
+      }
+      break;
+    case "spiral":
+      e.spiralTimer = (e.spiralTimer || 0) - dt;
+      if (e.spiralTimer <= 0) {
+        e.spiralAngle = (e.spiralAngle || 0) + BOSS_SPIRAL_TURN;
+        for (let k = 0; k < BOSS_SPIRAL_ARMS; k++) bossBullet(e, e.spiralAngle + (Math.PI * 2 * k) / BOSS_SPIRAL_ARMS);
+        e.spiralTimer = BOSS_SPIRAL_INTERVAL;
+      }
+      if (e.shootTimer <= 0) { bossFan(e, aim); e.shootTimer = BOSS_SPIRAL_FAN_INTERVAL; }
+      break;
+    default:
+      throw new Error(`알 수 없는 보스 패턴: ${pattern}`);
+  }
+}
+
+// 플레이어 쪽 부채꼴 (BOSS_SHOT_COUNT 발)
+function bossFan(e, aim) {
+  for (let i = 0; i < BOSS_SHOT_COUNT; i++) bossBullet(e, aim + (i - (BOSS_SHOT_COUNT - 1) / 2) * 0.22);
+}
+
+// 보스 탄환(빨간 회전 표창) 한 발을 a 방향으로
+function bossBullet(e, a) {
+  enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY), sprite: "boss_shuriken", spin: 12, size: 14 });
+}
+
+// 돌진하는 적 한 마리: 걷기 → 번쩍 → 돌진
+function updateChargerEnemy(e, dirX, dirY, dt) {
+  // 붉은 게(돌진): 걷기(walk) → 멈춰서 번쩍(windup) → 돌진(dash) 반복
+  e.modeTimer -= dt;
+  if (e.mode === "walk") {
+    e.x += dirX * e.speed * dt;
+    e.y += dirY * e.speed * dt;
+    if (e.modeTimer <= 0) {
+      e.mode = "windup";
+      e.modeTimer = CHARGER_WINDUP_TIME;
+      e.dashX = dirX;       // 이 순간의 방향으로 돌진 (그 사이 피하면 빗나감)
+      e.dashY = dirY;
+    }
+  } else if (e.mode === "windup") {
+    if (e.modeTimer <= 0) { e.mode = "dash"; e.modeTimer = CHARGER_DASH_TIME; }
+  } else {
+    e.x += e.dashX * CHARGER_DASH_SPEED * dt;
+    e.y += e.dashY * CHARGER_DASH_SPEED * dt;
+    if (e.modeTimer <= 0) { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+  }
+}
+
+// 기본 적 한 마리: 플레이어 쪽으로 곧장 (박쥐 돌격, 유령 순간이동 포함)
+function updateChaseEnemy(e, dirX, dirY, len, dt) {
+  // 기본(chase): 플레이어 쪽으로 곧장
+  //   난이도 테마 · 박쥐 '돌격': 가까이 오면 빨라짐
+  const speed = e.rush && len < BAT_RUSH_RANGE ? e.speed * BAT_RUSH_MUL[enemyTier()] : e.speed;
+  e.x += dirX * speed * dt;
+  e.y += dirY * speed * dt;
+  //   난이도 테마 · 유령 '순간이동': 몇 초마다 플레이어 쪽으로 훌쩍 다가옴 (화면 안에 있고 아직 멀 때만)
+  if (e.blinkTimer !== undefined) {
+    e.blinkTimer -= dt;
+    if (e.blinkTimer <= 0 && len > GHOST_BLINK_MIN && inView(e.x, e.y)) {
+      spawnParticles(e.x, e.y, themeColor(1), 6, 120);            // 떠난 자리
+      e.x += dirX * GHOST_BLINK_DIST;
+      e.y += dirY * GHOST_BLINK_DIST;
+      effects.push({ kind: "ring", x: e.x, y: e.y, r: e.r, color: themeColor(1), life: 0.3, maxLife: 0.3 });   // 나타난 자리
+      e.blinkTimer = GHOST_BLINK_INTERVAL[enemyTier()];
+    }
+  }
+}
+
+// 발사체 이동(중력·되돌아오기·튕김·수명)과 화면 밖 발사체 제거
+function updateBullets(dt) {
+  // --- 발사체 이동 (속성에 따라: 중력, 되돌아오기, 튕김, 수명) ---
+  for (const b of bullets) {
+    // 촛대(공격 범위): 날아가는 투사체도 그만큼 커짐. 맞는 범위(r)와 그림 크기(size)를 처음 한 번만 키움
+    if (!b.sized) { b.sized = true; const m = areaMul(); b.r *= m; if (b.sprite) b.size = (b.size || 16) * m; }
+    if (b.life !== undefined) { b.life -= dt; if (b.life <= 0) { if (b.onExpire) b.onExpire(b); b.dead = true; continue; } }
+    if (b.gravity) b.vy += b.gravity * dt;                           // 던지는 망치: 포물선
+    if (b.ax !== undefined) {                                        // 던지는 방패: 되돌아옴
+      b.vx += b.ax * dt;
+      b.vy += b.ay * dt;
+      // 방향이 뒤집히는 순간, 돌아오는 길에 다시 때릴 수 있게 맞은 목록을 비움
+      if (!b.turned && b.vx * b.startDirX + b.vy * b.startDirY < 0) { b.turned = true; b.hitIds.clear(); }
+    }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    // 화면 가장자리에서 튕김 (마법 구슬, 튕기는 칼). 튕기면 맞은 목록을 비워서 같은 적을 다시 때릴 수 있음
+    if (b.bounces > 0) {
+      let bounced = false;
+      if (b.x < cam.x + b.r && b.vx < 0) { b.x = cam.x + b.r; b.vx = -b.vx; bounced = true; }
+      if (b.x > cam.x + VW - b.r && b.vx > 0) { b.x = cam.x + VW - b.r; b.vx = -b.vx; bounced = true; }
+      if (b.y < cam.y + b.r && b.vy < 0) { b.y = cam.y + b.r; b.vy = -b.vy; bounced = true; }
+      if (b.y > cam.y + VH - b.r && b.vy > 0) { b.y = cam.y + VH - b.r; b.vy = -b.vy; bounced = true; }
+      if (bounced) { b.bounces -= 1; if (b.hitIds) b.hitIds.clear(); if (b.onBounce) b.onBounce(b); }
+    }
+
+    // 화염병: 목표 지점에 도착하면 바닥에 불바다
+    if (b.kind === "bomb") {
+      const remain = Math.hypot(b.targetX - b.x, b.targetY - b.y);
+      if (remain < 8) {
+        zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow });
+        effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40" });
+        b.dead = true;
+      }
+    }
+  }
+  // 화면 밖으로 나간 발사체 제거 (여유는 발사체마다 다를 수 있음: 망치는 위로 높이 올라감)
+  bullets = bullets.filter((b) => !b.dead && inView(b.x, b.y, b.margin || 40));
+}
+
+// 발사체가 적에 닿으면 피해 (관통·폭발 처리)
+function updateBulletHits() {
+  // --- 충돌: 발사체 ↔ 적 ---
+  for (const b of bullets) {
+    if (b.noHit) continue;                       // 화염병은 닿아도 안 터지고 목표까지 감
+    for (const e of enemies) {
+      if (e.dead || !circlesTouch(b, e)) continue;
+      if (b.hitIds) {
+        if (b.hitIds.has(e.id)) continue;        // 관통 중 같은 적은 한 번만
+        b.hitIds.add(e.id);
+      }
+      if (b.onHit) { b.onHit(b); break; }        // 닿으면 터지는 것 (폭탄)
+      damageEnemy(e, b.damage);
+      if (b.pierce > 0) {
+        b.pierce -= 1;                           // 관통: 계속 날아감
+      } else {
+        b.dead = true;                           // 단검·마법탄: 적 하나 맞고 사라짐
+        break;
+      }
+    }
+  }
+  bullets = bullets.filter((b) => !b.dead);
+}
+
+// 불바다 피해, 죽은 적 정리, 새로 생긴 적 합치기
+function updateZones(dt) {
+  // --- 바닥 지역(불바다): 안에 있는 적에게 주기적으로 피해 ---
+  for (const z of zones) {
+    z.life -= dt;
+    z.tick -= dt;
+    if (z.follow) {                                 // 진화한 불바다: 플레이어 쪽으로 천천히 따라옴
+      const dx = player.x - z.x, dy = player.y - z.y, len = Math.hypot(dx, dy) || 1;
+      if (len > 30) { z.x += (dx / len) * 60 * dt; z.y += (dy / len) * 60 * dt; }
+    }
+    if (z.tick <= 0) {
+      z.tick = z.interval;
+      for (const e of enemies) {
+        if (!e.dead && Math.hypot(e.x - z.x, e.y - z.y) < z.r + e.r) damageEnemy(e, z.damage);
+      }
+    }
+  }
+  zones = zones.filter((z) => z.life > 0);
+
+  enemies = enemies.filter((e) => !e.dead);
+  enemies = enemies.filter((e) => !e.dead);
+  if (pendingSpawns.length > 0) {          // 거미에서 갈라져 나온 새끼 합치기
+    enemies = enemies.concat(pendingSpawns);
+    pendingSpawns = [];
+  }
+}
+
+// 폭발·고리 연출과 파편 움직이기
+function updateEffects(dt) {
+  // --- 폭발·고리 연출 시간 줄이기 ---
+  for (const f of effects) f.life -= dt;
+  effects = effects.filter((f) => f.life > 0);
+
+  // --- 파편 이동: 날아가면서 점점 느려지고 사라짐 ---
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.92;
+    p.vy *= 0.92;
+    p.life -= dt;
+  }
+  particles = particles.filter((p) => p.life > 0);
+}
+
+// 플레이어가 받는 것: 적과 부딪힘, 끈적한 자국, 적 탄환
+function updatePlayerDamage(dt, frozen) {
+  // --- 충돌: 적 ↔ 플레이어 ---
+  if (player.invincible <= 0) {
+    for (const e of enemies) {
+      if ((frozen || e.frozenTimer > 0) && !e.boss) continue; // 빙결 광선으로 얼린 적도 닿아도 안전 (보스는 안 얼음)
+      if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
+      if (circlesTouch(e, player)) {
+        hurtPlayer(e.damage);
+        break;               // 한 프레임에 한 번만 맞음
+      }
+    }
+  }
+
+  // --- 난이도 테마 · 끈적한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟고 있으면 느려짐 (피해는 없음) ---
+  for (const h of hazards) {
+    h.life -= dt;
+    if (h.arm > 0) { h.arm -= dt; continue; }
+    if (circlesTouch(h, player)) {
+      player.puddleTimer = 0.25;                                  // 밟는 동안 계속 느림, 벗어나면 0.25초 뒤 풀림
+      player.slowTimer = Math.max(player.slowTimer || 0, 0.25);   // 발밑 고리 표시용
+      if (!h.stepped) { h.stepped = true; if (run) run.puddles += 1; }   // 퀘스트 '끈적끈적'용: 자국 하나당 한 번만 셈
+    }
+  }
+  hazards = hazards.filter((h) => h.life > 0);
+
+  // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
+  for (const b of enemyBullets) {
+    // 탄환은 보스만 쏘고, 보스는 빙결에 안 얼므로 빙결 중에도 탄환은 그대로 날아감 (예전엔 공중에서 멈춰서 보스 공격이 끊겼음)
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (circlesTouch(b, player)) {
+      b.dead = true;
+      if (player.invincible <= 0) hurtPlayer(b.damage);
+    }
+  }
+  enemyBullets = enemyBullets.filter((b) => !b.dead && inView(b.x, b.y, 40));
+}
+
+// 안내 문구·구슬 줍기·떠오르는 글씨·바닥 아이템
+function updatePickups(dt) {
+  // --- 안내 문구 시간 줄이기 ---
+  if (banner) {
+    banner.life -= dt;
+    if (banner.life <= 0) banner = null;
+  }
+
+  // --- 구슬 끌어당기기 + 줍기 ---
+  const pickupArea = { x: player.x, y: player.y, r: player.pickupRadius };
+  for (const g of gems) {
+    // 매 프레임 "지금 범위 안인지"를 새로 판정 (상자의 자석 보상을 받은 구슬은 거리와 상관없이 끌려옴)
+    if (g.magnet || circlesTouch(pickupArea, g)) {
+      // 범위 안: 플레이어 쪽으로 이동, 점점 빨라짐 (막 들어왔으면 시작 속도부터)
+      g.speed = (g.speed || GEM_PULL_SPEED) + GEM_PULL_ACCEL * dt;
+      const dx = player.x - g.x;
+      const dy = player.y - g.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const move = Math.min(g.speed * dt, len);   // 플레이어를 지나쳐 가지 않게
+      g.x += (dx / len) * move;
+      g.y += (dy / len) * move;
+    } else {
+      g.speed = 0;   // 범위 밖: 그 자리에 멈춤 (다시 들어오면 처음 속도부터)
+    }
+
+    // 플레이어 몸에 닿으면 획득
+    if (circlesTouch(player, g)) {
+      g.dead = true;
+      player.xp += g.value * xpMul();
+      playSfx("gem");   // 왕관(패시브): 경험치 배수
+    }
+  }
+  gems = gems.filter((g) => !g.dead);
+
+  // --- 떠오르는 글씨: 위로 올라가며 사라짐 ---
+  for (const f of floatTexts) { f.y -= 30 * dt; f.life -= dt; }
+  floatTexts = floatTexts.filter((f) => f.life > 0);
+
+  // --- 바닥 아이템: 시간이 지나면 사라지고, 몸이 닿으면 바로 발동 ---
+  for (const it of items) {
+    it.life -= dt;
+    if (it.life <= 0) { it.dead = true; continue; }
+    if (circlesTouch(player, it)) useItem(it);
+  }
+  items = items.filter((it) => !it.dead);
+}
+
+// 보물 상자 확인. 이번 프레임에 상자를 열었는지 돌려줌
+function updateChests(dt) {
+  // --- 보물 상자: 시간이 지나면 사라지고, 몸이 닿으면 열림 ---
+  let openedChest = false;
+  for (const c of chests) {
+    c.life -= dt;
+    if (c.life <= 0) { c.dead = true; continue; }
+    if (!c.dead && circlesTouch(player, c)) {
+      if (c.mimic) { wakeMimic(c); continue; }
+      openChest(c);
+      openedChest = true;              // 상자 창이 떴으니 이번 프레임은 여기까지
+      break;
+    }
+  }
+  chests = chests.filter((c) => !c.dead);
+  return openedChest;
+}
+
+// 게임오버 확인. 게임이 끝났으면 true 를 돌려줌
+function checkGameOver() {
+  // --- 게임오버 확인 (부활 패시브가 남아 있으면 대신 부활) ---
+  if (player.hp <= 0) {
+    if (player.revivesUsed < passiveLevel("revival") + upLevel("revival")) {   // 부활(게임 중) + 상점 '부활'
+      revivePlayer();
+    } else {
+      player.hp = 0;
+      gameOver();
+      return true;
+    }
+  }
+  return false;
+}
+
+// 경험치가 다 찼으면 레벨업
+function checkLevelUp() {
+  if (player.xp >= player.xpNeed) {
+    levelUp();
+  }
+}
