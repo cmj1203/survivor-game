@@ -24,8 +24,8 @@ function update(dt) {
   // 이번 프레임에 보스를 잡아 클리어됐으면 여기서 끝 (예전엔 아래 레벨업·상자가 클리어 창 위에 떠서, 카드를 고르면 클리어 창 뒤에서 게임이 계속 돌았음)
   if (state !== "playing") return;
 
+  if (checkGameOver()) return;          // 상자보다 먼저: 같은 프레임에 죽으면서 상자에 닿아도 상자 창이 게임오버 창을 덮지 않게
   const openedChest = updateChests(dt);
-  if (checkGameOver()) return;
 
   // --- 레벨업 확인 (한 프레임에 한 번만) ---
   if (openedChest) return;             // 상자 창이 떠 있으면 레벨업은 창을 닫은 다음 프레임에
@@ -327,9 +327,11 @@ function updateBullets(dt) {
     }
 
     // 화염병: 목표 지점에 도착하면 바닥에 불바다
+    //   느린 휴대폰에서는 한 프레임에 많이 움직여 8px 안에 안 들어오고 지나칠 수 있어서, 목표를 지나쳤어도 도착으로 침
     if (b.kind === "bomb") {
-      const remain = Math.hypot(b.targetX - b.x, b.targetY - b.y);
-      if (remain < 8) {
+      const rx = b.targetX - b.x, ry = b.targetY - b.y;
+      if (Math.hypot(rx, ry) < 8 || rx * b.vx + ry * b.vy <= 0) {
+        b.x = b.targetX; b.y = b.targetY;
         zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow });
         effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40", fx: "fx_fireball" });
         b.dead = true;

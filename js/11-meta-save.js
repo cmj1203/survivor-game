@@ -363,7 +363,7 @@ function saveRun() {
   try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch {}
 }
 function loadRun() {
-  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player ? s : null; }
+  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player && s.stats ? s : null; }   // 시간 정보가 없는 망가진 저장은 없는 것으로 (시작 버튼이 멈추지 않게)
   catch { return null; }
 }
 function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch {} }

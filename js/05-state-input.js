@@ -110,7 +110,7 @@ function resetGame() {
 // =====================================================================
 // WASD 는 "입력된 글자"가 아니라 "키보드에서의 위치"(e.code)로 알아냄
 //   → 한글 입력 상태(W 를 누르면 'ㅈ' 이 들어옴)나 Caps Lock 이 켜져 있어도 똑같이 동작
-const KEY_POSITIONS = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d", KeyH: "h", KeyM: "m" };
+const KEY_POSITIONS = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d", KeyH: "h", KeyM: "m", KeyP: "p" };
 
 function keyName(e) {
   return KEY_POSITIONS[e.code] || (e.key || "").toLowerCase();

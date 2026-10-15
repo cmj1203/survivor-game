@@ -481,8 +481,9 @@ function useItem(item) {
     // 화면의 모든 구슬이 거리와 상관없이 끌려옴
     for (const g of gems) { g.magnet = true; g.speed = Math.max(g.speed || 0, 400); }
   } else if (type.key === "wipe") {
-    // 화면의 적 전멸. 엘리트는 죽지 않고 최대 체력의 일부만 깎임
+    // 화면의 적 전멸 (화면 밖 적은 그대로). 엘리트는 죽지 않고 최대 체력의 일부만 깎임
     for (const e of enemies) {
+      if (e.dead || !inView(e.x, e.y, e.r)) continue;
       damageEnemy(e, e.boss ? Math.ceil(e.maxHp * 0.1) : e.elite ? Math.ceil(e.maxHp * CROSS_ELITE_DAMAGE) : e.hp);
     }
     enemyBullets = [];
