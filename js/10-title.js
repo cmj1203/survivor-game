@@ -92,6 +92,7 @@ function showTitle() {
   pauseBtn.style.display = "none";
   hudStats.style.display = "none";
   soundBtn.style.left = "16px";
+  refreshSpeedBtn(false);                  // 시작 화면에서는 배속 버튼 숨김
   setMusic("title");
   setBackgroundTheme((DIFFS[meta.diff] || DIFFS[0]).theme);   // 시작 화면 배경 = 고른 난이도의 장소
   refreshTitleMenu();

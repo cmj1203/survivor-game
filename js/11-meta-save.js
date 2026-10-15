@@ -54,13 +54,18 @@ const SHOP = [
   // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
   { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
     note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${Math.round(lv * SHOP_CURSE_GOLD * 100)}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
+  // 1.5배속: '매우 어려움'을 클리어하면 상점에 열리고, 사면 게임 화면 왼쪽 위(소리 단추 옆)에 켜고 끄는 단추가 생김
+  //   능력치 강화가 아니라서(utility) '맨몸' 퀘스트 셈에서 뺌. key 가 예전 무료 '2배속'(speed)과 달라서 예전 저장의 그것은 이어지지 않음
+  { key: "speed15", name: "1.5배속",   icon: "speed_off",       max: 1, base: 500, utility: true,
+    note: (lv) => (lv ? "게임 화면 왼쪽 위 단추로 켜고 끔 · 게임 진행 속도 1.5배" : "게임 진행 속도 1.5배 · 사면 게임 화면 왼쪽 위에 단추가 생김") },
 ];
 // 1.5배속: 게임 전체(이동·공격·적·게임 시계)가 1.5배로 빨리 감 → 클리어까지 걸리는 실제 시간이 2/3.
-//   '매우 어려움'을 한 번 클리어하면 열리고, 일시정지 창에서 켜고 끔 (meta.fast 에 저장)
+//   상점에서 산 뒤, 게임 화면 왼쪽 위 단추로 켜고 끔 (meta.fast 에 저장)
 const GAME_SPEED_FAST = 1.5;             // 배속을 켰을 때 한 프레임에 게임을 몇 배 진행할지
-const SPEED_UNLOCK_DIFF = 2;             // 이 난이도(2 = 매우 어려움) 이상을 클리어하면 1.5배속이 열림
+const SPEED_UNLOCK_DIFF = 2;             // 이 난이도(2 = 매우 어려움) 이상을 클리어하면 상점에 1.5배속이 열림
 function isSpeedUnlocked() { return meta.stats.maxClearDiff >= SPEED_UNLOCK_DIFF; }
-function gameSpeed() { return isSpeedUnlocked() && meta.fast ? GAME_SPEED_FAST : 1; }
+function hasFast() { return upLevel("speed15") > 0; }   // 상점에서 1.5배속을 샀는지
+function gameSpeed() { return hasFast() && meta.fast ? GAME_SPEED_FAST : 1; }
 
 // --- 퀘스트: 배우는 것(진화·상자)과 쌓이는 것(누적 처치)을 섞음. 값이 goal 이상이 되면 끝 ---
 //   보상: weapon(무기 해금) / char(캐릭터 해금) / gold(금화)
@@ -135,7 +140,10 @@ for (const q of QUESTS) if (q.passive) PASSIVE_LOCKS[q.passive] = q.id;
 const SHOP_LOCKS = {};
 for (const q of QUESTS) if (q.shop) SHOP_LOCKS[q.shop] = q.id;
 // 이미 사 둔 사람은 그대로 쓸 수 있게, 한 단계라도 갖고 있으면 잠그지 않음
-function shopLocked(key) { return !!SHOP_LOCKS[key] && !isQuestDone(SHOP_LOCKS[key]) && upLevel(key) === 0; }
+function shopLocked(key) {
+  if (key === "speed15") return !isSpeedUnlocked() && upLevel(key) === 0;   // 1.5배속은 퀘스트가 아니라 '매우 어려움' 클리어로 열림
+  return !!SHOP_LOCKS[key] && !isQuestDone(SHOP_LOCKS[key]) && upLevel(key) === 0;
+}
 
 // --- 저장 / 불러오기 ---
 function defaultMeta() {
@@ -208,7 +216,7 @@ function startRun() {
   run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, items: 0, shells: 0, puddles: 0, corners: 0, newQuests: [], tick: 0, saveTimer: 0, done: false,
           // 어려운 퀘스트용: 맞은 횟수, 안 맞고 버틴 시간(지금/최고), 체력 낮은 채 버틴 시간(지금/최고), 무기 1개로 버틴 시간, 잡은 정예 수, 진화한 종류, 보스가 나온 시각
           hits: 0, noHit: 0, bestNoHit: 0, lowHp: 0, bestLowHp: 0, solo: 0, soloBroken: false, elites: 0, evoMask: 0, bossAt: null,
-          naked: SHOP.every((it) => it.free || upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지 (저주처럼 스스로 불리해지는 것은 셈에서 뺌)
+          naked: SHOP.every((it) => it.free || it.utility || upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지 (저주처럼 스스로 불리해지는 것은 셈에서 뺌)
   setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
   if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
   player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
@@ -331,7 +339,7 @@ function finishRun(cleared) {
   let html = `+${gold} 금화 (보유 ${meta.gold})`;
   for (const id of run.newQuests) { const q = QUESTS.find((it) => it.id === id); html += `<br><span>퀘스트 '${q.name}' 완료 → ${rewardText(q)}</span>`; }
   if (s.maxClearDiff > prevMaxDiff && s.maxClearDiff + 1 < DIFFS.length) html += `<br><span>새 난이도 '${DIFFS[s.maxClearDiff + 1].name}' 열림</span>`;
-  if (prevMaxDiff < SPEED_UNLOCK_DIFF && isSpeedUnlocked()) html += `<br><span>1.5배속 열림 (일시정지 창에서 켜기)</span>`;
+  if (prevMaxDiff < SPEED_UNLOCK_DIFF && isSpeedUnlocked()) html += `<br><span>상점에 '1.5배속' 열림</span>`;
   if (!storageOk) html += `<br>※ 이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
   return html;
 }
@@ -409,20 +417,20 @@ function pauseGame(msg) {
   playSfx("pause_in");
   endJoystick();
   pauseText.textContent = `${msg} · ${formatTime(stats.time)} 버팀`;
-  updatePauseSpeed();
   pauseBox.style.display = "flex";
   saveRun();
 }
-// 일시정지 창의 1.5배속 단추: 열렸을 때만 보이고, 누를 때마다 켜고 끔
-function updatePauseSpeed() {
-  pauseSpeed.style.display = isSpeedUnlocked() ? "" : "none";
-  pauseSpeed.textContent = meta.fast ? "1.5배속 끄기" : "1.5배속 켜기";
+// 1.5배속 단추 (게임 화면 왼쪽 위, 소리 단추 옆): 상점에서 산 사람에게만 보이고, 누를 때마다 켜고 끔. 켜져 있으면 주황 그림
+function refreshSpeedBtn(inGame) {
+  speedBtn.style.display = inGame && hasFast() ? "block" : "none";
+  speedBtn.querySelector("img").src = meta.fast ? "assets/speed_on.png" : "assets/speed_off.png";
+  speedBtn.title = meta.fast ? "1.5배속 끄기" : "1.5배속 켜기";
 }
-function togglePauseSpeed() {
-  if (state !== "paused" || !isSpeedUnlocked()) return;
+function toggleFast() {
+  if (!hasFast()) return;
   meta.fast = !meta.fast;
   saveMeta();
-  updatePauseSpeed();
+  refreshSpeedBtn(true);
 }
 function resumeFromPause() {
   if (state !== "paused") return;
@@ -453,7 +461,7 @@ const hudStats = document.getElementById("hudStats");
 const hudTime = document.getElementById("hudTime");
 const hudKills = document.getElementById("hudKills");
 const pauseText = document.getElementById("pauseText");
-const pauseSpeed = document.getElementById("pauseSpeed");
+const speedBtn = document.getElementById("speedBtn");
 const runReward = document.getElementById("runReward");
 const clearReward = document.getElementById("clearReward");
 const continueBtn = document.getElementById("continueBtn");
@@ -495,7 +503,8 @@ function renderPanel() {
       const lv = upLevel(s.key), cost = s.base * (lv + 1);
       if (shopLocked(s.key)) {   // 아직 안 열린 항목: 어떤 퀘스트를 끝내야 하는지만 보여 줌
         const q = QUESTS.find((it) => it.id === SHOP_LOCKS[s.key]);
-        html += row("locked", `assets/${s.icon}.png`, `${s.name} (잠김)`, `퀘스트 '${q.name}' 달성 시 열림 · ${q.desc}`, `<button class="meta-btn" disabled>잠김</button>`);
+        const why = q ? `퀘스트 '${q.name}' 달성 시 열림 · ${q.desc}` : `'${DIFFS[SPEED_UNLOCK_DIFF].name}' 클리어 시 열림`;   // 퀘스트가 없는 잠금 = 1.5배속
+        html += row("locked", `assets/${s.icon}.png`, `${s.name} (잠김)`, why, `<button class="meta-btn" disabled>잠김</button>`);
         continue;
       }
       const pips = "●".repeat(lv) + "○".repeat(s.max - lv);
@@ -603,5 +612,5 @@ document.getElementById("metaClose").addEventListener("click", closeIntro);
 continueBtn.addEventListener("click", continueRun);
 pauseBtn.addEventListener("click", () => pauseGame("일시정지"));
 document.getElementById("pauseResume").addEventListener("click", resumeFromPause);
-pauseSpeed.addEventListener("click", togglePauseSpeed);
+speedBtn.addEventListener("click", toggleFast);
 for (const b of document.querySelectorAll(".to-title")) b.addEventListener("click", toTitle);
