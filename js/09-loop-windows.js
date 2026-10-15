@@ -10,9 +10,9 @@ function gameLoop(now) {
   lastTime = now;
   if (dt > 0.1) dt = 0.1;   // 탭 전환 등으로 시간이 크게 뛰면 최대 0.1초로 제한
 
-  // 상점 '2배속': 한 프레임에 update 를 여러 번 (dt 를 두 배로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 나눠 돌림).
-  //   중간에 레벨업·상자 창이 뜨면 거기서 멈춤
-  for (let i = 0; i < gameSpeed() && state === "playing"; i++) update(dt);
+  // '1.5배속'(매우 어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
+  //   dt 를 통째로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 한 번에 dt 보다 크게는 안 돌림. 중간에 레벨업·상자 창이 뜨면 거기서 멈춤
+  for (let left = gameSpeed(); left > 0 && state === "playing"; left -= 1) update(dt * Math.min(1, left));
   draw();
 
   loopId = requestAnimationFrame(gameLoop);   // 다음 프레임 예약

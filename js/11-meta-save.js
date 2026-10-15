@@ -54,12 +54,13 @@ const SHOP = [
   // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
   { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
     note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${Math.round(lv * SHOP_CURSE_GOLD * 100)}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
-  // 2배속: 게임 전체(이동·공격·적·게임 시계)가 2배로 빨리 감 → 클리어까지 걸리는 실제 시간이 절반. 값이 없고(free) 켜고 끌 수 있음
-  { key: "speed",   name: "2배속",     icon: "shop_speed",      max: 1, base: 0, free: true,
-    note: (lv) => (lv ? "켜짐 · 게임 진행 속도 2배" : "꺼짐 · 켜면 게임 진행 속도 2배") },
 ];
-const GAME_SPEED_FAST = 2;               // 상점 '2배속'을 켰을 때 한 프레임에 게임을 몇 번 진행할지
-function gameSpeed() { return upLevel("speed") > 0 ? GAME_SPEED_FAST : 1; }
+// 1.5배속: 게임 전체(이동·공격·적·게임 시계)가 1.5배로 빨리 감 → 클리어까지 걸리는 실제 시간이 2/3.
+//   '매우 어려움'을 한 번 클리어하면 열리고, 일시정지 창에서 켜고 끔 (meta.fast 에 저장)
+const GAME_SPEED_FAST = 1.5;             // 배속을 켰을 때 한 프레임에 게임을 몇 배 진행할지
+const SPEED_UNLOCK_DIFF = 2;             // 이 난이도(2 = 매우 어려움) 이상을 클리어하면 1.5배속이 열림
+function isSpeedUnlocked() { return meta.stats.maxClearDiff >= SPEED_UNLOCK_DIFF; }
+function gameSpeed() { return isSpeedUnlocked() && meta.fast ? GAME_SPEED_FAST : 1; }
 
 // --- 퀘스트: 배우는 것(진화·상자)과 쌓이는 것(누적 처치)을 섞음. 값이 goal 이상이 되면 끝 ---
 //   보상: weapon(무기 해금) / char(캐릭터 해금) / gold(금화)
@@ -138,7 +139,7 @@ function shopLocked(key) { return !!SHOP_LOCKS[key] && !isQuestDone(SHOP_LOCKS[k
 
 // --- 저장 / 불러오기 ---
 function defaultMeta() {
-  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], chars: [], char: "knight", diff: 0,   // chars = 금화로 산 캐릭터
+  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], chars: [], char: "knight", diff: 0, fast: false,   // chars = 금화로 산 캐릭터, fast = 1.5배속 켬
            stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1,
                     clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0, clear_armorer: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
                     time_d1: 0, time_d2: 0, time_d3: 0,                                         // time_d○ = 그 난이도에서 가장 오래 버틴 시간(초)
@@ -163,6 +164,7 @@ function normalizeMeta(m) {
   for (const k in d.stats) d.stats[k] = k === "maxClearDiff" ? Math.min(DIFFS.length - 1, num(st[k], -1)) : num(st[k]);
   if (CHARACTERS[m.char]) d.char = m.char;
   d.diff = Math.min(num(m.diff), DIFFS.length - 1);
+  d.fast = m.fast === true;
   return d;
 }
 let storageOk = true;
@@ -329,6 +331,7 @@ function finishRun(cleared) {
   let html = `+${gold} 금화 (보유 ${meta.gold})`;
   for (const id of run.newQuests) { const q = QUESTS.find((it) => it.id === id); html += `<br><span>퀘스트 '${q.name}' 완료 → ${rewardText(q)}</span>`; }
   if (s.maxClearDiff > prevMaxDiff && s.maxClearDiff + 1 < DIFFS.length) html += `<br><span>새 난이도 '${DIFFS[s.maxClearDiff + 1].name}' 열림</span>`;
+  if (prevMaxDiff < SPEED_UNLOCK_DIFF && isSpeedUnlocked()) html += `<br><span>1.5배속 열림 (일시정지 창에서 켜기)</span>`;
   if (!storageOk) html += `<br>※ 이 브라우저에서는 저장이 안 됩니다 (사생활 보호 모드 등)`;
   return html;
 }
@@ -387,8 +390,20 @@ function pauseGame(msg) {
   playSfx("pause_in");
   endJoystick();
   pauseText.textContent = `${msg} · ${formatTime(stats.time)} 버팀`;
+  updatePauseSpeed();
   pauseBox.style.display = "flex";
   saveRun();
+}
+// 일시정지 창의 1.5배속 단추: 열렸을 때만 보이고, 누를 때마다 켜고 끔
+function updatePauseSpeed() {
+  pauseSpeed.style.display = isSpeedUnlocked() ? "" : "none";
+  pauseSpeed.textContent = meta.fast ? "1.5배속 끄기" : "1.5배속 켜기";
+}
+function togglePauseSpeed() {
+  if (state !== "paused" || !isSpeedUnlocked()) return;
+  meta.fast = !meta.fast;
+  saveMeta();
+  updatePauseSpeed();
 }
 function resumeFromPause() {
   if (state !== "paused") return;
@@ -419,6 +434,7 @@ const hudStats = document.getElementById("hudStats");
 const hudTime = document.getElementById("hudTime");
 const hudKills = document.getElementById("hudKills");
 const pauseText = document.getElementById("pauseText");
+const pauseSpeed = document.getElementById("pauseSpeed");
 const runReward = document.getElementById("runReward");
 const clearReward = document.getElementById("clearReward");
 const continueBtn = document.getElementById("continueBtn");
@@ -568,4 +584,5 @@ document.getElementById("metaClose").addEventListener("click", closeIntro);
 continueBtn.addEventListener("click", continueRun);
 pauseBtn.addEventListener("click", () => pauseGame("일시정지"));
 document.getElementById("pauseResume").addEventListener("click", resumeFromPause);
+pauseSpeed.addEventListener("click", togglePauseSpeed);
 for (const b of document.querySelectorAll(".to-title")) b.addEventListener("click", toTitle);
