@@ -338,7 +338,8 @@ function finishRun(cleared) {
 
 // =====================================================================
 // 15-2. 하던 판 이어 하기: 멈춘 순간(카드 고른 직후·일시정지)·15초마다·앱을 내릴 때 저장
-//   돌아오면 일시정지 상태로 띄움 (바로 싸우지 않게). 몬스터는 새로 나오고, 20분이 지났으면 보스가 다시 나옴
+//   돌아오면 일시정지 상태로 띄움 (바로 싸우지 않게). 적·보스·적 탄환·구슬·상자·아이템·자국·진행 중인 이벤트도 그대로 되살림
+//   (내 무기 탄·불바다·연출은 저장 안 함: 무기가 곧 다시 쏘고, 몇 초면 사라지는 것들이라서)
 // =====================================================================
 function saveRun() {
   if (!run || run.done || (state !== "playing" && state !== "paused")) return;   // 카드·상자 창이 떠 있는 동안은 저장 안 함
@@ -350,6 +351,13 @@ function saveRun() {
               weapons: p.weapons.map((w) => ({ type: w.type, level: w.level })) },
     stats: { time: stats.time, kills: stats.kills },
     eventIndex, spawnTimer, eliteTimer,
+    world: {
+      enemies: enemies.concat(pendingSpawns), enemyBullets, chests, hazards,
+      gems: gems.map((g) => ({ ...g, x: Math.round(g.x), y: Math.round(g.y) })),   // 구슬은 수천 개라 좌표를 정수로 줄여 저장
+      items: items.map((it) => ({ ...it, type: it.type.key })),                     // 아이템 종류는 이름(key)으로
+      events: eventQueue.map((q) => ({ ...q, ev: EVENT_SCHEDULE.indexOf(q.ev) })),   // 시간표 칸은 번호로
+      freezeTimer, nextEnemyId,
+    },
     run: { ...run, tick: 0, saveTimer: 0, done: false },   // 퀘스트용 판 기록을 통째로 (이어 하기 때 그대로 되살림)
   };
   try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch {}
@@ -376,6 +384,17 @@ function continueRun() {
   stats = { time: snap.stats.time, kills: snap.stats.kills };
   eventIndex = snap.eventIndex | 0; spawnTimer = snap.spawnTimer || SPAWN_START; eliteTimer = snap.eliteTimer || ELITE_INTERVAL;
   Object.assign(run, snap.run || {});
+  const wd = snap.world;                // 예전 저장(world 없음)은 적 없이 시작
+  if (wd) {
+    const list = (a) => (Array.isArray(a) ? a : []);
+    enemies = list(wd.enemies);
+    boss = enemies.find((e) => e.boss) || null;
+    enemyBullets = list(wd.enemyBullets); chests = list(wd.chests); hazards = list(wd.hazards); gems = list(wd.gems);
+    items = list(wd.items).map((it) => ({ ...it, type: ITEM_TYPES.find((t) => t.key === it.type) })).filter((it) => it.type);
+    eventQueue = list(wd.events).map((q) => ({ ...q, ev: EVENT_SCHEDULE[q.ev] })).filter((q) => q.ev);
+    freezeTimer = wd.freezeTimer || 0;
+    nextEnemyId = Math.max(nextEnemyId, wd.nextEnemyId | 0);
+  }
   recalcStats();
   player.hp = Math.min(player.maxHp, Math.max(1, sp.hp));
   updateCamera();
