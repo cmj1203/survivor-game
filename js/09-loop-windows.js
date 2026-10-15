@@ -143,7 +143,7 @@ function maxedChestGold() { return MAXED_CHEST_GOLD[0] + Math.floor(Math.random(
 function maxedPicks(gold) {
   return [
     { title: "체력 전부 회복", desc: "더 강화할 것이 없습니다", iconUrl: "assets/potion_green.png", apply: () => { player.hp = player.maxHp; } },
-    { title: `금화 +${gold}`, desc: "판이 끝날 때 받는 금화에 더해집니다", iconUrl: "assets/coin.png",
+    { title: `금화 +${gold}`, gold, desc: "판이 끝날 때 받는 금화에 더해집니다", iconUrl: "assets/coin.png",
       apply: () => {
         run.bonusGold = (run.bonusGold || 0) + gold;
         floatTexts.push({ x: player.x, y: player.y - 34, text: `금화 +${gold}`, color: "#ffd60a", life: 1.2, maxLife: 1.2 });
@@ -387,3 +387,4 @@ function beginRun() {
 
 restartBtn.addEventListener("click", beginRun);
 chestOk.addEventListener("click", closeChest);
+chestStage.addEventListener("click", () => { if (chestRoll && chestOk.disabled) finishChestRoll(); });   // 연출 도중 상자 무대를 누르면 바로 끝까지

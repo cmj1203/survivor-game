@@ -274,7 +274,7 @@ function openChest(chest, forcedCount) {
   // 클로버(패시브): 3개·5개가 나올 비중이 행운만큼 커짐
   const counts = CHEST_COUNTS.map((c) => ({ count: c.count, weight: c.count > 1 ? c.weight * luckMul() : c.weight }));
   const count = forcedCount || pickWeighted(counts).count;
-  const names = buildUpgradePool(false).map((u) => u.title);   // 룰렛에 돌아갈 이름들
+  const icons = buildUpgradePool(false).map((u) => u.iconUrl);   // 구슬 슬롯에서 돌아갈 그림들
   const gains = [];
 
   // 진화: 최대 레벨 무기 + 짝 패시브가 있으면 상자 하나당 하나씩 진화 (원작과 같음)
@@ -293,62 +293,142 @@ function openChest(chest, forcedCount) {
   for (let i = gains.length; i < count; i++) {
     const pool = buildUpgradePool(false);        // 새 무기는 안 나옴. 가진 것만 강화
     if (pool.length === 0) break;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const pick = pool[Math.floor(Math.random() * pool.length)];   // 강화할 게 남아 있으면 금화는 안 나옴
     pick.apply();
     gains.push(pick);
   }
   if (gains.length === 0) {
-    // 강화할 것이 하나도 없으면 룰렛 대신 고르는 창: 체력 전부 회복, 또는 금화 (10~30 랜덤)
-    showCards("보물 상자", "더 강화할 것이 없어요. 하나를 고르세요", null, maxedPicks(maxedChestGold()));
-    return gains;
+    // 강화할 것이 하나도 없으면 금화만 (10~30 랜덤). 룰렛은 그대로 돌고 결과로 금화 한 줄이 나옴
+    const gold = maxedPicks(maxedChestGold())[1];
+    gold.apply();
+    gains.push(gold);
   }
 
-  startChestRoll(names, gains);
+  startChestRoll(icons, gains);
   return gains;
 }
 
-// 룰렛 연출: 이름이 빠르게 바뀌다가 멈추고, 결과가 하나씩 나타난 뒤 '받기' 버튼이 켜짐
-function startChestRoll(names, gains) {
+// 상자 창 연출 (뱀서식): 큰 상자가 흔들리다 열리면 빛기둥이 솟고 금화·반짝이가 튀고, 보상 구슬이 상자에서 날아올라
+//   슬롯처럼 그림이 돌다가 하나씩 멈춤. 아래 칸에는 고른 구슬의 이름·설명 (구슬을 누르면 바뀜). 다 멈추면 '받기' 버튼이 켜짐
+//   연출 도중에 상자 무대를 누르면 바로 끝까지 넘어감. 꾸미기에는 Math.random 을 안 씀 (자동 시험기의 고정 난수 순서가 안 바뀌게)
+const CHEST_STAGE_W = 340, CHEST_STAGE_H = 260;   // 상자 무대 크기 (style.css 의 #chestStage 와 같게)
+const CHEST_MOUTH_Y = 78;                          // 상자 입구 높이 (무대 위에서부터 %). 구슬·금화가 여기서 나옴
+const CHEST_ORB_SPOTS = [                          // 보상 개수별 구슬 자리 (무대 안 % 좌표). 원작처럼 1개 = 가운데, 3개 = V자, 5개 = X자
+  [],
+  [[50, 30]],
+  [[30, 30], [70, 30]],
+  [[22, 22], [50, 40], [78, 22]],
+  [[22, 18], [78, 18], [22, 48], [78, 48]],
+  [[18, 16], [82, 16], [50, 32], [22, 50], [78, 50]],
+];
+const CHEST_SHAKE_TIME = 0.6;   // 닫힌 상자가 흔들리는 시간 (초). 그 뒤 열리고 구슬 그림이 돌다가 CHEST_ROLL_TIME 에 첫 구슬이 멈춤
+const CHEST_STOP_GAP = 0.3;     // 구슬이 하나씩 멈추는 간격 (초)
+
+function startChestRoll(icons, gains) {
   cancelChestRoll();
-  chestSlot.textContent = "";
-  chestList.innerHTML = "";
+  const n = Math.min(5, gains.length);
+  if (icons.length === 0) icons = gains.map((g) => g.iconUrl);   // 더 강화할 게 없으면(전부 만렙) 실제로 받을 보상 그림을 돌림
+  chestRoll = { gains, icons, shown: 0, timers: [], orbs: [], opened: false, gold: gains.reduce((sum, g) => sum + (g.gold || 0), 0) };
+  chestOrbs.innerHTML = "";
+  chestCoins.innerHTML = "";
+  chestInfo.innerHTML = "";
+  chestGold.style.visibility = "hidden";                      // 금화 칸 자리는 늘 잡아 둠 (나타날 때 창이 늘어나 제목이 움직이지 않게)
+  chestImg.src = "assets/chest.png";
+  chestStage.className = `n${n} shaking`;                     // n1·n3·n5: 빛기둥 색 (1개 흰빛, 3개 하늘색, 5개 무지개)
   chestOk.disabled = true;
   chestBox.style.display = "flex";
 
-  chestRoll = { gains, shown: 0, timers: [] };
-  if (names.length === 0) names = gains.map((g) => g.title);   // 더 강화할 게 없으면(전부 만렙) 실제로 받을 보상 이름을 돌림 (예전엔 "?" 가 보였음)
-  if (names.length === 0) names = ["보물"];
-  const spin = setInterval(() => {
-    chestSlot.textContent = names[Math.floor(Math.random() * names.length)];
-  }, 70);
-  chestRoll.timers.push(spin);
-  chestRoll.timers.push(setTimeout(() => {
-    clearInterval(spin);
-    chestSlot.textContent = `강화 ${gains.length}개!`;
-    gains.forEach((g, i) => {
-      chestRoll.timers.push(setTimeout(() => showChestGain(g), 250 * i));
-    });
-    chestRoll.timers.push(setTimeout(() => { chestOk.disabled = false; }, 250 * gains.length));
-  }, CHEST_ROLL_TIME * 1000));
+  CHEST_ORB_SPOTS[n].forEach(([x, y], i) => {
+    const orb = document.createElement("button");
+    orb.type = "button";
+    orb.className = "chest-orb";
+    orb.style.left = `${x}%`;
+    orb.style.top = `${y}%`;
+    orb.style.setProperty("--fx", `${((50 - x) / 100) * CHEST_STAGE_W}px`);              // 상자 입구에서 날아오르게: 입구까지의 거리
+    orb.style.setProperty("--fy", `${((CHEST_MOUTH_Y - y) / 100) * CHEST_STAGE_H}px`);
+    orb.innerHTML = `<img alt="">`;
+    orb.addEventListener("click", () => { if (orb.classList.contains("landed")) showChestInfo(i); });
+    chestOrbs.appendChild(orb);
+    chestRoll.orbs.push(orb);
+  });
+
+  chestRoll.timers.push(setTimeout(openChestFx, CHEST_SHAKE_TIME * 1000));
+  for (let i = 0; i < n; i++) chestRoll.timers.push(setTimeout(() => landChestOrb(i), (CHEST_ROLL_TIME + CHEST_STOP_GAP * i) * 1000));
+  chestRoll.timers.push(setTimeout(() => { chestOk.disabled = false; }, (CHEST_ROLL_TIME + CHEST_STOP_GAP * (n - 1)) * 1000 + 200));
 }
 
-// 강화 결과 한 줄을 창에 추가
-function showChestGain(g) {
+// 상자가 열리는 순간: 열린 상자 그림 + 별 터짐·빛기둥, 금화(금화가 섞였으면)·반짝이가 튀고, 구슬이 날아올라 그림이 돌기 시작
+function openChestFx() {
+  if (!chestRoll || chestRoll.opened) return;
+  chestRoll.opened = true;
+  chestImg.src = "assets/chest_open.png";
+  chestStage.className = chestStage.className.replace("shaking", "open");
+  const coin = chestRoll.gold > 0;
+  for (let i = 0; i < 18; i++) {
+    const a = i * 2.39996;                             // 황금각으로 퍼뜨려서 고르게 (난수 대신)
+    const p = document.createElement("i");
+    p.className = coin ? "coin" : "spark";
+    p.style.setProperty("--dx", `${Math.cos(a) * (60 + (i % 5) * 22)}px`);
+    p.style.setProperty("--up", `${-90 - (i % 4) * 30}px`);
+    p.style.setProperty("--down", `${30 + (i % 3) * 25}px`);
+    p.style.animationDelay = `${(i % 6) * 0.04}s`;
+    chestCoins.appendChild(p);
+  }
+  for (const orb of chestRoll.orbs) orb.classList.add("out");
+  let k = 0;
+  const reel = setInterval(() => {                     // 슬롯처럼 그림 돌리기 (아직 안 멈춘 구슬만)
+    chestRoll.orbs.forEach((orb, i) => {
+      if (!orb.classList.contains("landed")) orb.firstChild.src = chestRoll.icons[(k + i * 3) % chestRoll.icons.length];
+    });
+    k += 1;
+  }, 70);
+  chestRoll.timers.push(reel);
+  if (coin) {                                           // 위쪽 금화 숫자가 0 에서 올라감
+    chestGold.style.visibility = "";
+    const total = chestRoll.gold, start = performance.now(), span = (CHEST_ROLL_TIME - CHEST_SHAKE_TIME + CHEST_STOP_GAP * chestRoll.orbs.length) * 1000;
+    const count = setInterval(() => {
+      const t = Math.min(1, (performance.now() - start) / span);
+      chestGoldNum.textContent = Math.round(total * t);
+      if (t >= 1) clearInterval(count);
+    }, 40);
+    chestRoll.timers.push(count);
+  }
+}
+
+// 구슬 하나가 멈춤: 실제 보상 그림으로 바뀌며 톡 튀고, 아래 칸에 그 보상 설명
+function landChestOrb(i) {
+  const orb = chestRoll.orbs[i], g = chestRoll.gains[i];
+  orb.firstChild.src = g.iconUrl;
+  orb.classList.add("landed");
+  if (g.evolved) orb.classList.add("evolved");
+  if (g.gold) orb.classList.add("gold");
+  chestRoll.shown = Math.max(chestRoll.shown, i + 1);
+  showChestInfo(i);
+}
+
+// 아래 칸: 고른 보상의 이름·설명 + 몇 번째인지 (예: 2/3)
+function showChestInfo(i) {
+  const g = chestRoll.gains[i];
+  chestRoll.orbs.forEach((orb, j) => { orb.classList.toggle("sel", j === i); });
   const row = document.createElement("div");
   row.className = `gain${g.evolved ? " evolved" : ""}`;
   row.innerHTML = `${g.title}<small>${g.desc}</small>`;
   setIcon(row, g.iconUrl);
-  chestList.appendChild(row);
-  if (chestRoll) chestRoll.shown += 1;
+  chestInfo.innerHTML = "";
+  chestInfo.appendChild(row);
+  if (chestRoll.orbs.length > 1) chestInfo.insertAdjacentHTML("beforeend", `<span class="pager">${i + 1}/${chestRoll.orbs.length}</span>`);
 }
 
-// 룰렛 연출을 건너뛰고 결과를 전부 보여줌 (자동 시험기 tests/autoplay.test.ts 에서 씀)
+// 연출을 건너뛰고 결과를 전부 보여줌 (상자 무대를 누를 때, 자동 시험기 tests/autoplay.test.ts)
 function finishChestRoll() {
   if (!chestRoll) return;
   for (const t of chestRoll.timers) { clearInterval(t); clearTimeout(t); }
   chestRoll.timers = [];
-  chestSlot.textContent = `강화 ${chestRoll.gains.length}개!`;
-  for (let i = chestRoll.shown; i < chestRoll.gains.length; i++) showChestGain(chestRoll.gains[i]);
+  openChestFx();
+  for (const t of chestRoll.timers) { clearInterval(t); clearTimeout(t); }   // 방금 연 것의 그림 돌리기·금화 세기도 멈춤
+  chestRoll.timers = [];
+  for (let i = chestRoll.shown; i < chestRoll.orbs.length; i++) landChestOrb(i);
+  if (chestRoll.gold > 0) chestGoldNum.textContent = chestRoll.gold;
   chestOk.disabled = false;
 }
 

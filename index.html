@@ -135,8 +135,14 @@
   <!-- 보물 상자 창 (엘리트를 잡고 상자를 열면 나타남. 룰렛이 돈 뒤 강화 결과를 보여줌) -->
   <div id="chestBox" class="popup">
     <h1>보물 상자!</h1>
-    <p id="chestSlot"></p>
-    <div id="chestList"></div>
+    <div id="chestGold"><img src="assets/coin.png" alt="금화"><span id="chestGoldNum">0</span></div>
+    <div id="chestStage">
+      <div id="chestBeam"></div>
+      <div id="chestFx"><i class="glow"></i><i class="burst"></i><img id="chestImg" src="assets/chest.png" alt=""></div>
+      <div id="chestCoins"></div>
+      <div id="chestOrbs"></div>
+    </div>
+    <div id="chestInfo"></div>
     <button type="button" id="chestOk" class="ok-button">받기</button>
   </div>
 
