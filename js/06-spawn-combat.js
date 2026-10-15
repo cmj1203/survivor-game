@@ -298,8 +298,8 @@ function openChest(chest, forcedCount) {
     gains.push(pick);
   }
   if (gains.length === 0) {
-    // 강화할 것이 하나도 없으면 룰렛 대신 고르는 창: 체력 전부 회복, 또는 금화 조금 (상자가 주려던 강화 개수만큼)
-    showCards("보물 상자", "더 강화할 것이 없어요. 하나를 고르세요", null, maxedPicks(count * MAXED_GOLD));
+    // 강화할 것이 하나도 없으면 룰렛 대신 고르는 창: 체력 전부 회복, 또는 금화 (10~30 랜덤)
+    showCards("보물 상자", "더 강화할 것이 없어요. 하나를 고르세요", null, maxedPicks(maxedChestGold()));
     return gains;
   }
 

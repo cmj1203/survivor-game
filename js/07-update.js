@@ -331,7 +331,7 @@ function updateBullets(dt) {
       const remain = Math.hypot(b.targetX - b.x, b.targetY - b.y);
       if (remain < 8) {
         zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow });
-        effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40" });
+        effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40", fx: "fx_fireball" });
         b.dead = true;
       }
     }

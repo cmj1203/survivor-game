@@ -49,8 +49,17 @@ function drawBackground() {
 // 바닥에 깔리는 위험한 자국과 불바다 그리기
 function drawFloorZones() {
   // 난이도 테마 · 위험한 자국 (외눈 거인이 죽은 자리): 테마 색 원. 준비 중엔 테두리만 깜빡이고, 그 뒤엔 속이 차서 일렁임
+  //   자리를 잡은 뒤에는 웅덩이 그림(Ian926 "Pixel Art Puddles", 회색으로 바꿔 둔 것)을 테마의 보색으로 칠해 깔음
   for (const h of hazards) {
     const fade = Math.min(1, h.life / 0.6);                       // 사라지기 직전엔 옅어짐
+    const puddle = h.arm > 0 ? null : puddleImage(1 + (Math.floor(Math.abs(h.x + h.y)) % 3));
+    if (puddle) {
+      const w = h.r * 2 * HAZARD_PUDDLE_WIDTH, ph = (w * puddle.height) / puddle.width;
+      ctx.globalAlpha = HAZARD_PUDDLE_ALPHA * fade;
+      ctx.drawImage(puddle, h.x - w / 2, h.y - ph / 2, w, ph);
+      ctx.globalAlpha = 1;
+      continue;
+    }
     ctx.lineWidth = 3;
     ctx.strokeStyle = themeColor(0.9 * fade);
     ctx.beginPath();
@@ -73,16 +82,43 @@ function drawFloorZones() {
       ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
       continue;
     }
-    const flicker = 0.85 + Math.sin(stats.time * 18 + z.x) * 0.08;
-    ctx.fillStyle = `rgba(255, 120, 30, ${0.30 * Math.min(1, t * 3)})`;
-    ctx.beginPath();
-    ctx.arc(z.x, z.y, z.r * flicker, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = `rgba(255, 200, 80, ${0.35 * Math.min(1, t * 3)})`;
-    ctx.beginPath();
-    ctx.arc(z.x, z.y, z.r * 0.55 * flicker, 0, Math.PI * 2);
-    ctx.fill();
+    // 불바다: 가장자리에 불꽃 고리(Fire Ring) + 안쪽에 바닥 불꽃(Burning Ground) 몇 개. 둘 다 계속 일렁임
+    ctx.globalAlpha = 0.9 * Math.min(1, t * 3);
+    const ring = z.r * FX_BURST_SIZE;
+    drawFxFrame("fx_firering", fxLoopFrame("fx_firering", z.x), z.x, z.y, ring, ring);
+    const flames = Math.max(2, Math.round(z.r / 25));
+    for (let k = 0; k < flames; k++) {
+      const a = (k / flames) * Math.PI * 2 + z.x, d = z.r * 0.4;
+      drawFxFrame("fx_burn", fxLoopFrame("fx_burn", z.y + k * 5), z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, z.r * 0.9, z.r * 0.9);
+    }
+    ctx.globalAlpha = 1;
   }
+}
+
+// 외눈 거인 자국 웅덩이: 회색 그림에 테마의 보색을 곱해 칠한 것 (테마·모양마다 한 번만 만들어 둠)
+const HAZARD_PUDDLE_WIDTH = 1.1;   // 웅덩이 그림 너비 = 자국 지름 × 이 값 (그림이 가로로 길쭉함)
+const HAZARD_PUDDLE_ALPHA = 0.5;   // 웅덩이 진하기 (바닥이 비쳐 보이게)
+// 웅덩이 색: 바닥에서 잘 보이게 테마 색의 보색을 진하게 (얼음 하늘색 → 빨강, 용암 주황 → 파랑, 어둠 보라 → 연두)
+const HAZARD_PUDDLE_COLORS = { ice: "230, 40, 40", lava: "30, 120, 255", dark: "110, 230, 30" };
+const puddleCache = {};
+function puddleImage(n) {
+  const sp = SPRITES[`hazard_puddle${n}`];
+  if (!sp.ready) return null;
+  const key = `${diffDef().theme}-${n}`;
+  if (!puddleCache[key]) {
+    const c = document.createElement("canvas");
+    c.width = sp.normal.width;
+    c.height = sp.normal.height;
+    const g = c.getContext("2d");
+    g.drawImage(sp.normal, 0, 0);
+    g.globalCompositeOperation = "multiply";
+    g.fillStyle = `rgb(${HAZARD_PUDDLE_COLORS[diffDef().theme] || "255, 255, 255"})`;
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = "destination-in";    // 칠한 색을 그림 모양으로 다시 잘라냄
+    g.drawImage(sp.normal, 0, 0);
+    puddleCache[key] = c;
+  }
+  return puddleCache[key];
 }
 
 // 바닥에 떨어진 것 그리기 (경험치 구슬, 아이템, 보물 상자)
@@ -142,7 +178,11 @@ function drawEffects() {
   // 연출: 폭발(주황 원이 점점 옅어짐) / 처치 고리(바깥으로 퍼지며 옅어짐)
   for (const f of effects) {
     const t = f.life / f.maxLife;          // 1 → 0 으로 줄어듦
-    if (f.kind === "chest") {
+    if (f.fx) {
+      // 그림으로 그리는 폭발·고리 (fx = 그림 이름). 고리는 예전처럼 r 보다 조금 크게 퍼진 크기로
+      const size = (f.kind === "ring" ? f.r + 22 : f.r) * FX_BURST_SIZE;
+      drawFxSprite(f.fx, f.x, f.y, size, size, t);
+    } else if (f.kind === "chest") {
       // 열린 상자가 잠깐 남았다가 옅어지며 사라짐
       ctx.globalAlpha = t;
       drawSprite("chest_open", f.x, f.y, CHEST_RADIUS * SPRITE_SCALE);
@@ -181,97 +221,75 @@ function drawEffects() {
 }
 
 // 장검 휘두르기 연출 (t: 1 → 0 으로 줄어드는 남은 시간 비율)
+//   그림: assets/fx_slash.png = IceMaan "Pixel VFX Essentials" Slash Right (32×32 6프레임, 오른쪽을 향한 초승달)
+const FX_SLASH_FRAMES = 6;
+const FX_SLASH_REACH = 15 / 32;   // 그림 한 변 대비 가운데에서 초승달 바깥 끝까지의 거리 → 이 끝이 공격 범위(r)에 닿게 크기를 맞춤
+const FX_SLASH_THIN = 0.5;        // 초승달 두께 배수: 휘두르는 방향(반지름 쪽)으로만 눌러 얇게. 길이는 그대로
 function drawSlashEffect(f, t) {
-  // 장검: 방향 앞쪽에 굵은 호(弧)
-  ctx.globalAlpha = t;
-  ctx.strokeStyle = "#e8fdff";
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(f.x, f.y, f.r * (0.8 + 0.2 * (1 - t)), f.angle - 1.0, f.angle + 1.0);
-  ctx.stroke();
-  ctx.strokeStyle = "#7df9ff";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(f.x, f.y, f.r * 0.7, f.angle - 0.8, f.angle + 0.8);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  const sp = SPRITES.fx_slash;
+  if (!sp.ready) return;
+  const frame = Math.min(FX_SLASH_FRAMES - 1, Math.floor((1 - t) * FX_SLASH_FRAMES));
+  const size = f.r / FX_SLASH_REACH;
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.rotate(f.angle);
+  ctx.translate(f.r * (1 - FX_SLASH_THIN), 0);   // 누른 만큼 앞으로 밀어서 바깥 끝이 그대로 r 에 닿게
+  ctx.scale(FX_SLASH_THIN, 1);
+  ctx.drawImage(sp.normal, frame * 32, 0, 32, 32, -size / 2, -size / 2, size, size);
+  ctx.restore();
 }
 
-// 낙뢰 연출 (t: 1 → 0 으로 줄어드는 남은 시간 비율)
+// IceMaan "Pixel VFX Essentials" 효과 그림(32×32 프레임 가로 띠) 한 장면 그리기. 남은 시간 비율 t(1 → 0)에 맞춰 앞 프레임부터 차례로
+//   w, h = 그릴 크기, angle = 돌릴 각도, (ax, ay) = 그림에서 (x, y) 자리에 놓일 점 (0~1, 기본은 가운데)
+function drawFxSprite(name, x, y, w, h, t, angle = 0, ax = 0.5, ay = 0.5) {
+  const sp = SPRITES[name];
+  if (!sp.ready) return;
+  const frames = sp.normal.width / 32;
+  drawFxFrame(name, Math.min(frames - 1, Math.floor((1 - t) * frames)), x, y, w, h, angle, ax, ay);
+}
+// 계속 반복되는 효과(불바다 등)의 지금 프레임. phase 로 같은 그림끼리 박자를 어긋나게 함
+const FX_LOOP_FPS = 12;
+function fxLoopFrame(name, phase) {
+  const sp = SPRITES[name];
+  return sp.ready ? Math.floor(stats.time * FX_LOOP_FPS + Math.abs(phase)) % (sp.normal.width / 32) : 0;
+}
+// 효과 그림의 frame 번째 칸 하나 그리기
+function drawFxFrame(name, frame, x, y, w, h, angle = 0, ax = 0.5, ay = 0.5) {
+  const sp = SPRITES[name];
+  if (!sp.ready) return;
+  ctx.save();
+  ctx.translate(x, y);
+  if (angle) ctx.rotate(angle);
+  ctx.drawImage(sp.normal, frame * 32, 0, 32, 32, -w * ax, -h * ay, w, h);
+  ctx.restore();
+}
+const FX_BURST_SIZE = (2 * 32) / 30;   // 둥근 효과(폭발·고리·별): 그림 속 원(지름 약 30px)이 반지름 r 에 닿게
+const FX_BEAM_THICK = 8;               // 광선 그림의 띠 두께 (32px 중 가운데 8px)
+
+// 낙뢰: Thunder Impact (번개가 떨어져 터짐). 터지는 원(반지름 11px, 그림 속 (17, 21))이 공격 범위 r 에 맞게
 function drawBoltEffect(f, t) {
-  // 낙뢰: 위에서 내려오는 지그재그 + 바닥 원
-  ctx.globalAlpha = t;
-  ctx.strokeStyle = "#f0feff";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  const px = f.x, py = f.y - 220;
-  ctx.moveTo(px, py);
-  for (let i = 1; i <= 6; i++) {
-    const ny = f.y - 220 + (220 * i) / 6;
-    const nx = i === 6 ? f.x : f.x + Math.sin(f.seed * 40 + i * 2.3) * 18;
-    ctx.lineTo(nx, ny);
-  }
-  ctx.stroke();
-  ctx.fillStyle = "rgba(125, 249, 255, 0.35)";
-  ctx.beginPath();
-  ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  const size = (f.r * 32) / 11;
+  drawFxSprite("fx_bolt", f.x, f.y, size, size, t, 0, 17 / 32, 21 / 32);
 }
 
-// 별의 문양 오각별 연출 (t: 1 → 0 으로 줄어드는 남은 시간 비율)
+// 별의 문양: Star Burst (금색 별이 터짐)
 function drawStarEffect(f, t) {
-  // 별의 문양: 오각별
-  ctx.globalAlpha = t;
-  ctx.strokeStyle = "#ffd60a";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  for (let i = 0; i <= 5; i++) {
-    const a = -Math.PI / 2 + (i * 2 * Math.PI * 2) / 5;    // 꼭짓점을 두 칸씩 건너뛰면 별이 됨
-    const px = f.x + Math.cos(a) * f.r, py = f.y + Math.sin(a) * f.r;
-    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  drawFxSprite("fx_star", f.x, f.y, f.r * FX_BURST_SIZE, f.r * FX_BURST_SIZE, t);
 }
 
-// 화염 방사 연출 (t: 1 → 0 으로 줄어드는 남은 시간 비율)
+// 화염 방사: Flamethrower. 캐릭터에서 len 만큼 뻗음. 부채꼴 폭에 맞춰 세로로만 늘리면 픽셀이 뭉개져서 가로세로 같은 비율로 키우고,
+//   불길이 적을 가리지 않게 조금 비치게 그림
+const FX_FLAME_ALPHA = 0.8;
 function drawConeEffect(f, t) {
-  // 화염 방사: 부채꼴 불길
-  ctx.globalAlpha = t;
-  ctx.fillStyle = "rgba(255, 140, 40, 0.5)";
-  ctx.beginPath();
-  ctx.moveTo(f.x, f.y);
-  ctx.arc(f.x, f.y, f.len, f.angle - f.half, f.angle + f.half);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "rgba(255, 220, 120, 0.6)";
-  ctx.beginPath();
-  ctx.moveTo(f.x, f.y);
-  ctx.arc(f.x, f.y, f.len * 0.6, f.angle - f.half * 0.5, f.angle + f.half * 0.5);
-  ctx.closePath();
-  ctx.fill();
+  ctx.globalAlpha = FX_FLAME_ALPHA;
+  drawFxSprite("fx_flame", f.x, f.y, f.len, f.len, t, f.angle, 0, 16.5 / 32);
   ctx.globalAlpha = 1;
 }
 
-// 빙결 광선 연출 (t: 1 → 0 으로 줄어드는 남은 시간 비율)
+// 빙결 광선: Laser Beam 을 하늘색으로 바꾼 그림. 캐릭터에서 len 만큼 뻗음. 끝으로 갈수록 옅어짐
 function drawRayEffect(f, t) {
-  // 빙결 광선: 캐릭터에서 뻗어 나가는 하늘색 선
-  ctx.globalAlpha = t;
-  ctx.strokeStyle = "#7df9ff";
-  ctx.lineWidth = f.half * 2;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(f.x, f.y);
-  ctx.lineTo(f.x + Math.cos(f.angle) * f.len, f.y + Math.sin(f.angle) * f.len);
-  ctx.stroke();
-  ctx.strokeStyle = "#f0feff";
-  ctx.lineWidth = f.half * 0.6;
-  ctx.stroke();
-  ctx.lineCap = "butt";
+  ctx.globalAlpha = Math.min(1, t * 2);
+  drawFxSprite("fx_ray", f.x, f.y, f.len, (f.half * 2 * 32) / FX_BEAM_THICK, t, f.angle, 0, 0.5);
   ctx.globalAlpha = 1;
 }
 

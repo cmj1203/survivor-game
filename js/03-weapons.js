@@ -532,7 +532,7 @@ const WEAPONS = {
       w.ready = false;
       w.recharge = this.getRecharge(w);
       spawnParticles(player.x, player.y, "#7df9ff", 14, 200);
-      effects.push({ kind: "ring", x: player.x, y: player.y, r: player.r * 1.9, color: "#7df9ff", life: 0.3, maxLife: 0.3 });
+      effects.push({ kind: "ring", x: player.x, y: player.y, r: player.r * 1.9, color: "#7df9ff", life: 0.3, maxLife: 0.3, fx: "fx_zap" });
       floatTexts.push({ x: player.x, y: player.y - 34, text: "막음!", color: "#7df9ff", life: 0.9, maxLife: 0.9 });
     },
     draw(w) {
@@ -566,7 +566,7 @@ const WEAPONS = {
       const explode = (b) => {
         const r = 90 * areaMul();
         for (const e of enemies) if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < r + e.r) damageEnemy(e, b.damage);
-        effects.push({ x: b.x, y: b.y, r, life: 0.3, maxLife: 0.3, rgb: "255, 140, 40" });
+        effects.push({ x: b.x, y: b.y, r, life: 0.3, maxLife: 0.3, rgb: "255, 140, 40", fx: "fx_blast" });
         b.dead = true;
       };
       for (let i = 0; i < count; i++) {
@@ -627,7 +627,7 @@ const WEAPONS = {
           const blasts = 1 + Math.floor((w.level - 1) / 2);
           const r = 80 * areaMul();
           for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) damageEnemy(e, weaponDamage(w, 1) * blasts);
-          effects.push({ x: player.x, y: player.y, r, life: 0.35, maxLife: 0.35, rgb: "80, 40, 120" });
+          effects.push({ x: player.x, y: player.y, r, life: 0.35, maxLife: 0.35, rgb: "80, 40, 120", fx: "fx_claw" });
         }
       }
     },
@@ -715,7 +715,7 @@ const WEAPONS = {
     retaliate(w) {
       const r = 90 * areaMul();
       for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w, 1)); pushEnemy(e, player.x, player.y, 25); }
-      effects.push({ kind: "ring", x: player.x, y: player.y, r: 20, color: "#f0feff", life: 0.3, maxLife: 0.3 });
+      effects.push({ kind: "ring", x: player.x, y: player.y, r: 20, color: "#f0feff", life: 0.3, maxLife: 0.3, fx: "fx_parry" });
     },
   },
 
@@ -809,7 +809,7 @@ Object.assign(WEAPONS, {
   bomb_evo: evolvedDef("bomb", { name: "불바다", desc: "불바다가 더 크고 오래가며 나를 따라옴", damageMul: 1.2,
     fire(w) { const before = bullets.length; WEAPONS.bomb.fire.call(this, w); for (let i = before; i < bullets.length; i++) { bullets[i].zoneRadius *= 1.25; bullets[i].zoneLife *= 1.5; bullets[i].zoneFollow = true; } } }),
   rune_evo: evolvedDef("rune", { name: "파열구", desc: "구슬이 오래 튕기고, 튕길 때마다 폭발", damageMul: 1.5,
-    fire(w) { const before = bullets.length; WEAPONS.rune.fire.call(this, w); for (let i = before; i < bullets.length; i++) { const b = bullets[i]; b.life *= 2; b.onBounce = (x) => { const r = 60 * areaMul(); for (const e of enemies) if (!e.dead && Math.hypot(e.x - x.x, e.y - x.y) < r + e.r) damageEnemy(e, x.damage); effects.push({ x: x.x, y: x.y, r, life: 0.25, maxLife: 0.25 }); }; } } }),
+    fire(w) { const before = bullets.length; WEAPONS.rune.fire.call(this, w); for (let i = before; i < bullets.length; i++) { const b = bullets[i]; b.life *= 2; b.onBounce = (x) => { const r = 60 * areaMul(); for (const e of enemies) if (!e.dead && Math.hypot(e.x - x.x, e.y - x.y) < r + e.r) damageEnemy(e, x.damage); effects.push({ x: x.x, y: x.y, r, life: 0.25, maxLife: 0.25, fx: "fx_shock" }); }; } } }),
   lightning_evo: evolvedDef("lightning", { name: "뇌우", desc: "번개가 두 번씩 내리침", damageMul: 1.3,
     fire(w) { WEAPONS.lightning.fire.call(this, w); w.pending = [{ delay: 0.2 }]; },
     update(w, dt) { if (!w.pending) return; for (const p of w.pending) { p.delay -= dt; if (p.delay <= 0) { p.done = true; WEAPONS.lightning.fire.call(this, w); } } w.pending = w.pending.filter((p) => !p.done); } }),
@@ -858,7 +858,7 @@ Object.assign(WEAPONS, {
           const r = 75 * areaMul(), life = 3 * durationMul();
           for (const e of enemies) if (!e.dead && Math.hypot(e.x - rock.x, e.y - rock.y) < r + e.r) damageEnemy(e, rock.damage * 2);
           zones.push({ kind: "fire", x: rock.x, y: rock.y, r, life, maxLife: life, tick: 0, interval: 0.3, damage: rock.damage * 0.3 });
-          effects.push({ x: rock.x, y: rock.y, r, life: 0.35, maxLife: 0.35, rgb: "255, 120, 40" });
+          effects.push({ x: rock.x, y: rock.y, r, life: 0.35, maxLife: 0.35, rgb: "255, 120, 40", fx: "fx_blast" });
         };
         b.onHit = impact; b.onBounce = impact; b.onExpire = impact;
       }

@@ -165,3 +165,27 @@ License: Creative Commons Zero (CC0)
     bat_dark.png = 검보라 바닥과 구별되도록 몸통을 창백한 회보라·분홍빛으로 다시 바꿈
     crab_dark.png / spider_dark.png = 검보라 바닥에서 작은 실루엣이 또렷하도록 중간색과 밝은색을 올림
     (출처와 픽셀 모양·알파는 위 기록과 동일하며 색만 추가 조정함)
+
+  2026-10-14 공격 효과:
+    fx_slash.png = IceMaan "FREE PIXEL VFX ESSENTIALS" (https://icemaan.itch.io/pixel-vfx-essentials)
+                   Spritesheets/Slashes/Slash Right.png 그대로 (32×32, 6프레임)
+                   라이선스: 개인·상업 프로젝트 사용·수정 자유, 출처 표기 불필요, 그림 자체의 재판매·재배포 금지
+    같은 팩 Spritesheets/ 에서 그대로 (32×32 가로 띠):
+      fx_bolt.png = Lightning/Thunder Impact        fx_star.png = Pickups and UI/Star Burst
+      fx_flame.png = Fire/Flamethrower
+      fx_blast.png = Explosions/Blast               fx_fireball.png = Explosions/Fireball Burst
+      fx_zap.png = Lightning/Zap Ring               fx_parry.png = Hit Sparks/Parry Flash
+      fx_shock.png = Explosions/Shockwave
+    색만 바꿈 (모양·알파 그대로):
+      fx_ray.png = Projectiles/Laser Beam 을 하늘색으로     fx_claw.png = Slashes/Triple Claw 를 보라색으로
+
+  2026-10-14 상점 아이콘:
+    shop_speed.png = Kenney "1-Bit Pack" (CC0) 열 24, 행 20 꺾쇠(›) 두 개를 1px 틈을 두고 나란히 붙임 (상점 2배속, »).
+                     색은 shop_skip.png 와 같은 노랑(244,180,27), #3F2631 1px 외곽선 추가
+
+  2026-10-14 바닥 효과:
+    fx_firering.png = IceMaan "FREE PIXEL VFX ESSENTIALS" Spritesheets/Fire/Fire Ring.png 그대로 (불바다 가장자리)
+    fx_burn.png     = 같은 팩 Spritesheets/Fire/Burning Ground.png 그대로 (불바다 안쪽 불꽃)
+    hazard_puddle1~3.png = Ian926 "Pixel Art Puddles" (https://ian926.itch.io/pixel-art-puddles) puddle1~3.png
+                     그림 부분만 잘라 내고 하늘색을 밝기만 남긴 회색으로 바꿈 (게임 안에서 테마 색을 입힘)
+                     라이선스: "Can be used in any project as long as you credit Ian926" → 출처 표기 필수 (README 에도 적음)

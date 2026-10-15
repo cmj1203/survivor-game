@@ -97,6 +97,8 @@ http://localhost:8000
 | 종류 | 출처 | 라이선스 |
 |---|---|---|
 | 캐릭터·몬스터·무기·배경 그림 | [Kenney](https://kenney.nl) 픽셀아트 묶음을 바탕으로 색과 테두리를 손봄 | CC0 |
+| 공격·바닥 효과 그림 | IceMaan, [FREE PIXEL VFX ESSENTIALS](https://icemaan.itch.io/pixel-vfx-essentials) | 상업 사용·수정 가능, 출처 표기 불필요 |
+| 외눈 거인 자국 그림 | Ian926, [Pixel Art Puddles](https://ian926.itch.io/pixel-art-puddles) (색을 바꿔 씀) | 출처 표기 조건 |
 | 배경 음악·효과음 | Juhani Junkala (SubspaceAudio), [OpenGameArt](https://opengameart.org) | CC0 |
 | 글꼴 | Tiny5, Galmuri11 | SIL Open Font License |
 

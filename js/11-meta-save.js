@@ -9,14 +9,14 @@ const RUN_KEY = "dungeon-survivor-run";
 const SAVE_VERSION = 1;
 const RUN_SAVE_INTERVAL = 15;      // 하던 판 저장 간격 (초)
 
-// --- 캐릭터: 규칙이 하나씩 다름. unlock = 해금해 주는 퀘스트 id (없으면 처음부터) ---
+// --- 캐릭터: 규칙이 하나씩 다름. unlock = 해금해 주는 퀘스트 id (없으면 처음부터), price = 해금 뒤 캐릭터 창에서 사는 값 (금화) ---
 const CHARACTERS = {
   knight:    { name: "견습 마법사", sprite: "hero_mage",      weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
-  hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10" },
-  berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3" },
-  saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1" },
+  hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10", price: 300 },
+  berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3", price: 400 },
+  saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1", price: 600 },
   // pick: true = 판을 시작할 때 무기 고르기 창이 떠서, 이미 연 무기 중 하나를 골라 시작함 (weapon 은 창이 뜨기 전 잠깐 쓰는 기본값)
-  armorer:   { name: "무기상", sprite: "hero_armorer",   weapon: "wand",   hp: 1,    speed: 1,    pick: true, candyBonus: 0.15, rule: "시작 무기를 직접 고름", unlock: "q_armory" },   // candyBonus: 레벨업 때 무기 상자 카드가 안 뽑혔으면 이 확률로 마지막 카드를 무기 상자로 바꿈
+  armorer:   { name: "무기상", sprite: "hero_armorer",   weapon: "wand",   hp: 1,    speed: 1,    pick: true, candyBonus: 0.15, rule: "시작 무기를 직접 고름", unlock: "q_armory", price: 800 },   // candyBonus: 레벨업 때 무기 상자 카드가 안 뽑혔으면 이 확률로 마지막 카드를 무기 상자로 바꿈
 };
 
 // --- 난이도: 앞 단계를 클리어하면 다음 단계가 열림. 숫자만 올리지 않고 정예 빈도·보스도 바뀜 ---
@@ -54,7 +54,12 @@ const SHOP = [
   // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
   { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
     note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${Math.round(lv * SHOP_CURSE_GOLD * 100)}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
+  // 2배속: 게임 전체(이동·공격·적·게임 시계)가 2배로 빨리 감 → 클리어까지 걸리는 실제 시간이 절반. 값이 없고(free) 켜고 끌 수 있음
+  { key: "speed",   name: "2배속",     icon: "shop_speed",      max: 1, base: 0, free: true,
+    note: (lv) => (lv ? "켜짐 · 게임 진행 속도 2배" : "꺼짐 · 켜면 게임 진행 속도 2배") },
 ];
+const GAME_SPEED_FAST = 2;               // 상점 '2배속'을 켰을 때 한 프레임에 게임을 몇 번 진행할지
+function gameSpeed() { return upLevel("speed") > 0 ? GAME_SPEED_FAST : 1; }
 
 // --- 퀘스트: 배우는 것(진화·상자)과 쌓이는 것(누적 처치)을 섞음. 값이 goal 이상이 되면 끝 ---
 //   보상: weapon(무기 해금) / char(캐릭터 해금) / gold(금화)
@@ -75,7 +80,7 @@ const QUESTS = [
   // --- 오래 걸리는 퀘스트 (보상은 금화): 위 13개가 보통 난이도 한 번 클리어에 다 끝나 버려서 추가 ---
   //   한 번 클리어하면 2만 마리쯤 잡으므로 누적 처치는 그보다 훨씬 크게. who = 그 캐릭터로 클리어해야 함
   { id: "q_clear3",    name: "던전 단골",       desc: "5번 클리어 (누적)",              stat: "clears",    goal: 5,      shop: "curse" },
-  { id: "q_kill50k",   name: "군단 파괴자",     desc: "10만 마리 처치 (누적)",           stat: "kills",     goal: 100000,  gold: 60 },
+  { id: "q_kill50k",   name: "군단 파괴자",     desc: "10만 마리 처치 (누적)",           stat: "kills",     goal: 100000,  passive: "curse" },
   { id: "q_chest30",   name: "보물 수집가",     desc: "보물 상자 50개 열기 (누적)",     stat: "chests",    goal: 50,     shop: "skip" },
   { id: "q_evo10",     name: "진화 전문가",     desc: "무기 20번 진화시키기 (누적)",    stat: "evos",      goal: 20,     gold: 60 },
   { id: "q_c_hunter",  name: "명사수",          desc: "사냥꾼으로 클리어",              stat: "charclear", goal: 1,      gold: 100, who: "hunter" },
@@ -123,6 +128,8 @@ QUESTS.push({ id: "q_armory", name: "무기고", desc: `잠긴 무기 ${QUESTS.f
 const TIME_STATS = ["time", "difftime", "nohit", "lowhp", "solo"];   // 진행 값을 '몇 분 몇 초'로 보여 줄 퀘스트 종류
 const WEAPON_LOCKS = {};                 // 무기 종류 → 해금해 주는 퀘스트 id
 for (const q of QUESTS) if (q.weapon) WEAPON_LOCKS[q.weapon] = q.id;
+const PASSIVE_LOCKS = {};                // 아이템 종류 → 해금해 주는 퀘스트 id
+for (const q of QUESTS) if (q.passive) PASSIVE_LOCKS[q.passive] = q.id;
 // 상점 항목 잠금: 보상이 shop 인 퀘스트를 끝내야 그 항목이 상점에 열림 (선택의 폭·건너뛰기·부활·저주)
 const SHOP_LOCKS = {};
 for (const q of QUESTS) if (q.shop) SHOP_LOCKS[q.shop] = q.id;
@@ -131,7 +138,7 @@ function shopLocked(key) { return !!SHOP_LOCKS[key] && !isQuestDone(SHOP_LOCKS[k
 
 // --- 저장 / 불러오기 ---
 function defaultMeta() {
-  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], char: "knight", diff: 0,
+  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], chars: [], char: "knight", diff: 0,   // chars = 금화로 산 캐릭터
            stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1,
                     clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0, clear_armorer: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
                     time_d1: 0, time_d2: 0, time_d3: 0,                                         // time_d○ = 그 난이도에서 가장 오래 버틴 시간(초)
@@ -148,6 +155,10 @@ function normalizeMeta(m) {
   d.gold = num(m.gold);
   for (const s of SHOP) d.upgrades[s.key] = Math.min(s.max, num(m.upgrades?.[s.key]));
   d.quests = Array.isArray(m.quests) ? [...new Set(m.quests.filter((id) => QUESTS.some((q) => q.id === id)))] : [];
+  // 산 캐릭터. 구매가 생기기 전 저장(chars 없음)은 이미 해금한 캐릭터를 산 것으로 쳐서, 쓰던 캐릭터가 갑자기 잠기지 않게
+  d.chars = Array.isArray(m.chars)
+    ? [...new Set(m.chars.filter((k) => CHARACTERS[k]?.price))]
+    : Object.keys(CHARACTERS).filter((k) => CHARACTERS[k].price && d.quests.includes(CHARACTERS[k].unlock));
   const st = m.stats || {};
   for (const k in d.stats) d.stats[k] = k === "maxClearDiff" ? Math.min(DIFFS.length - 1, num(st[k], -1)) : num(st[k]);
   if (CHARACTERS[m.char]) d.char = m.char;
@@ -183,12 +194,14 @@ function charDamageMul() {
 }
 function isQuestDone(id) { return meta.quests.includes(id); }
 function isWeaponLocked(type) { return !!WEAPON_LOCKS[type] && !isQuestDone(WEAPON_LOCKS[type]); }
+function isPassiveLocked(key) { return !!PASSIVE_LOCKS[key] && !isQuestDone(PASSIVE_LOCKS[key]); }
 function isCharUnlocked(key) { const c = CHARACTERS[key]; return !!c && (!c.unlock || isQuestDone(c.unlock)); }
+function isCharOwned(key) { const c = CHARACTERS[key]; return !!c && (!c.price || meta.chars.includes(key)); }   // 해금 + 금화로 사야 고를 수 있음
 function isDiffUnlocked(i) { return i <= meta.stats.maxClearDiff + 1; }
 
 // --- 판 시작 (resetGame 이 부름) ---
 function startRun() {
-  if (!isCharUnlocked(meta.char)) meta.char = "knight";
+  if (!isCharOwned(meta.char)) meta.char = "knight";
   if (!isDiffUnlocked(meta.diff)) meta.diff = 0;
   run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, items: 0, shells: 0, puddles: 0, corners: 0, newQuests: [], tick: 0, saveTimer: 0, done: false,
           // 어려운 퀘스트용: 맞은 횟수, 안 맞고 버틴 시간(지금/최고), 체력 낮은 채 버틴 시간(지금/최고), 무기 1개로 버틴 시간, 잡은 정예 수, 진화한 종류, 보스가 나온 시각
@@ -248,6 +261,7 @@ function rewardText(q) {
   if (q.weapon) return `무기 '${WEAPONS[q.weapon].name}' 해금`;
   if (q.char) return `캐릭터 '${CHARACTERS[q.char].name}' 해금`;
   if (q.shop) return `상점 '${SHOP.find((it) => it.key === q.shop).name}' 열림`;
+  if (q.passive) return `아이템 '${PASSIVES[q.passive].name}' 해금`;
   return `금화 ${questGold(q)}`;
 }
 function checkQuests(cleared) {
@@ -462,7 +476,7 @@ function renderPanel() {
     // 아직 못 끝낸 퀘스트를 위에 보여 줌 (끝낸 것은 아래로)
     for (const q of [...QUESTS].sort((a, b) => isQuestDone(a.id) - isQuestDone(b.id))) {
       const done = isQuestDone(q.id), v = Math.min(q.goal, Math.max(0, questValue(q, false)));
-      const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : q.shop ? `assets/${SHOP.find((it) => it.key === q.shop).icon}.png` : "assets/coin.png";
+      const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : q.shop ? `assets/${SHOP.find((it) => it.key === q.shop).icon}.png` : q.passive ? passiveIconUrl(q.passive) : "assets/coin.png";
       const prog = TIME_STATS.includes(q.stat) ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
       html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
     }
@@ -471,8 +485,9 @@ function renderPanel() {
     metaNote.textContent = "";
     html += `<p class="meta-head">캐릭터</p>`;
     for (const k in CHARACTERS) {
-      const c = CHARACTERS[k], open = isCharUnlocked(k), sel = meta.char === k;
+      const c = CHARACTERS[k], open = isCharUnlocked(k), owned = isCharOwned(k), sel = meta.char === k;
       const right = !open ? `<button class="meta-btn" disabled>잠김</button>`
+        : !owned ? `<button class="meta-btn buy" data-act="charbuy" data-key="${k}" ${meta.gold < c.price ? "disabled" : ""}>${c.price} 금화</button>`
         : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="char" data-key="${k}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
       const sub = open ? c.rule : `잠김: 퀘스트 '${QUESTS.find((q) => q.id === c.unlock).name}' (${QUESTS.find((q) => q.id === c.unlock).desc})`;
       html += row(sel ? "sel" : open ? "" : "locked", `assets/${c.sprite}.png`, c.name, sub, right);
@@ -509,7 +524,10 @@ metaBody.addEventListener("click", (e) => {
     if (upLevel(key) > 0) meta.upgrades[key] = upLevel(key) - 1;          // 저주처럼 값이 없는 항목은 한 단계씩 내릴 수 있음
   } else if (act === "refund") {
     for (const s of SHOP) { const lv = upLevel(s.key); meta.gold += (s.base * lv * (lv + 1)) / 2; meta.upgrades[s.key] = 0; }
-  } else if (act === "char") { if (isCharUnlocked(key)) meta.char = key; }
+  } else if (act === "charbuy") {
+    const c = CHARACTERS[key];
+    if (isCharUnlocked(key) && !isCharOwned(key) && meta.gold >= c.price) { meta.gold -= c.price; meta.chars.push(key); }
+  } else if (act === "char") { if (isCharOwned(key)) meta.char = key; }
   else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
   else if (act === "export") { exportSave(); return; }
   else if (act === "import") { importFile.click(); return; }

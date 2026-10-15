@@ -10,7 +10,9 @@ function gameLoop(now) {
   lastTime = now;
   if (dt > 0.1) dt = 0.1;   // 탭 전환 등으로 시간이 크게 뛰면 최대 0.1초로 제한
 
-  update(dt);
+  // 상점 '2배속': 한 프레임에 update 를 여러 번 (dt 를 두 배로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 나눠 돌림).
+  //   중간에 레벨업·상자 창이 뜨면 거기서 멈춤
+  for (let i = 0; i < gameSpeed() && state === "playing"; i++) update(dt);
   draw();
 
   loopId = requestAnimationFrame(gameLoop);   // 다음 프레임 예약
@@ -80,7 +82,7 @@ function buildUpgradePool(includeNewWeapons) {
     const def = PASSIVES[key];
     const owned = player.passives.find((p) => p.type === key);
     if (!owned) {
-      if (!includeNewWeapons) continue;                                   // 보물 상자에서는 새 아이템이 나오지 않음
+      if (!includeNewWeapons || isPassiveLocked(key)) continue;           // 보물 상자에서는 새 아이템이 나오지 않음. 잠긴 아이템(퀘스트로 해금)도 안 나옴
       if (!def.noSlot && passiveSlotsUsed >= PASSIVE_MAX_SLOTS) continue;  // 패시브 슬롯이 다 찼으면 새 아이템 없음
       pool.push({
         title: `새 아이템: ${def.name}`,
@@ -134,8 +136,10 @@ function buildUpgradePool(includeNewWeapons) {
   return pool;
 }
 
-// 더 강화할 것이 없을 때의 선택지: 체력 전부 회복, 또는 금화 아주 조금 (금화는 판이 끝날 때 받는 금화에 그대로 더해짐)
-const MAXED_GOLD = 1;   // 강화 한 번 몫 = 금화 1. 레벨업은 1, 상자는 주려던 강화 개수만큼 (1·3·5)
+// 더 강화할 것이 없을 때의 선택지: 체력 전부 회복, 또는 금화 (금화는 판이 끝날 때 받는 금화에 그대로 더해짐)
+const MAXED_GOLD = 10;            // 레벨업 = 금화 10
+const MAXED_CHEST_GOLD = [10, 30]; // 보물 상자 = 금화 10~30 중 아무 값 (행운과 상관없이 완전 랜덤)
+function maxedChestGold() { return MAXED_CHEST_GOLD[0] + Math.floor(Math.random() * (MAXED_CHEST_GOLD[1] - MAXED_CHEST_GOLD[0] + 1)); }
 function maxedPicks(gold) {
   return [
     { title: "체력 전부 회복", desc: "더 강화할 것이 없습니다", iconUrl: "assets/potion_green.png", apply: () => { player.hp = player.maxHp; } },
@@ -290,13 +294,15 @@ function renderHelp() {
   for (const tab of document.querySelectorAll(".help-tab")) tab.classList.toggle("active", tab.dataset.tab === helpTab);
   helpList.innerHTML = "";
   if (helpTab === "combo") renderComboTab();
-  else if (helpTab === "weapons") renderListTab(Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved), WEAPONS, (k) => weaponIconUrl(k), (k) => player.weapons.find((w) => w.type === k || WEAPONS[w.type].evoOf === k));
-  else renderListTab(Object.keys(PASSIVES), PASSIVES, (k) => passiveIconUrl(k), (k) => player.passives.find((p) => p.type === k));
+  else if (helpTab === "weapons") renderListTab(Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !isWeaponLocked(k)), WEAPONS, (k) => weaponIconUrl(k), (k) => player.weapons.find((w) => w.type === k || WEAPONS[w.type].evoOf === k));
+  else renderListTab(Object.keys(PASSIVES).filter((k) => !isPassiveLocked(k)), PASSIVES, (k) => passiveIconUrl(k), (k) => player.passives.find((p) => p.type === k));
 }
 
 // 조합표: [무기] + [패시브] → [진화 무기]. 가진 것은 밝게, 조건이 갖춰지면 금색, 이미 진화했으면 주황
+//   아직 퀘스트로 안 열린 무기·아이템이 들어간 조합은 보여 주지 않음
 function renderComboTab() {
   for (const base in EVOLUTIONS) {
+    if (isWeaponLocked(base) || isPassiveLocked(EVOLUTIONS[base].needs)) continue;
     const from = WEAPONS[base], to = WEAPONS[EVOLUTIONS[base].to], need = PASSIVES[EVOLUTIONS[base].needs];
     const ownedW = player.weapons.find((w) => w.type === base);
     const done = player.weapons.some((w) => w.type === EVOLUTIONS[base].to);
