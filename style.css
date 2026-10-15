@@ -217,7 +217,7 @@ canvas {
 .chest-orb.gold { border-color: #fff3a0; background: radial-gradient(circle at 40% 35%, #fff3a0 0%, #ffd60a 55%, #b88a00 100%); box-shadow: 0 0 16px 5px rgba(255, 214, 10, 0.7); }
 .chest-orb.sel { outline: 3px solid #fff; outline-offset: 3px; }
 /* 아래 정보 칸: 고른 보상 한 줄 + 몇 번째인지 */
-#chestInfo { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+#chestInfo { display: flex; align-items: center; gap: 10px; min-height: 68px; }   /* 설명이 두 줄인 보상(장검 등)도 들어가는 높이. 칸이 늘어 창 제목이 움직이지 않게 */
 #chestInfo .gain { width: 300px; box-sizing: border-box; }
 #chestInfo .pager { color: #ffd60a; font-weight: bold; font-size: 16px; }
 @keyframes beamUp { from { transform: scaleY(0); opacity: 1; } to { transform: scaleY(1); opacity: 1; } }
