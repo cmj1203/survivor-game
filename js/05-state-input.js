@@ -5,6 +5,7 @@ let player;        // 플레이어 정보 (위치, 체력, 레벨, 무기, 패�
 let enemies;       // 적 목록
 let pendingSpawns; // 이번 프레임에 새로 생긴 적 (거미의 새끼). 프레임 끝에 enemies에 합침
 let enemyBullets;  // 마법사가 쏜 탄환 목록
+let bossMarks;     // 보스 공격 경고 원 목록 (시간이 다 되면 그 자리에서 터짐. 예티 등)
 let banner;        // 화면 위 안내 문구 { text, life }
 let bullets;       // 발사체 목록 (탄환, 창, 폭탄 모두 여기)
 let gems;          // 경험치 구슬 목록
@@ -64,6 +65,7 @@ function resetGame() {
   enemies = [];
   pendingSpawns = [];
   enemyBullets = [];
+  bossMarks = [];
   banner = null;
   bullets = [];
   gems = [];

@@ -102,6 +102,33 @@ const ENEMY_TYPES = [
   { key: "cyclops", name: "외눈 거인", shape: "cyclops", color: "#f0a860", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase" },
 ];
 
+// --- 스테이지별 적: 난이도 테마마다 다른 적 5종. 표가 없는 테마는 위 ENEMY_TYPES 를 그대로 씀 ---
+//   자리 순서 = 등장 순서. 같은 자리끼리 능력치를 비슷하게 맞춤 (ENEMY_TYPES 의 몬스터 떼 "bat"·"ghost" 도 같은 자리 적으로 나옴)
+//   chill: 닿으면 잠깐 느려짐   knockback: 부딪히면 밀려남   dashMul: 돌진 속도·시간 배수
+//   splitType: 죽으면 이 종류가 splitInto 마리 나옴   killStat: 잡으면 이 퀘스트 기록을 +1
+//   behavior "ranged": 거리를 두고 얼음 화살을 쏨   leavesHazard: 죽은 자리에 장판 (hazardQuest: 밟으면 퀘스트 기록)
+const STAGE_ENEMIES = {
+  ice: [
+    { key: "icewisp",    name: "얼음 정령", shape: "icewisp",    color: "#9be7ff", r: 11, speed: 80, hp: 1, damage: 8,  xp: 1, behavior: "chase", chill: true },
+    { key: "polarbear",  name: "북극곰",    shape: "polarbear",  color: "#eef6ff", r: 15, speed: 50, hp: 3, damage: 10, xp: 2, behavior: "charger", dashMul: 1.4, knockback: true },
+    { key: "iceelem",    name: "얼음 원소", shape: "iceelem",    color: "#bfefff", r: 14, speed: 55, hp: 3, damage: 10, xp: 2, behavior: "chase", splitInto: 3, splitType: "icewisp", killStat: "shells" },
+    { key: "frostwight", name: "서리 망령", shape: "frostwight", color: "#8fa8c8", r: 14, speed: 70, hp: 3, damage: 12, xp: 3, behavior: "ranged" },
+    { key: "wendigo",    name: "웬디고",    shape: "wendigo",    color: "#c9b8a0", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "chase", leavesHazard: true, hazardQuest: true },
+  ],
+};
+const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES));
+function enemyTypes() { return STAGE_ENEMIES[diffDef().theme] || ENEMY_TYPES; }             // 지금 스테이지의 적 5종
+function findEnemyType(key) { return ALL_ENEMY_TYPES.find((t) => t.key === key); }
+function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적
+const CHILL_TIME = 1.2;              // 얼음 정령·서리 망령: 닿거나 맞으면 이 시간(초) 동안 느려짐
+const CHILL_SLOW_MUL = 0.65;         // 느려졌을 때 이동 속도 배수
+const KNOCKBACK_SPEED = 420;         // 북극곰: 부딪히면 이 속도로 밀려남
+const KNOCKBACK_TIME = 0.18;         // 북극곰: 밀려나는 시간 (초) → 약 75px
+const RANGED_KEEP_DIST = 260;        // 서리 망령: 플레이어와 이 거리를 유지하려 함 (200 보다 가까우면 물러남)
+const RANGED_SHOT_INTERVAL = 3;      // 서리 망령: 얼음 화살 간격 (초)
+const RANGED_SHOT_SPEED = 190;       // 얼음 화살 속도 (플레이어 기본 속도 220 보다 느려서 피할 수 있음)
+const RANGED_SHOT_DAMAGE = 0.7;      // 얼음 화살 피해 = 몸에 닿을 때 피해 × 이 값
+
 // --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
 //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
 const BAT_RUSH_RANGE = 240;                  // 박쥐 '돌격': 이 거리 안으로 들어오면 빨라짐
@@ -131,6 +158,30 @@ const TIMELINE_SCALE = BOSS_TIME / (30 * 60);
 // 지금 시각을 "30분 기준"으로 환산한 값 (초). 시간표와 강화 계산은 전부 이 값을 씀
 function refTime() { return stats.time / TIMELINE_SCALE; }
 const BOSS_TYPE = { key: "boss", name: "사신 마법사", shape: "wizard", color: "#9b5de5", r: 40, speed: 125, hp: 2500, damage: 30, xp: 0, behavior: "boss" };
+// --- 스테이지별 보스: 표가 없는 테마는 위 BOSS_TYPE (사신 마법사). 체력·피해 계산은 BOSS_TYPE 과 같음 ---
+//   pattern: 공격 방식 (updateBossEnemy 참고)   summon: 부르는 부하 종류   ring: 발밑 고리 색 (r, g, b)
+const STAGE_BOSSES = {
+  ice: { key: "yeti", name: "예티", shape: "yeti", color: "#cfefff", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "yeti", summon: "icewisp", ring: "125, 249, 255" },
+};
+function bossType() { return STAGE_BOSSES[diffDef().theme] || BOSS_TYPE; }
+// --- 예티 (얼음 동굴 보스) 공격: 모두 바닥에 빨간 경고 원을 먼저 띄우고, 안쪽 원이 다 차면 그 자리에서 터짐 ---
+const YETI_SLAM_INTERVAL = 6;        // 땅 내리치기 간격 (초)
+const YETI_SLAM_WINDUP = 1.0;        // 멈춰서 번쩍이며 경고 원이 차는 시간
+const YETI_SLAM_RADIUS = 170;        // 충격파 범위 (맞으면 느려짐)
+const YETI_SLAM_DAMAGE = 20;
+const YETI_ROCK_INTERVAL = 3.5;      // 얼음덩이 던지기 간격 (플레이어가 있던 자리에 떨어짐)
+const YETI_ROCK_FALL = 1.1;          // 그림자가 생기고 떨어지기까지
+const YETI_ROCK_RADIUS = 60;
+const YETI_ROCK_DAMAGE = 18;
+const YETI_SHARD_COUNT = 8;          // 얼음덩이가 떨어진 자리에서 사방으로 튀는 파편 수
+const YETI_SHARD_SPEED = 200;
+const YETI_SHARD_DAMAGE = 10;
+const YETI_ICICLE_INTERVAL = 4;      // 체력 절반 이하: 고드름 비 간격
+const YETI_ICICLE_COUNT = 6;         // 한 번에 떨어지는 고드름 수 (플레이어 자리 1개 + 주변 무작위)
+const YETI_ICICLE_FALL = 1.2;
+const YETI_ICICLE_RADIUS = 45;
+const YETI_ICICLE_SPREAD = 320;      // 플레이어 주변 이 거리 안에 떨어짐
+const YETI_ICICLE_DAMAGE = 14;
 const BOSS_HP_PER_LEVEL = 120;       // 보스 체력 = 기본 + 플레이어 레벨 × 이 값 (강한 빌드일수록 보스도 튼튼하게)
 const BOSS_FOCUS_RANGE = 450;        // 보스가 이 거리 안이면 자동 조준 무기가 부하 대신 보스를 노림
 //   플레이어를 계속 쫓아오므로(플레이어보다 느림) 도망치며 싸우고, 가까이 오면 근접 무기로도 때릴 수 있음

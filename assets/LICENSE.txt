@@ -189,3 +189,9 @@ License: Creative Commons Zero (CC0)
     hazard_puddle1~3.png = Ian926 "Pixel Art Puddles" (https://ian926.itch.io/pixel-art-puddles) puddle1~3.png
                      그림 부분만 잘라 내고 하늘색을 밝기만 남긴 회색으로 바꿈 (게임 안에서 테마 색을 입힘)
                      라이선스: "Can be used in any project as long as you credit Ian926" → 출처 표기 필수 (README 에도 적음)
+
+스테이지별 적·보스 그림: Clint Bellanger 의 "Tiny Creatures (1.0)" (CC0, Kenney Tiny Dungeon 확장판)
+https://opengameart.org/content/tiny-creatures
+Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0)를 그대로 잘라 씀:
+  얼음 동굴: icewisp.png = 59 (얼음 정령)   polarbear.png = 164 (북극곰)   iceelem.png = 49 (얼음 원소)
+             frostwight.png = 19 (서리 망령)   wendigo.png = 15 (웬디고)   yeti.png = 43 (보스 예티)

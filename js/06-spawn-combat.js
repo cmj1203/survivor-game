@@ -16,14 +16,16 @@ function enemyStage() {
 
 // 지금의 "주력" 적 종류 (마지막 종류가 끝나면 다시 처음부터)
 function currentEnemyType() {
-  return ENEMY_TYPES[enemyStage() % ENEMY_TYPES.length];
+  const types = enemyTypes();
+  return types[enemyStage() % types.length];
 }
 
 // 이번에 나올 적 종류 고르기: 새 몬스터 비율은 레벨업 후 서서히 늘어나고, 나머지는 기존 몬스터
 function pickEnemyType() {
   const current = currentEnemyType();
   const stage = enemyStage();
-  const unlocked = ENEMY_TYPES.slice(0, Math.min(stage + 1, ENEMY_TYPES.length));
+  const types = enemyTypes();
+  const unlocked = types.slice(0, Math.min(stage + 1, types.length));
   const olds = unlocked.filter((t) => t !== current);
   if (olds.length === 0) return current;             // 첫 단계: 박쥐뿐
 
@@ -31,8 +33,8 @@ function pickEnemyType() {
   if (Math.random() < newEnemyShare()) return current;
 
   // 기존 몬스터: 대부분은 바로 전 단계의 주력, 가끔 더 옛날 몬스터
-  const len = ENEMY_TYPES.length;
-  const prevMain = ENEMY_TYPES[(stage - 1 + len) % len];
+  const len = types.length;
+  const prevMain = types[(stage - 1 + len) % len];
   if (Math.random() < PREV_MAIN_CHANCE) return prevMain;
   return olds[Math.floor(Math.random() * olds.length)];
 }
@@ -83,6 +85,9 @@ function makeEnemy(type, x, y, isChild = false) {
   }
   if (e.behavior === "boss")    { e.shootTimer = BOSS_SHOT_INTERVAL; e.summonTimer = BOSS_SUMMON_INTERVAL; }
   if (e.behavior === "charger") { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+  if (e.behavior === "ranged")  e.shootTimer = RANGED_SHOT_INTERVAL * (0.5 + Math.random());   // 첫 화살 박자를 적마다 다르게
+  // 스테이지별 적의 특성 (STAGE_ENEMIES 표 참고)
+  for (const k of ["chill", "knockback", "dashMul", "splitType", "killStat", "leavesHazard", "hazardQuest"]) if (type[k]) e[k] = type[k];
 
   // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (보통 난이도는 tier 0 이라 그대로)
   const tier = enemyTier(), theme = diffDef().theme;
@@ -137,7 +142,7 @@ function eventTime(ev) { return Math.max(Math.min(ev.time, 60), ev.time * TIMELI
 // 몬스터 떼 등장: 화면 밖에서 출발해, 지금 플레이어가 있는 자리를 지나 반대편으로 날아감
 //   typeKey: 몬스터 종류 ("bat", "ghost")   angle: 날아가는 방향   count: 마릿수 (없으면 시간에 따라 늘어나는 기본값)
 function spawnSwarm(typeKey, angle, count) {
-  const type = ENEMY_TYPES.find((t) => t.key === typeKey);
+  const type = stageEnemyType(typeKey);                         // 스테이지마다 같은 자리의 적 (얼음 동굴의 "bat" = 얼음 정령)
   const dirX = Math.cos(angle), dirY = Math.sin(angle);          // 날아가는 방향
   if (!count) count = Math.min(SWARM_COUNT_MAX, Math.round(SWARM_COUNT + SWARM_COUNT_PER_MINUTE * (refTime() / 60)));
   for (let i = 0; i < count; i++) {
@@ -174,13 +179,16 @@ function spawnFlowerRing() {
 // 마지막 보스 등장: 화면 밖에서 나타남. 시간·레벨 보정 없이 BOSS_TYPE 의 고정 능력치
 function spawnBoss() {
   const { x, y } = randomEdgePosition(80);
-  boss = makeEnemy(BOSS_TYPE, x, y);
+  const bt = bossType();                       // 스테이지마다 다른 보스 (표가 없으면 사신 마법사)
+  boss = makeEnemy(bt, x, y);
   boss.boss = true;
+  boss.name = bt.name; boss.pattern = bt.pattern; boss.summon = bt.summon; boss.ring = bt.ring;
+  if (bt.pattern === "yeti") { boss.slamTimer = YETI_SLAM_INTERVAL / 2; boss.rockTimer = YETI_ROCK_INTERVAL; boss.icicleTimer = 0; }
   if (run) run.bossAt = stats.time;            // 퀘스트 '속전속결'용: 보스가 나온 시각
-  boss.r = BOSS_TYPE.r; boss.hp = Math.round((BOSS_TYPE.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY * diffDef().boss); boss.maxHp = boss.hp;
-  boss.speed = BOSS_TYPE.speed; boss.damage = Math.round(BOSS_TYPE.damage * DIFFICULTY); boss.xp = 0;
+  boss.r = bt.r; boss.hp = Math.round((bt.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY * diffDef().boss); boss.maxHp = boss.hp;
+  boss.speed = bt.speed; boss.damage = Math.round(bt.damage * DIFFICULTY); boss.xp = 0;
   enemies.push(boss);
-  spawnParticles(x, y, "#9b5de5", 30, 260);
+  spawnParticles(x, y, bt.color, 30, 260);
   return boss;
 }
 
@@ -505,7 +513,6 @@ function damageEnemy(e, dmg) {
   // 난이도 테마 · 붉은 게의 껍질: 남아 있으면 이번 공격은 껍질만 깨고 끝 (피해 없음)
   if (e.shell > 0) {
     e.shell -= 1;
-    if (run) run.shells += 1;                    // 퀘스트 '껍질 까기'용
     e.hitFlash = HIT_FLASH_TIME;
     playSfx("hit");
     spawnParticles(e.x, e.y, themeColor(1), 6, 160);
@@ -522,6 +529,7 @@ function damageEnemy(e, dmg) {
     e.dead = true;
     stats.kills += 1;
     playSfx("kill");
+    if (run && e.killStat) run[e.killStat] += 1;   // 퀘스트용 (얼음 원소 → '껍질 까기')
     if (charDef().healEvery && stats.kills % charDef().healEvery === 0) player.hp = Math.min(player.maxHp, player.hp + charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복
     if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
     spawnGem(e.x, e.y, e.xp);
@@ -542,16 +550,16 @@ function damageEnemy(e, dmg) {
     if (e.leavesHazard) {
       const life = CYCLOPS_HAZARD_LIFE[enemyTier()] + HAZARD_ARM_TIME;
       if ((e.elite || Math.random() < CYCLOPS_HAZARD_CHANCE[enemyTier()]) && hazards.length < CYCLOPS_HAZARD_MAX) {
-        hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME });
+        hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME, quest: !!e.hazardQuest });
       }
     }
 
-    // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴
+    // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴. splitType 이 있으면(얼음 원소) 그 종류가 제 크기로 나옴
     // (적 목록을 도는 중일 수 있어서 바로 넣지 않고 pendingSpawns에 모아둠)
     for (let i = 0; i < e.splitInto; i++) {
       const angle = (Math.PI * 2 * i) / e.splitInto + Math.random();
-      const type = ENEMY_TYPES.find((t) => t.key === e.type);
-      pendingSpawns.push(makeEnemy(type, e.x + Math.cos(angle) * 14, e.y + Math.sin(angle) * 14, true));
+      const type = findEnemyType(e.splitType || e.type);
+      pendingSpawns.push(makeEnemy(type, e.x + Math.cos(angle) * 14, e.y + Math.sin(angle) * 14, !e.splitType));
     }
   }
 }
@@ -662,6 +670,20 @@ function pushEnemy(e, fromX, fromY, power) {
   const p = e.elite ? power * 0.5 : power;
   e.x += (dx / len) * p;
   e.y += (dy / len) * p;
+}
+
+// 얼음 정령·서리 망령·예티: 잠깐 느려지게 함 (발밑에 테마 색 고리)
+function chillPlayer(time = CHILL_TIME) {
+  player.chillTimer = Math.max(player.chillTimer || 0, time);
+  player.slowTimer = Math.max(player.slowTimer || 0, time);
+}
+
+// 북극곰: 부딪힌 적의 반대쪽으로 잠깐 밀려남 (돌담 밖으로는 안 나감 — updatePlayer 가 가둠)
+function knockPlayer(e) {
+  const dx = player.x - e.x, dy = player.y - e.y, len = Math.hypot(dx, dy) || 1;
+  player.knockVX = (dx / len) * KNOCKBACK_SPEED;
+  player.knockVY = (dy / len) * KNOCKBACK_SPEED;
+  player.knockTimer = KNOCKBACK_TIME;
 }
 
 // 플레이어가 피해를 입을 때 (적에게 닿음, 적 탄환에 맞음). 보호막이 켜져 있으면 대신 막아 줌

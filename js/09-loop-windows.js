@@ -234,6 +234,7 @@ function revivePlayer() {
   player.invincible = P_REVIVE_INVINCIBLE;
   for (const e of enemies) if (!e.dead && inView(e.x, e.y)) pushEnemy(e, player.x, player.y, 120);
   enemyBullets = [];
+  bossMarks = [];
   effects.push({ x: player.x, y: player.y, r: Math.hypot(W, H) * 0.5, life: 0.5, maxLife: 0.5 });
   spawnParticles(player.x, player.y, "#ffd60a", 20, 220);
   floatTexts.push({ x: player.x, y: player.y - 34, text: "부활!", color: "#ffd60a", life: 1.5, maxLife: 1.5 });

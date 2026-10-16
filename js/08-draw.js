@@ -73,6 +73,22 @@ function drawFloorZones() {
     }
   }
 
+  // 보스 공격 경고 원: 빨간 테두리 + 안에서 차오르는 원 (다 차면 그 자리에서 터짐)
+  for (const m of bossMarks) {
+    const p = 1 - Math.max(0, m.time) / m.maxTime;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 70, 70, 0.9)";
+    ctx.fillStyle = "rgba(255, 70, 70, 0.12)";
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255, 70, 70, 0.28)";
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.r * p, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // 바닥 지역: 불바다 (일렁이는 주황 원)
   for (const z of zones) {
     const t = z.life / z.maxLife;
@@ -98,8 +114,8 @@ function drawFloorZones() {
 // 외눈 거인 자국 웅덩이: 회색 그림에 테마의 보색을 곱해 칠한 것 (테마·모양마다 한 번만 만들어 둠)
 const HAZARD_PUDDLE_WIDTH = 1.1;   // 웅덩이 그림 너비 = 자국 지름 × 이 값 (그림이 가로로 길쭉함)
 const HAZARD_PUDDLE_ALPHA = 0.5;   // 웅덩이 진하기 (바닥이 비쳐 보이게)
-// 웅덩이 색: 바닥에서 잘 보이게 테마 색의 보색을 진하게 (얼음 하늘색 → 빨강, 용암 주황 → 파랑, 어둠 보라 → 연두)
-const HAZARD_PUDDLE_COLORS = { ice: "230, 40, 40", lava: "30, 120, 255", dark: "110, 230, 30" };
+// 웅덩이 색: 바닥에서 잘 보이게 테마 색의 보색을 진하게 (용암 주황 → 파랑, 어둠 보라 → 연두). 얼음 동굴은 웬디고의 얼음 장판이라 밝은 얼음색
+const HAZARD_PUDDLE_COLORS = { ice: "185, 240, 255", lava: "30, 120, 255", dark: "110, 230, 30" };
 const puddleCache = {};
 function puddleImage(n) {
   const sp = SPRITES[`hazard_puddle${n}`];
@@ -364,7 +380,7 @@ function drawEnemyLayer() {
     const heading = Math.atan2(b.vy, b.vx);
     const angle = b.spin ? stats.time * b.spin : heading;
     if (!b.sprite || !drawSprite(b.sprite, b.x, b.y, b.size || 16, { angle })) {
-      ctx.fillStyle = "#ff1744";
+      ctx.fillStyle = b.color || "#ff1744";       // 서리 망령의 얼음 화살·예티의 얼음 파편은 하늘색
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -444,7 +460,7 @@ function drawBossBar() {
     ctx.fillStyle = "#fff";
     ctx.font = "bold 15px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`${BOSS_TYPE.name}  ${Math.ceil(boss.hp)} / ${boss.maxHp}`, W / 2, by - 8);
+    ctx.fillText(`${boss.name || BOSS_TYPE.name}  ${Math.ceil(boss.hp)} / ${boss.maxHp}`, W / 2, by - 8);
     ctx.textAlign = "left";
   }
 }
@@ -642,10 +658,10 @@ function drawEnemy(e) {
   const bobSpeed = e.baseShape === "bat" ? 18 : 7;
   const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12;
 
-  // 보스: 보라색 큰 고리
+  // 보스: 큰 고리 (사신 마법사는 보라색, 다른 보스는 ring 색)
   if (e.boss) {
-    ctx.fillStyle = "rgba(155, 93, 229, 0.18)";
-    ctx.strokeStyle = "#c77dff";
+    ctx.fillStyle = `rgba(${e.ring || "155, 93, 229"}, 0.18)`;
+    ctx.strokeStyle = e.ring ? `rgb(${e.ring})` : "#c77dff";
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(e.x, e.y, e.r * 1.5, 0, Math.PI * 2);

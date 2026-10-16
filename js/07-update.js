@@ -10,6 +10,7 @@ function update(dt) {
   updateEvents(dt);
   const frozen = updateFreezeTimer(dt);
   updateEnemies(dt, frozen);
+  updateBossMarks(dt);
 
   // --- 무기 발동 ---
   updateWeapons(dt);
@@ -50,12 +51,20 @@ function updatePlayer(dt) {
     player.facingX = mx / len;                 // 바라보는 방향 기억
     player.facingY = my / len;
     // 난이도 테마: 외눈 거인의 자국을 밟고 있으면 느려짐 (맞아서 느려지는 건 없음 — 모든 난이도가 보통과 같음)
-    const speed = player.speed * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1);
+    //   얼음 정령·서리 망령·예티에게 맞으면 잠깐 느려짐 (chillTimer)
+    const speed = player.speed * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1) * (player.chillTimer > 0 ? CHILL_SLOW_MUL : 1);
     player.x += (mx / len) * speed * dt;
     player.y += (my / len) * speed * dt;
   }
   if (player.slowTimer > 0) player.slowTimer -= dt;
   if (player.puddleTimer > 0) player.puddleTimer -= dt;
+  if (player.chillTimer > 0) player.chillTimer -= dt;
+  // 북극곰에게 부딪혀 밀려나는 중
+  if (player.knockTimer > 0) {
+    player.knockTimer -= dt;
+    player.x += player.knockVX * dt;
+    player.y += player.knockVY * dt;
+  }
   // 식인꽃은 벽: 겹치면 플레이어를 꽃 바깥으로 밀어냄 (뚫고 지나갈 수 없음) + 닿은 값으로 피해
   for (const e of enemies) {
     if (e.behavior !== "ring" || e.dead) continue;
@@ -176,6 +185,8 @@ function updateEnemies(dt, frozen) {
       updateBossEnemy(e, dirX, dirY, dt);
     } else if (e.behavior === "charger") {
       updateChargerEnemy(e, dirX, dirY, dt);
+    } else if (e.behavior === "ranged") {
+      updateRangedEnemy(e, dirX, dirY, len, dt);
     } else if (e.behavior === "swarm") {
       // 박쥐 떼: 플레이어를 쫓지 않고 처음 정해진 방향으로 곧장 날아감
       e.x += e.vx * dt;
@@ -202,20 +213,79 @@ function updateEnemies(dt, frozen) {
 
 // 보스 한 마리: 쫓아오기·탄환(난이도마다 패턴이 다름)·부하 소환
 function updateBossEnemy(e, dirX, dirY, dt) {
-  // 사신 마법사: 플레이어를 계속 쫓아오며 탄환을 쏘고, 주기적으로 부하를 소환
-  e.x += dirX * e.speed * dt;
-  e.y += dirY * e.speed * dt;
-  const pattern = BOSS_PATTERNS[enemyTier()];
-  if (pattern) updateBossShots(e, Math.atan2(dirY, dirX), pattern, dt);   // 보통 난이도는 공격 없음
+  if (e.pattern === "yeti") {
+    updateYetiBoss(e, dirX, dirY, dt);
+  } else {
+    // 사신 마법사: 플레이어를 계속 쫓아오며 탄환을 쏨 (난이도마다 패턴이 다름)
+    e.x += dirX * e.speed * dt;
+    e.y += dirY * e.speed * dt;
+    const pattern = BOSS_PATTERNS[enemyTier()];
+    if (pattern) updateBossShots(e, Math.atan2(dirY, dirX), pattern, dt);   // 보통 난이도는 공격 없음
+  }
+  // 주기적으로 부하 소환 (summon 이 있으면 그 종류, 없으면 지금 주력 몬스터)
   e.summonTimer -= dt;
   if (e.summonTimer <= 0) {
+    const type = e.summon ? findEnemyType(e.summon) : currentEnemyType();
     for (let i = 0; i < BOSS_SUMMON_COUNT; i++) {
       const a = (Math.PI * 2 * i) / BOSS_SUMMON_COUNT;
-      if (enemies.length < MAX_ENEMIES) pendingSpawns.push(makeEnemy(currentEnemyType(), e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70));
+      if (enemies.length < MAX_ENEMIES) pendingSpawns.push(makeEnemy(type, e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70));
     }
     e.summonTimer = BOSS_SUMMON_INTERVAL;
-    spawnParticles(e.x, e.y, "#9b5de5", 16, 200);
+    spawnParticles(e.x, e.y, e.color, 16, 200);
   }
+}
+
+// 예티(얼음 동굴 보스): 쫓아오다가 땅 내리치기(제자리) · 얼음덩이 던지기(플레이어 자리), 체력 절반 이하면 고드름 비까지
+function updateYetiBoss(e, dirX, dirY, dt) {
+  if (e.mode === "windup") {                     // 땅 내리치기 준비: 제자리에서 번쩍이며 경고 원이 참
+    e.modeTimer -= dt;
+    if (e.modeTimer <= 0) e.mode = null;
+    return;
+  }
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
+  e.slamTimer -= dt;
+  e.rockTimer -= dt;
+  if (e.slamTimer <= 0) {
+    e.slamTimer = YETI_SLAM_INTERVAL;
+    e.mode = "windup";
+    e.modeTimer = YETI_SLAM_WINDUP;
+    bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true });
+  } else if (e.rockTimer <= 0) {
+    e.rockTimer = YETI_ROCK_INTERVAL;
+    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT });
+  }
+  if (e.hp > e.maxHp / 2) return;
+  e.icicleTimer -= dt;
+  if (e.icicleTimer <= 0) {
+    e.icicleTimer = YETI_ICICLE_INTERVAL;
+    for (let i = 0; i < YETI_ICICLE_COUNT; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = i === 0 ? 0 : 60 + Math.random() * (YETI_ICICLE_SPREAD - 60);   // 첫 고드름은 플레이어 자리
+      const time = YETI_ICICLE_FALL + i * 0.08;                                  // 차례로 떨어지게 조금씩 어긋나게
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE });
+    }
+  }
+}
+
+// 보스 공격 경고 원: 시간이 다 되면 그 자리에서 터짐 (원 안에 있으면 피해. chill = 느려짐, shards = 사방으로 파편)
+function updateBossMarks(dt) {
+  for (const m of bossMarks) {
+    m.time -= dt;
+    if (m.time > 0) continue;
+    m.done = true;
+    if (Math.hypot(player.x - m.x, player.y - m.y) < m.r + player.r && player.invincible <= 0) {
+      hurtPlayer(Math.round(m.damage * DIFFICULTY));
+      if (m.chill) chillPlayer(CHILL_TIME * 2);
+    }
+    effects.push({ x: m.x, y: m.y, r: m.r, life: 0.3, maxLife: 0.3, rgb: "200, 240, 255" });
+    effects.push({ kind: "ring", x: m.x, y: m.y, r: m.r, color: "#e0f7ff", life: 0.3, maxLife: 0.3 });
+    for (let i = 0; i < (m.shards || 0); i++) {
+      const a = (Math.PI * 2 * i) / m.shards;
+      enemyBullets.push({ x: m.x, y: m.y, vx: Math.cos(a) * YETI_SHARD_SPEED, vy: Math.sin(a) * YETI_SHARD_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(YETI_SHARD_DAMAGE * DIFFICULTY), color: "#bfefff" });
+    }
+  }
+  bossMarks = bossMarks.filter((m) => !m.done);
 }
 
 // 보스 탄환 패턴. aim = 플레이어 쪽 각도
@@ -273,9 +343,21 @@ function updateChargerEnemy(e, dirX, dirY, dt) {
   } else if (e.mode === "windup") {
     if (e.modeTimer <= 0) { e.mode = "dash"; e.modeTimer = CHARGER_DASH_TIME; }
   } else {
-    e.x += e.dashX * CHARGER_DASH_SPEED * dt;
-    e.y += e.dashY * CHARGER_DASH_SPEED * dt;
+    e.x += e.dashX * CHARGER_DASH_SPEED * (e.dashMul || 1) * dt;   // 북극곰은 더 빠르고 길게 (dashMul)
+    e.y += e.dashY * CHARGER_DASH_SPEED * (e.dashMul || 1) * dt;
     if (e.modeTimer <= 0) { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
+  }
+}
+
+// 멀리서 쏘는 적 한 마리 (서리 망령): 일정 거리까지만 다가오고 너무 가까우면 물러나며, 화면 안에 있으면 얼음 화살을 쏨
+function updateRangedEnemy(e, dirX, dirY, len, dt) {
+  const move = len > RANGED_KEEP_DIST ? 1 : len < RANGED_KEEP_DIST - 60 ? -0.6 : 0;
+  e.x += dirX * e.speed * move * dt;
+  e.y += dirY * e.speed * move * dt;
+  e.shootTimer -= dt;
+  if (e.shootTimer <= 0 && inView(e.x, e.y)) {
+    e.shootTimer = RANGED_SHOT_INTERVAL;
+    enemyBullets.push({ x: e.x, y: e.y, vx: dirX * RANGED_SHOT_SPEED, vy: dirY * RANGED_SHOT_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(e.damage * RANGED_SHOT_DAMAGE), color: "#9be7ff", chill: true });
   }
 }
 
@@ -419,6 +501,8 @@ function updatePlayerDamage(dt, frozen) {
       if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
       if (circlesTouch(e, player)) {
         hurtPlayer(e.damage);
+        if (e.chill) chillPlayer();           // 얼음 정령: 잠깐 느려짐
+        if (e.knockback) knockPlayer(e);      // 북극곰: 밀려남
         break;               // 한 프레임에 한 번만 맞음
       }
     }
@@ -431,7 +515,7 @@ function updatePlayerDamage(dt, frozen) {
     if (circlesTouch(h, player)) {
       player.puddleTimer = 0.25;                                  // 밟는 동안 계속 느림, 벗어나면 0.25초 뒤 풀림
       player.slowTimer = Math.max(player.slowTimer || 0, 0.25);   // 발밑 고리 표시용
-      if (!h.stepped) { h.stepped = true; if (run) run.puddles += 1; }   // 퀘스트 '끈적끈적'용: 자국 하나당 한 번만 셈
+      if (!h.stepped) { h.stepped = true; if (run && h.quest) run.puddles += 1; }   // 퀘스트 '끈적끈적'용 (웬디고의 얼음 장판만): 장판 하나당 한 번만 셈
     }
   }
   hazards = hazards.filter((h) => h.life > 0);
@@ -443,7 +527,7 @@ function updatePlayerDamage(dt, frozen) {
     b.y += b.vy * dt;
     if (circlesTouch(b, player)) {
       b.dead = true;
-      if (player.invincible <= 0) hurtPlayer(b.damage);
+      if (player.invincible <= 0) { hurtPlayer(b.damage); if (b.chill) chillPlayer(); }   // 서리 망령의 얼음 화살: 느려짐
     }
   }
   enemyBullets = enemyBullets.filter((b) => !b.dead && inView(b.x, b.y, 40));
