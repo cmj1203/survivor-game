@@ -343,6 +343,8 @@ const CHEST_ORB_SPOTS = [                          // 보상 개수별 구슬 �
 ];
 const CHEST_SHAKE_TIME = 0.6;   // 닫힌 상자가 흔들리는 시간 (초). 그 뒤 열리고 구슬 그림이 돌다가 CHEST_ROLL_TIME 에 첫 구슬이 멈춤
 const CHEST_STOP_GAP = 0.3;     // 구슬이 하나씩 멈추는 간격 (초)
+const CHEST_NOTES = [0, 4, 7, 12, 16];   // 구슬이 멈출 때마다 내는 코인 소리의 음 (반음 단위: 도·미·솔·높은 도·높은 미). 많이 나올수록 높이 올라감 (뱀서처럼)
+const CHEST_NOTE_VOL = 0.7;
 
 function startChestRoll(icons, gains) {
   cancelChestRoll();
@@ -373,7 +375,7 @@ function startChestRoll(icons, gains) {
   });
 
   chestRoll.timers.push(setTimeout(openChestFx, CHEST_SHAKE_TIME * 1000));
-  for (let i = 0; i < n; i++) chestRoll.timers.push(setTimeout(() => landChestOrb(i), (CHEST_ROLL_TIME + CHEST_STOP_GAP * i) * 1000));
+  for (let i = 0; i < n; i++) chestRoll.timers.push(setTimeout(() => { landChestOrb(i); playSfxPitch("gem", CHEST_NOTES[i], CHEST_NOTE_VOL); }, (CHEST_ROLL_TIME + CHEST_STOP_GAP * i) * 1000));
   chestRoll.timers.push(setTimeout(() => { chestOk.disabled = false; }, (CHEST_ROLL_TIME + CHEST_STOP_GAP * (n - 1)) * 1000 + 200));
 }
 

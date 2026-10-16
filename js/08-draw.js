@@ -40,9 +40,10 @@ function draw() {
 // 던전 바닥 그림 그리기 (지금 화면에 보이는 부분만)
 function drawBackground() {
   if (background) {
-    // 던전 바닥: 맵 전체 그림에서 지금 화면에 보이는 부분만 잘라서 그림 (확대했을 때 가장자리가 비지 않게 올림)
+    // 던전 바닥: 지금 화면에 보이는 부분만 그림 (확대했을 때 가장자리가 비지 않게 올림) + 보이는 가장자리 돌담
     const sx = Math.round(cam.x), sy = Math.round(cam.y), vw = Math.ceil(VW), vh = Math.ceil(VH);
-    ctx.drawImage(background, sx / BG_SCALE, sy / BG_SCALE, vw / BG_SCALE, vh / BG_SCALE, sx, sy, vw, vh);
+    drawFloor(sx, sy, vw, vh, sx, sy);
+    drawWalls(sx, sy, vw, vh);
   }
 }
 
@@ -73,23 +74,27 @@ function drawFloorZones() {
     }
   }
 
-  // 보스 공격 경고 원: 빨간 테두리 + 안에서 차오르는 원 (다 차면 그 자리에서 터짐)
+  // 보스(예티) 공격 경고 원: 얼음색 원 + 안에서 차오르는 원 (다 차면 그 자리에서 터짐). 웬디고의 빨간 원과 구분되게
+  //   땅 내리치기(spikes)는 테두리 대신 원 둘레에 얼음 가시가 차례로 솟음
   for (const m of bossMarks) {
     const p = 1 - Math.max(0, m.time) / m.maxTime;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255, 70, 70, 0.9)";
-    ctx.fillStyle = "rgba(255, 70, 70, 0.12)";
+    ctx.fillStyle = "rgba(160, 230, 255, 0.15)";
     ctx.beginPath();
     ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255, 70, 70, 0.28)";
+    if (!m.spikes) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(190, 240, 255, 0.7)";
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(160, 230, 255, 0.28)";
     ctx.beginPath();
     ctx.arc(m.x, m.y, m.r * p, 0, Math.PI * 2);
     ctx.fill();
+    if (m.spikes) drawIceSpikes(m.x, m.y, m.r, p, 1);
   }
 
-  // 웬디고가 떨어질 자리: 보스 경고 원과 같은 빨간 원 (안쪽 원이 다 차면 착지)
+  // 웬디고가 떨어질 자리: 빨간 원 (안쪽 원이 다 차면 착지) + 가운데 빨간 발톱 자국
   for (const e of enemies) {
     if (!e.leap) continue;
     const r = LEAP_RADIUS * (e.elite ? 1.4 : 1), p = Math.min(1, e.leap.t / LEAP_TIME);
@@ -104,6 +109,10 @@ function drawFloorZones() {
     ctx.beginPath();
     ctx.arc(e.leap.tx, e.leap.ty, r * p, 0, Math.PI * 2);
     ctx.fill();
+    if (SPRITES.fx_leapclaw.ready) {
+      const s = (LEAP_CLAW_SIZE * r) / LEAP_RADIUS;
+      ctx.drawImage(SPRITES.fx_leapclaw.normal, e.leap.tx - s / 2, e.leap.ty - s / 2, s, s);
+    }
   }
 
   // 바닥 지역: 불바다 (일렁이는 주황 원)
@@ -215,6 +224,8 @@ function drawEffects() {
       // 그림으로 그리는 폭발·고리 (fx = 그림 이름). 고리는 예전처럼 r 보다 조금 크게 퍼진 크기로
       const size = (f.kind === "ring" ? f.r + 22 : f.r) * FX_BURST_SIZE;
       drawFxSprite(f.fx, f.x, f.y, size, size, t);
+    } else if (f.kind === "icespikes") {
+      drawIceSpikes(f.x, f.y, f.r, 1, t);   // 예티 땅 내리치기 뒤 둘레 가시가 옅어짐
     } else if (f.kind === "chest") {
       // 열린 상자가 잠깐 남았다가 옅어지며 사라짐
       ctx.globalAlpha = t;
@@ -297,6 +308,26 @@ function drawFxFrame(name, frame, x, y, w, h, angle = 0, ax = 0.5, ay = 0.5) {
   ctx.restore();
 }
 const FX_BURST_SIZE = (2 * 32) / 30;   // 둥근 효과(폭발·고리·별): 그림 속 원(지름 약 30px)이 반지름 r 에 닿게
+const LEAP_CLAW_SIZE = 48;             // 웬디고 착지점 발톱 자국 크기 (16px 그림 3배, 정예는 원 크기에 맞춰 커짐)
+
+// 예티 땅 내리치기 경고: 원 둘레에 얼음 가시(fx_icespikes.png, 16px 3칸 = 작은 → 큰 가시)가 한 바퀴 돌며 차례로 솟음
+//   p = 경고 진행(0 → 1), alpha = 투명도 (터진 뒤 옅어질 때)
+const ICE_SPIKE_COUNT = 20;
+const ICE_SPIKE_SIZE = 48;
+function drawIceSpikes(x, y, r, p, alpha) {
+  const sp = SPRITES.fx_icespikes;
+  if (!sp.ready) return;
+  ctx.globalAlpha = alpha;
+  for (let i = 0; i < ICE_SPIKE_COUNT; i++) {
+    const show = p * 1.25 - (i / ICE_SPIKE_COUNT) * 0.25;
+    if (show <= 0) continue;
+    const frame = show < 0.45 ? 0 : show < 0.8 ? 1 : 2;
+    const a = (i / ICE_SPIKE_COUNT) * Math.PI * 2;
+    // 가시 밑동이 원 둘레에 오도록 그림을 위로 올려 그림
+    ctx.drawImage(sp.normal, frame * 16, 0, 16, 16, x + Math.cos(a) * r - ICE_SPIKE_SIZE / 2, y + Math.sin(a) * r - ICE_SPIKE_SIZE + 8, ICE_SPIKE_SIZE, ICE_SPIKE_SIZE);
+  }
+  ctx.globalAlpha = 1;
+}
 const FX_BEAM_THICK = 8;               // 광선 그림의 띠 두께 (32px 중 가운데 8px)
 
 // 낙뢰: Thunder Impact (번개가 떨어져 터짐). 터지는 원(반지름 11px, 그림 속 (17, 21))이 공격 범위 r 에 맞게
@@ -682,7 +713,7 @@ function drawEnemy(e) {
     ctx.strokeStyle = "rgba(160, 230, 255, 0.45)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(e.x, e.y, AURA_RADIUS, 0, Math.PI * 2);
+    ctx.arc(e.x, e.y, auraRadius(e), 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }

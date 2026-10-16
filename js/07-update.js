@@ -256,10 +256,10 @@ function updateYetiBoss(e, dirX, dirY, dt) {
     e.slamTimer = YETI_SLAM_INTERVAL;
     e.mode = "windup";
     e.modeTimer = YETI_SLAM_WINDUP;
-    bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true });
+    bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true, spikes: true, fx: "fx_frostnova" });
   } else if (e.rockTimer <= 0) {
     e.rockTimer = YETI_ROCK_INTERVAL;
-    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT });
+    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT, fx: "fx_iceshatter" });
   }
   if (e.hp > e.maxHp / 2) return;
   e.icicleTimer -= dt;
@@ -269,7 +269,7 @@ function updateYetiBoss(e, dirX, dirY, dt) {
       const a = Math.random() * Math.PI * 2;
       const d = i === 0 ? 0 : 60 + Math.random() * (YETI_ICICLE_SPREAD - 60);   // 첫 고드름은 플레이어 자리
       const time = YETI_ICICLE_FALL + i * 0.08;                                  // 차례로 떨어지게 조금씩 어긋나게
-      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE });
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE, fx: "fx_icehit" });
     }
   }
 }
@@ -284,8 +284,8 @@ function updateBossMarks(dt) {
       hurtPlayer(Math.round(m.damage * DIFFICULTY));
       if (m.chill) chillPlayer(CHILL_TIME * 2);
     }
-    effects.push({ x: m.x, y: m.y, r: m.r, life: 0.3, maxLife: 0.3, rgb: "200, 240, 255" });
-    effects.push({ kind: "ring", x: m.x, y: m.y, r: m.r, color: "#e0f7ff", life: 0.3, maxLife: 0.3 });
+    effects.push({ x: m.x, y: m.y, r: m.r, life: YETI_FX_LIFE, maxLife: YETI_FX_LIFE, fx: m.fx });   // 터지는 그림 (공격마다 다름, 위 bossMarks.push 의 fx)
+    if (m.spikes) effects.push({ kind: "icespikes", x: m.x, y: m.y, r: m.r, life: 0.35, maxLife: 0.35 });   // 둘레 얼음 가시가 옅어지며 사라짐
     for (let i = 0; i < (m.shards || 0); i++) {
       const a = (Math.PI * 2 * i) / m.shards;
       enemyBullets.push({ x: m.x, y: m.y, vx: Math.cos(a) * YETI_SHARD_SPEED, vy: Math.sin(a) * YETI_SHARD_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(YETI_SHARD_DAMAGE * DIFFICULTY), color: "#bfefff" });
@@ -381,7 +381,7 @@ function updatePackEnemy(e, dirX, dirY, len, dt) {
 // 질주하는 적 (북극곰): 멀리서는 어슬렁, GALLOP_RANGE 안으로 들어오면 네 발로 달리며 점점 빨라짐 (멀어지면 다시 어슬렁)
 function updateGallopEnemy(e, dirX, dirY, len, dt) {
   e.gallop = len < GALLOP_RANGE ? e.gallop + dt : 0;
-  const mul = e.gallop > 0 ? Math.min(GALLOP_MAX, 1 + GALLOP_ACCEL * e.gallop) : GALLOP_AMBLE;
+  const mul = e.gallop > 0 ? Math.min(GALLOP_MAX, GALLOP_AMBLE + GALLOP_ACCEL * e.gallop) : GALLOP_AMBLE;
   e.x += dirX * e.speed * mul * dt;
   e.y += dirY * e.speed * mul * dt;
 }
@@ -398,7 +398,7 @@ function updateLeaperEnemy(e, dirX, dirY, len, dt) {
     e.leap = null;
     const r = LEAP_RADIUS * (e.elite ? 1.4 : 1);
     if (Math.hypot(player.x - e.x, player.y - e.y) < r + player.r && player.invincible <= 0) hurtPlayer(e.damage);
-    effects.push({ kind: "ring", x: e.x, y: e.y, r, color: "#e0f7ff", life: 0.3, maxLife: 0.3 });
+    effects.push({ x: e.x, y: e.y, r, life: LEAP_DUST_LIFE, maxLife: LEAP_DUST_LIFE, fx: "fx_landdust" });   // 착지 흙먼지
     spawnParticles(e.x, e.y, "#e0f7ff", 10, 200);
     if (hazards.length < CYCLOPS_HAZARD_MAX) {
       const life = CYCLOPS_HAZARD_LIFE[enemyTier()] + HAZARD_ARM_TIME;
@@ -562,7 +562,7 @@ function updatePlayerDamage(dt, frozen) {
   }
 
   // --- 서리 망령의 찬 기운: 둘레(AURA_RADIUS) 안에 있으면 느려짐 (빙결 중에는 기운도 멈춤) ---
-  if (!frozen) for (const e of enemies) if (e.aura && !e.dead && !(e.frozenTimer > 0) && Math.hypot(player.x - e.x, player.y - e.y) < AURA_RADIUS) { chillPlayer(0.25); break; }
+  if (!frozen) for (const e of enemies) if (e.aura && !e.dead && !(e.frozenTimer > 0) && Math.hypot(player.x - e.x, player.y - e.y) < auraRadius(e)) { chillPlayer(0.25); break; }
 
   // --- 난이도 테마 · 끈적한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟고 있으면 느려짐 (피해는 없음) ---
   for (const h of hazards) {

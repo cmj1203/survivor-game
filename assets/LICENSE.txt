@@ -132,6 +132,20 @@ License: Creative Commons Zero (CC0)
       sfx_explode = Explosions/Short/sfx_exp_short_hard1, sfx_button = Menu Sounds/sfx_menu_select1,
       sfx_pause_in / sfx_pause_out = Pause Sounds/sfx_sounds_pause1_in / _out
 
+장소별 배경 음악 (2026-10-16, 모두 CC0, OpenGameArt. 모노 mp3 64kbps 로 줄이고 위 곡들과 음량을 맞춤):
+  music_ice.mp3       = "Fields of Ice" — Jonathan So
+    https://opengameart.org/content/fields-of-ice
+  music_lava.mp3      = "Fire Level" 원곡 (Danish Mega Pony v.4 OST Track 02) — Spring Spring
+    https://opengameart.org/content/fire-level
+  music_dark.mp3      = "Spooky Dungeon" — Memoraphile (You're Perfect Studio). CC0 / CC-BY 4.0 / OGA-BY 3.0 중 CC0 로 씀
+    https://opengameart.org/content/spooky-dungeon
+  music_boss_ice.mp3  = "Boss Battle #3" V1 — nene
+    https://opengameart.org/content/boss-battle-3-8-bit-re-upload
+  music_boss_lava.mp3 = "Great Boss" — Spring Spring
+    https://opengameart.org/content/great-boss
+  music_boss_dark.mp3 = "Boss Battle #1" V1 — nene
+    https://opengameart.org/content/boss-battle-1-8-bit-re-upload
+
 소리 켜기/끄기 버튼 그림 (2026-10-07):
   sound_on.png / sound_off.png = pause.png 의 말풍선 윤곽을 그대로 쓰고, 안을 노랑으로 칠한 뒤 스피커(+물결 / +X)를 진한 갈색으로 찍음 (외부 출처 없음)
 
@@ -189,6 +203,15 @@ License: Creative Commons Zero (CC0)
     hazard_puddle1~3.png = Ian926 "Pixel Art Puddles" (https://ian926.itch.io/pixel-art-puddles) puddle1~3.png
                      그림 부분만 잘라 내고 하늘색을 밝기만 남긴 회색으로 바꿈 (게임 안에서 테마 색을 입힘)
                      라이선스: "Can be used in any project as long as you credit Ian926" → 출처 표기 필수 (README 에도 적음)
+
+  2026-10-16 예티·웬디고 공격 효과:
+    IceMaan "FREE PIXEL VFX ESSENTIALS" Spritesheets/ 에서 그대로 (32×32 가로 띠, 위 fx_slash 와 같은 라이선스):
+      fx_frostnova.png = Magic/Frost Nova (예티 땅 내리치기)      fx_iceshatter.png = Explosions/Ice Shatter (예티 얼음덩이)
+      fx_icehit.png = Hit Sparks/Ice Hit (예티 고드름)            fx_landdust.png = Smoke and Dust/Landing Dust (웬디고 착지)
+    fx_icespikes.png = Kami "Pixel Icicles" (https://kamioo.itch.io/pixel-icicles, CC0) icerocks_pixel.png
+                       셋째 줄(위에서 32px)의 0·2·3번째 칸(16px)을 작은 가시 → 큰 가시 순서로 가로로 붙임 (예티 땅 내리치기 경고 둘레)
+    fx_leapclaw.png  = Kenney "Tiny Dungeon" (CC0) Tiles/tile_0062.png (세 줄 발톱 자국). 흰색을 빨강(220,60,60)으로,
+                       어두운 외곽선을 #3F2631 로 바꿈 (웬디고 착지점 경고)
 
 스테이지별 적·보스 그림: Clint Bellanger 의 "Tiny Creatures (1.0)" (CC0, Kenney Tiny Dungeon 확장판)
 https://opengameart.org/content/tiny-creatures

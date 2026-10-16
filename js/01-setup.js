@@ -54,10 +54,11 @@ const VH = H / ZOOM;       // 화면에 보이는 맵 세로 (PC 720, 휴대폰 
 //   → 게임 안의 모든 위치(플레이어, 적, 발사체 ...)는 "월드 좌표"이고,
 //     그릴 때만 카메라 위치만큼 옮겨서(ctx.translate) 화면에 보이는 부분을 그림
 // =====================================================================
-const WORLD_W = 5760;      // 맵 가로 (화면의 4.5배. 예전 3840 의 1.5배)
-const WORLD_H = 3264;      // 맵 세로 (예전 2160 의 1.5배 = 3240 을 타일 48 의 배수로 맞춤)
-const BG_SCALE = 3;        // 배경 그림은 맵의 1/3 크기로 만들어 두고 3배로 늘려 그림 (타일 원본이 16픽셀이라 모양은 똑같고, 메모리는 1/9)
-                           //   맵 전체 크기 그대로 만들면 휴대폰(특히 아이폰)의 그림 크기 한도를 넘어서 바닥이 안 나옴
+const WORLD_W = 17280;     // 맵 가로 (예전 5760 의 3배, 사용자 요청 10-16)
+const WORLD_H = 9792;      // 맵 세로 (예전 3264 의 3배. 둘 다 타일 48 의 배수)
+const BG_TILE_W = 5760;    // 바닥 무늬 한 장의 크기 (맵 좌표). 이 한 장을 바둑판처럼 이어 붙여 맵 전체를 깖
+const BG_TILE_H = 3264;    //   맵 전체를 그림 한 장으로 만들면 휴대폰(특히 아이폰)의 그림 크기 한도를 넘어서 바닥이 안 나옴
+const BG_SCALE = 3;        // 바닥 무늬 그림은 1/3 크기로 만들어 두고 3배로 늘려 그림 (타일 원본이 16픽셀이라 모양은 똑같고, 메모리는 1/9)
 const WALL_SIZE = 48;      // 맵 경계 돌담 두께 (장식용. 실제로 못 나가게 막는 건 좌표 제한)
 
 const cam = { x: 0, y: 0 };   // 카메라 왼쪽 위 모서리의 월드 좌표
@@ -94,7 +95,7 @@ function randomEdgePosition(margin) {
 // 그림 주소에 붙일 버전: index.html 이 이 파일을 부를 때 붙인 ?v= 값을 그대로 씀 (올릴 때 index.html 의 ?v= 만 바꾸면 됨)
 const ASSET_VERSION = new URL(document.currentScript.src).searchParams.get("v") || "";
 const assetUrl = (name) => `assets/${name}.png${ASSET_VERSION ? `?v=${ASSET_VERSION}` : ""}`;
-const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "hellhound", "muck", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
+const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "fx_frostnova", "fx_iceshatter", "fx_icehit", "fx_landdust", "fx_icespikes", "fx_leapclaw", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "hellhound", "muck", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                       "dagger", "axe", "spear", "firebomb", "staff", "shield",
                       "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
                       "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_icebeam", "w_bloodsword", "w_shadow", "w_bone", "w_flames", "w_bomb", "boss_shuriken",
@@ -177,10 +178,39 @@ function setBackgroundTheme(theme) {
 // 구멍·자갈 무늬 자리를 정하는 씨앗: 배경을 다시 만들어도 같은 자리에 같은 무늬가 나오게 한 번만 뽑아 둠
 const floorSeed = Math.floor(Math.random() * 2147483647) + 1;
 
+// 맵 좌표 (sx, sy) 부터 가로 w · 세로 h 만큼의 바닥을 화면 (dx, dy) 에 그림. 무늬 한 장(BG_TILE_W×BG_TILE_H)을 바둑판처럼 이어 붙임
+//   타일 수가 짝수(120×68)라 이음새에서도 바둑판 음영이 끊기지 않음
+function drawFloor(sx, sy, w, h, dx, dy) {
+  for (let ty = Math.floor(sy / BG_TILE_H) * BG_TILE_H; ty < sy + h; ty += BG_TILE_H) {
+    for (let tx = Math.floor(sx / BG_TILE_W) * BG_TILE_W; tx < sx + w; tx += BG_TILE_W) {
+      const x0 = Math.max(sx, tx), y0 = Math.max(sy, ty);                     // 이 무늬 한 장과 그릴 영역이 겹치는 부분
+      const x1 = Math.min(sx + w, tx + BG_TILE_W), y1 = Math.min(sy + h, ty + BG_TILE_H);
+      ctx.drawImage(background, (x0 - tx) / BG_SCALE, (y0 - ty) / BG_SCALE, (x1 - x0) / BG_SCALE, (y1 - y0) / BG_SCALE,
+        dx + x0 - sx, dy + y0 - sy, x1 - x0, y1 - y0);
+    }
+  }
+}
+
+// 맵 경계 돌담 (여기가 맵 끝이라는 표시): 맵 좌표 (sx, sy, w, h) 화면 안에 들어오는 칸만 그림. 월드 좌표로 옮겨 둔 상태에서 부름
+function drawWalls(sx, sy, w, h) {
+  const wall = floorImage("wall");
+  if (!wall?.complete) return;
+  const cx0 = Math.max(0, Math.floor(sx / WALL_SIZE) * WALL_SIZE), cx1 = Math.min(WORLD_W, sx + w);
+  const cy0 = Math.max(0, Math.floor(sy / WALL_SIZE) * WALL_SIZE), cy1 = Math.min(WORLD_H, sy + h);
+  for (const y of [0, WORLD_H - WALL_SIZE]) {
+    if (y + WALL_SIZE < sy || y > sy + h) continue;
+    for (let x = cx0; x < cx1; x += WALL_SIZE) ctx.drawImage(wall, x, y, WALL_SIZE, WALL_SIZE);
+  }
+  for (const x of [0, WORLD_W - WALL_SIZE]) {
+    if (x + WALL_SIZE < sx || x > sx + w) continue;
+    for (let y = cy0; y < cy1; y += WALL_SIZE) ctx.drawImage(wall, x, y, WALL_SIZE, WALL_SIZE);
+  }
+}
+
 function buildBackground() {
   const c = document.createElement("canvas");
-  c.width = WORLD_W / BG_SCALE;
-  c.height = WORLD_H / BG_SCALE;
+  c.width = BG_TILE_W / BG_SCALE;                 // 맵 전체가 아니라 무늬 한 장만 만듦 (drawFloor 가 이어 붙여 그림)
+  c.height = BG_TILE_H / BG_SCALE;
   const b = c.getContext("2d");
   b.imageSmoothingEnabled = false;
   b.scale(1 / BG_SCALE, 1 / BG_SCALE);            // 아래는 전부 맵 좌표로 적고, 실제로는 1/3 크기로 그려짐
@@ -188,8 +218,8 @@ function buildBackground() {
   const rand = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };   // 씨앗으로 만드는 0~1 난수
 
   // (1) 바닥 타일 깔기: 민무늬 + 가끔 옅은 구멍·자갈 무늬 + 바둑판 음영
-  for (let y = 0; y < WORLD_H; y += FLOOR_TILE_SIZE) {
-    for (let x = 0; x < WORLD_W; x += FLOOR_TILE_SIZE) {
+  for (let y = 0; y < BG_TILE_H; y += FLOOR_TILE_SIZE) {
+    for (let x = 0; x < BG_TILE_W; x += FLOOR_TILE_SIZE) {
       b.drawImage(floorImage(FLOOR_PLAIN), x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE);
 
       // 가끔 구멍·자갈 무늬를 민무늬 위에 옅게 얹음
@@ -210,20 +240,8 @@ function buildBackground() {
 
   // (2) 어두운 남색 막을 덮어 바닥을 차분하게 누름 → 공격·이펙트·구슬이 묻히지 않게
   b.fillStyle = `rgba(18, 18, 32, ${BG_DIM})`;
-  b.fillRect(0, 0, WORLD_W, WORLD_H);
-
-  // (3) 맵 경계 돌담: 가장자리에 한 줄 (여기가 맵 끝이라는 표시)
-  const wall = floorImage("wall");
-  if (wall) {
-    for (let x = 0; x < WORLD_W; x += WALL_SIZE) {
-      b.drawImage(wall, x, 0, WALL_SIZE, WALL_SIZE);
-      b.drawImage(wall, x, WORLD_H - WALL_SIZE, WALL_SIZE, WALL_SIZE);
-    }
-    for (let y = 0; y < WORLD_H; y += WALL_SIZE) {
-      b.drawImage(wall, 0, y, WALL_SIZE, WALL_SIZE);
-      b.drawImage(wall, WORLD_W - WALL_SIZE, y, WALL_SIZE, WALL_SIZE);
-    }
-  }
+  b.fillRect(0, 0, BG_TILE_W, BG_TILE_H);
+  // (3) 맵 경계 돌담은 여기서 안 그림: 무늬를 이어 붙이므로, 화면에 보이는 가장자리만 drawWalls 가 매번 그림
   background = c;
 
   // (4) 비네트: 화면 크기로 따로 만들어 두고 매 프레임 맨 위에 덮음 (카메라가 움직여도 항상 화면 가장자리가 어둡게)

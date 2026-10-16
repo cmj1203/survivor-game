@@ -154,7 +154,7 @@ function drawTitleScene() {
   if (background) {
     const sx = (WORLD_W - W) / 2 + Math.sin(t * 0.15) * 120;
     const sy = (WORLD_H - H) / 2 + Math.cos(t * 0.11) * 80;
-    ctx.drawImage(background, sx / BG_SCALE, sy / BG_SCALE, W / BG_SCALE, H / BG_SCALE, 0, 0, W, H);
+    drawFloor(sx, sy, W, H, 0, 0);
   }
 
   // (2) 몰려오는 몬스터 (기사보다 어둡게, 멀수록 더 어둡게 → 기사가 돋보임)

@@ -77,6 +77,18 @@ function playSfx(key) {
   src.start();
 }
 
+// 같은 효과음을 음 높이만 바꿔 냄 (semitones: 반음 단위, 12 = 한 옥타브 위). 간격 제한 없음 → 상자 구슬처럼 차례로 올라가는 음에 씀
+function playSfxPitch(key, semitones, vol) {
+  if (!soundOn || !audioCtx || audioCtx.state !== "running") return;
+  const def = SFX[key], buf = audioBuffers[`sfx_${key}`];
+  if (!def || !buf) return;
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  src.playbackRate.value = 2 ** (semitones / 12);
+  const g = audioCtx.createGain(); g.gain.value = vol ?? def.vol;
+  src.connect(g).connect(sfxGain);
+  src.start();
+}
+
 // 배경 음악 바꾸기 (name = "title", "stage1".."stage3", "boss", "ending", null = 끄기). 같은 곡이면 그대로 이어서 틂
 function setMusic(name) {
   musicWant = name;
@@ -99,10 +111,19 @@ function setMusic(name) {
   });
 }
 
-// 게임 중 배경 음악: 0~7분 / 7~14분 / 14분~ 곡이 바뀌고, 보스가 나오면 보스 곡
+// 난이도 테마(장소)마다 따로 트는 곡: 게임 중 내내 stage 곡, 보스가 나오면 boss 곡 (assets/music_<이름>.mp3, 출처는 assets/LICENSE.txt)
+const THEME_MUSIC = {
+  ice:  { stage: "ice",  boss: "boss_ice" },    // 얼음 동굴: Fields of Ice / Boss Battle #3
+  lava: { stage: "lava", boss: "boss_lava" },   // 용암 굴: Fire Level (원곡) / Great Boss
+  dark: { stage: "dark", boss: "boss_dark" },   // 저주받은 어둠: Spooky Dungeon / Boss Battle #1
+};
+
+// 게임 중 배경 음악: 던전은 0~7분 / 7~14분 / 14분~ 곡이 바뀌고, 다른 장소는 그 장소 곡. 보스가 나오면 보스 곡
 function updateRunMusic() {
   if (!run || run.done) return;
-  const want = boss && !boss.dead ? "boss" : stats.time < 420 ? "stage1" : stats.time < 840 ? "stage2" : "stage3";
+  const theme = THEME_MUSIC[diffDef().theme];
+  const want = boss && !boss.dead ? (theme ? theme.boss : "boss")
+    : theme ? theme.stage : stats.time < 420 ? "stage1" : stats.time < 840 ? "stage2" : "stage3";
   if (want !== musicWant) setMusic(want);
 }
 

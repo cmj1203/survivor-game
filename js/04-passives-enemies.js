@@ -140,15 +140,17 @@ const CHILL_SLOW_MUL = 0.65;         // 느려졌을 때 이동 속도 배수
 const KNOCKBACK_SPEED = 420;         // 북극곰: 부딪히면 이 속도로 밀려남
 const KNOCKBACK_TIME = 0.18;         // 북극곰: 밀려나는 시간 (초) → 약 75px
 const GALLOP_RANGE = 280;            // 북극곰: 이 거리 안으로 들어오면 질주 시작 (밖에서는 어슬렁)
-const GALLOP_AMBLE = 0.8;            // 북극곰: 어슬렁거릴 때 속도 배수
+const GALLOP_AMBLE = 1.2;            // 북극곰: 어슬렁거릴 때 속도 배수 (60)
 const GALLOP_ACCEL = 1.2;            // 북극곰: 질주하면 1초마다 이만큼 빨라짐 (기본 속도의 배수)
-const GALLOP_MAX = 2.6;              // 북극곰: 질주 최고 속도 배수 (130 — 플레이어 기본 속도 220 보다 느려서 피할 수 있음)
+const GALLOP_MAX = 3.4;              // 북극곰: 질주 최고 속도 배수 (170 — 플레이어 기본 속도 220 보다 느려서 피할 수 있음)
 const AURA_RADIUS = 40;              // 서리 망령: 찬 기운 반지름 (이 안에 들어가면 느려짐)
-const LEAP_INTERVAL = 15;            // 웬디고: 덮치기 간격 (초). 첫 덮치기만 적마다 박자가 다름
+function auraRadius(e) { return AURA_RADIUS * (e.elite ? ELITE_SIZE : 1); }   // 엘리트는 몸이 커지므로 찬 기운도 같은 배수로 (안 키우면 원이 몸 그림에 가려 안 보임)
+const LEAP_INTERVAL = 10;            // 웬디고: 덮치기 간격 (초). 첫 덮치기만 적마다 박자가 다름
 const LEAP_RANGE = 360;              // 웬디고: 이 거리 안이면 플레이어가 있던 자리로 뛰어오름
 const LEAP_TIME = 0.9;               // 웬디고: 뛰어서 떨어지기까지 (그동안 떨어질 자리에 빨간 그림자 경고)
 const LEAP_HEIGHT = 70;              // 웬디고: 뛰어오르는 높이 (그림만)
 const LEAP_RADIUS = 55;              // 웬디고: 착지할 때 이 안에 있으면 피해, 그 자리에 얼음 장판
+const LEAP_DUST_LIFE = 0.45;         // 웬디고: 착지 흙먼지 그림(Landing Dust)이 재생되는 시간
 
 // --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
 //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
@@ -183,7 +185,7 @@ const STAGE_BOSSES = {
   ice: { key: "yeti", name: "예티", shape: "yeti", color: "#cfefff", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "yeti", summon: "icewisp", ring: "125, 249, 255" },
 };
 function bossType() { return STAGE_BOSSES[diffDef().theme] || BOSS_TYPE; }
-// --- 예티 (얼음 동굴 보스) 공격: 모두 바닥에 빨간 경고 원을 먼저 띄우고, 안쪽 원이 다 차면 그 자리에서 터짐 ---
+// --- 예티 (얼음 동굴 보스) 공격: 모두 바닥에 얼음색 경고 원을 먼저 띄우고, 안쪽 원이 다 차면 그 자리에서 터짐 ---
 const YETI_SLAM_INTERVAL = 6;        // 땅 내리치기 간격 (초)
 const YETI_SLAM_WINDUP = 1.0;        // 멈춰서 번쩍이며 경고 원이 차는 시간
 const YETI_SLAM_RADIUS = 170;        // 충격파 범위 (맞으면 느려짐)
@@ -201,6 +203,7 @@ const YETI_ICICLE_FALL = 1.2;
 const YETI_ICICLE_RADIUS = 45;
 const YETI_ICICLE_SPREAD = 320;      // 플레이어 주변 이 거리 안에 떨어짐
 const YETI_ICICLE_DAMAGE = 14;
+const YETI_FX_LIFE = 0.45;           // 예티 공격이 터지는 그림(Frost Nova / Ice Shatter / Ice Hit)이 재생되는 시간
 const BOSS_HP_PER_LEVEL = 120;       // 보스 체력 = 기본 + 플레이어 레벨 × 이 값 (강한 빌드일수록 보스도 튼튼하게)
 const BOSS_FOCUS_RANGE = 450;        // 보스가 이 거리 안이면 자동 조준 무기가 부하 대신 보스를 노림
 //   플레이어를 계속 쫓아오므로(플레이어보다 느림) 도망치며 싸우고, 가까이 오면 근접 무기로도 때릴 수 있음
