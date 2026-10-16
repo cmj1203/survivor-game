@@ -72,6 +72,7 @@ function gameSpeed() { return hasFast() && meta.fast ? GAME_SPEED_FAST : 1; }
 const QUESTS = [
   { id: "q_time1",    name: "첫 걸음",       desc: "2분 버티기",                                stat: "time",   goal: 120,   gold: 30 },
   { id: "q_level10",  name: "성장",          desc: "한 판에 레벨 15 도달",                      stat: "level",  goal: 15,   weapon: "spear" },
+  { id: "q_level25",  name: "숙련",          desc: "한 판에 레벨 25 도달",                      stat: "level",  goal: 25,   weapon: "staff" },
   { id: "q_time5",    name: "7분 버티기",    desc: "한 판에 7분 버티기",                        stat: "time",   goal: 420,  weapon: "lightning" },
   { id: "q_chest3",   name: "보물 사냥",     desc: "보물 상자 5개 열기 (누적)",                 stat: "chests", goal: 5,    weapon: "cherry" },
   { id: "q_kill500",  name: "몬스터 사냥꾼", desc: "1000마리 처치 (누적)",                       stat: "kills",  goal: 1000,  weapon: "hammer" },
