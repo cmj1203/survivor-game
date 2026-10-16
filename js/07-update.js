@@ -410,7 +410,7 @@ function updateLeaperEnemy(e, dirX, dirY, len, dt) {
   e.y += dirY * e.speed * dt;
   e.leapTimer -= dt;
   if (e.leapTimer <= 0 && len < LEAP_RANGE && inView(e.x, e.y)) {
-    e.leapTimer = LEAP_INTERVAL * (0.8 + Math.random() * 0.4);
+    e.leapTimer = LEAP_INTERVAL - LEAP_TIME;   // 땅에 있을 때만 줄어드므로 공중 시간을 빼서, 덮치기 시작 간격이 LEAP_INTERVAL
     e.leap = { sx: e.x, sy: e.y, tx: player.x, ty: player.y, t: 0 };
   }
 }
