@@ -118,6 +118,15 @@ function newTitleMonster(scatter) {
   };
 }
 
+// 시작 화면 몬스터 그림: 고른 난이도(장소)의 같은 자리 적 (얼음 동굴이면 박쥐 자리 = 얼음 정령). 전용 적이 없는 장소는 테마 색 그림
+//   그릴 때마다 정하므로 난이도를 바꾸면 돌아다니던 몬스터도 바로 바뀜
+function titleMonsterSprite(baseKey) {
+  const theme = (DIFFS[meta.diff] || DIFFS[0]).theme;
+  const stage = STAGE_ENEMIES[theme];
+  if (stage) return stage[ENEMY_TYPES.findIndex((t) => t.key === baseKey)].shape;
+  return theme && SPRITES[`${baseKey}_${theme}`]?.ready ? `${baseKey}_${theme}` : baseKey;
+}
+
 function titleLoop(now) {
   if (state !== "title" && state !== "intro") return;   // 게임이 시작되면 이 루프는 조용히 종료
   if (titleLastTime === null) titleLastTime = now;
@@ -153,7 +162,7 @@ function drawTitleScene() {
     const y = cy + Math.sin(m.a) * m.dist + Math.sin(m.wobble) * (m.type === "bat" ? 8 : 3);
     const far = Math.hypot(W, H) * 0.55;
     ctx.globalAlpha = 0.45 + 0.4 * (1 - m.dist / far);
-    drawSprite(m.type, x, y, m.size * SPRITE_SCALE, { flip: x > cx });
+    drawSprite(titleMonsterSprite(m.type), x, y, m.size * SPRITE_SCALE, { flip: x > cx });
   }
   ctx.globalAlpha = 1;
 

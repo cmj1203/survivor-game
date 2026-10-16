@@ -99,6 +99,7 @@ function resetGame() {
   levelupBox.style.display = "none";
   chestBox.style.display = "none";
   clearBox.style.display = "none";
+  stageClear.classList.remove("show");
   helpBox.style.display = "none";
   candyBox.style.display = "none";
   titleOverlay.style.display = "none";     // 시작 화면 숨기기 (시작 화면 애니메이션은 state 가 바뀜서 저절로 뱈침)

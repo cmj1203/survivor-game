@@ -89,6 +89,23 @@ function drawFloorZones() {
     ctx.fill();
   }
 
+  // 웬디고가 떨어질 자리: 보스 경고 원과 같은 빨간 원 (안쪽 원이 다 차면 착지)
+  for (const e of enemies) {
+    if (!e.leap) continue;
+    const r = LEAP_RADIUS * (e.elite ? 1.4 : 1), p = Math.min(1, e.leap.t / LEAP_TIME);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 70, 70, 0.9)";
+    ctx.fillStyle = "rgba(255, 70, 70, 0.12)";
+    ctx.beginPath();
+    ctx.arc(e.leap.tx, e.leap.ty, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255, 70, 70, 0.28)";
+    ctx.beginPath();
+    ctx.arc(e.leap.tx, e.leap.ty, r * p, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // 바닥 지역: 불바다 (일렁이는 주황 원)
   for (const z of zones) {
     const t = z.life / z.maxLife;
@@ -656,7 +673,19 @@ function drawEnemy(e) {
 
   // 살아 있는 느낌: 위아래로 살짝 들썩임 (박쥐는 빠르게 파닥파닥)
   const bobSpeed = e.baseShape === "bat" ? 18 : 7;
-  const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12;
+  const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12
+    - (e.leap ? Math.sin(Math.PI * Math.min(1, e.leap.t / LEAP_TIME)) * LEAP_HEIGHT : 0);   // 뛰어오른 웬디고는 포물선으로 떠오름
+
+  // 서리 망령: 둘레의 찬 기운 (이 원 안에 들어가면 느려짐)
+  if (e.aura) {
+    ctx.fillStyle = "rgba(160, 230, 255, 0.10)";
+    ctx.strokeStyle = "rgba(160, 230, 255, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, AURA_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 
   // 보스: 큰 고리 (사신 마법사는 보라색, 다른 보스는 ring 색)
   if (e.boss) {

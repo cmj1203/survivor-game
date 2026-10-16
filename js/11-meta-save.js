@@ -130,8 +130,10 @@ const QUESTS = [
   { id: "q_evodex20",  name: "진화 박사",       desc: "진화 무기 20종을 전부 만들어 보기 (누적)",    stat: "evodex",   goal: 20,    gold: 500 },
   { id: "q_hellall",   name: "지옥의 지배자",   desc: "서로 다른 캐릭터 4명으로 지옥 클리어",         stat: "hellall",  goal: 4,     gold: 600 },
 ];
-// 잠긴 무기를 전부 열면 '시작 무기를 고르는' 캐릭터가 열림 (목표 수는 무기 보상 퀘스트 수와 같음)
-QUESTS.push({ id: "q_armory", name: "무기고", desc: `잠긴 무기 ${QUESTS.filter((q) => q.weapon).length}종을 모두 열기`, stat: "armory", goal: QUESTS.filter((q) => q.weapon).length, char: "armorer" });
+// 잠긴 무기를 전부 열고 서로 다른 진화 무기를 ARMORY_EVODEX 종 만들어 보면 '시작 무기를 고르는' 캐릭터가 열림
+//   진행 값 = 연 무기 수 + 만들어 본 진화 무기 수(최대 ARMORY_EVODEX) → 목표 = 무기 보상 퀘스트 수 + ARMORY_EVODEX
+const ARMORY_EVODEX = 10;
+QUESTS.push({ id: "q_armory", name: "무기고", desc: `잠긴 무기 ${QUESTS.filter((q) => q.weapon).length}종 모두 열기 + 서로 다른 진화 무기 ${ARMORY_EVODEX}종 만들어 보기`, stat: "armory", goal: QUESTS.filter((q) => q.weapon).length + ARMORY_EVODEX, char: "armorer" });
 const TIME_STATS = ["time", "difftime", "nohit", "lowhp", "solo"];   // 진행 값을 '몇 분 몇 초'로 보여 줄 퀘스트 종류
 const WEAPON_LOCKS = {};                 // 무기 종류 → 해금해 주는 퀘스트 id
 for (const q of QUESTS) if (q.weapon) WEAPON_LOCKS[q.weapon] = q.id;
@@ -261,7 +263,7 @@ function questValue(q, live, cleared) {
     case "naked":     return s.n_naked + (live && cleared && run.naked ? 1 : 0);
     case "fewhit":    return s.n_fewhit + (live && cleared && run.hits <= FEWHIT_MAX ? 1 : 0);
     case "fastboss":  return s.n_fastboss + (live && cleared && isFastBoss() ? 1 : 0);
-    case "armory":    return QUESTS.filter((it) => it.weapon && isQuestDone(it.id)).length;   // 지금까지 연 무기 수
+    case "armory":    return QUESTS.filter((it) => it.weapon && isQuestDone(it.id)).length + Math.min(ARMORY_EVODEX, bitCount(s.mask_evo | (live ? run.evoMask : 0)));   // 연 무기 수 + 만들어 본 진화 무기 수
     case "hellall":   return bitCount(s.mask_hell | (live && cleared && run.diff === 3 ? charBit() : 0));
   }
   return 0;
@@ -443,6 +445,7 @@ function resumeFromPause() {
 function toTitle() {
   saveRun();                            // 일시정지에서 나가면 나중에 '이어 하기'
   for (const box of [pauseBox, gameoverBox, clearBox, helpBox, levelupBox, chestBox, candyBox]) box.style.display = "none";
+  stageClear.classList.remove("show");
   run = null;
   showTitle();
 }

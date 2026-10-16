@@ -3,7 +3,18 @@
 // =====================================================================
 function spawnEnemy() {
   const { x, y } = randomEdgePosition(30);    // 화면 밖 30px 지점 (맵 안쪽 변만)
-  enemies.push(makeEnemy(pickEnemyType(), x, y));
+  const type = pickEnemyType();
+  if (type.behavior === "pack") spawnPack(type, x, y);
+  else enemies.push(makeEnemy(type, x, y));
+}
+
+// 지옥개 무리: 가운데 1마리 + 양옆 1마리씩 붙어서 나옴. 양옆은 플레이어 옆쪽으로 비껴 달려 둘러쌈 (packSide -1 / 0 / 1)
+function spawnPack(type, x, y) {
+  for (let i = 0; i < PACK_SIZE && enemies.length < MAX_ENEMIES; i++) {
+    const e = makeEnemy(type, x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
+    e.packSide = i === 0 ? 0 : i % 2 ? -1 : 1;
+    enemies.push(e);
+  }
 }
 
 // 지금 시각이 "몇 번째 몬스터 단계"인지 (0 = 박쥐만, 1 = 붉은 게까지, 2 = 거미까지 ... 5 = 박쥐 두 바퀴째 ...)
@@ -85,9 +96,11 @@ function makeEnemy(type, x, y, isChild = false) {
   }
   if (e.behavior === "boss")    { e.shootTimer = BOSS_SHOT_INTERVAL; e.summonTimer = BOSS_SUMMON_INTERVAL; }
   if (e.behavior === "charger") { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
-  if (e.behavior === "ranged")  e.shootTimer = RANGED_SHOT_INTERVAL * (0.5 + Math.random());   // 첫 화살 박자를 적마다 다르게
+  if (e.behavior === "gallop")  e.gallop = 0;                                         // 북극곰: 질주한 시간
+  if (e.behavior === "leaper")  e.leapTimer = LEAP_INTERVAL * (0.5 + Math.random());   // 웬디고: 첫 덮치기 박자를 적마다 다르게
   // 스테이지별 적의 특성 (STAGE_ENEMIES 표 참고)
-  for (const k of ["chill", "knockback", "dashMul", "splitType", "killStat", "leavesHazard", "hazardQuest"]) if (type[k]) e[k] = type[k];
+  for (const k of ["knockback", "aura", "splitType", "splitGens", "killStat", "leavesHazard", "hazardQuest"]) if (type[k]) e[k] = type[k];
+  if (e.behavior === "slide") { e.vx = 0; e.vy = 0; }   // 얼음 원소: 지금 미끄러지는 속도
 
   // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (보통 난이도는 tier 0 이라 그대로)
   const tier = enemyTier(), theme = diffDef().theme;
@@ -98,7 +111,6 @@ function makeEnemy(type, x, y, isChild = false) {
     if (type.key === "spider" && !isChild) e.splitInto = SPIDER_SPLIT[tier];                        // 분열: 새끼가 더 많이
     if (type.key === "ghost") e.blinkTimer = GHOST_BLINK_INTERVAL[tier] * (0.5 + Math.random());   // 순간이동 (적마다 박자가 어긋나게)
     if (type.key === "cyclops") e.leavesHazard = true;                                              // 죽으면 위험한 자국
-    if (type.key === "bat") e.rush = true;                                                          // 가까이 오면 돌격
   }
   return e;
 }
@@ -559,6 +571,7 @@ function damageEnemy(e, dmg) {
     for (let i = 0; i < e.splitInto; i++) {
       const angle = (Math.PI * 2 * i) / e.splitInto + Math.random();
       const type = findEnemyType(e.splitType || e.type);
+      if (e.splitGens) { pendingSpawns.push(makeSplitChild(e, type, angle)); continue; }
       pendingSpawns.push(makeEnemy(type, e.x + Math.cos(angle) * 14, e.y + Math.sin(angle) * 14, !e.splitType));
     }
   }
@@ -672,7 +685,20 @@ function pushEnemy(e, fromX, fromY, power) {
   e.y += (dy / len) * p;
 }
 
-// 얼음 정령·서리 망령·예티: 잠깐 느려지게 함 (발밑에 테마 색 고리)
+// 검은 진흙(여러 번 분열): 갈라질 때마다 작아지고(SPLIT_SHRINK) 체력·경험치는 절반, 조금 빨라짐. splitGens 번째 조각은 더 안 갈라짐
+function makeSplitChild(parent, type, angle) {
+  const c = makeEnemy(type, parent.x + Math.cos(angle) * parent.r * 0.8, parent.y + Math.sin(angle) * parent.r * 0.8);
+  c.gen = (parent.gen || 0) + 1;
+  c.r = Math.round(parent.r * SPLIT_SHRINK);
+  c.hp = c.maxHp = Math.max(1, Math.round(parent.maxHp / 2));
+  c.xp = Math.max(1, Math.round(parent.xp / 2));
+  c.speed = parent.speed * 1.15;
+  c.damage = Math.ceil(parent.damage * 0.75);
+  c.splitInto = c.gen < parent.splitGens ? parent.splitInto : 0;
+  return c;
+}
+
+// 서리 망령의 찬 기운·예티의 땅 내리치기: 잠깐 느려지게 함 (발밑에 테마 색 고리)
 function chillPlayer(time = CHILL_TIME) {
   player.chillTimer = Math.max(player.chillTimer || 0, time);
   player.slowTimer = Math.max(player.slowTimer || 0, time);

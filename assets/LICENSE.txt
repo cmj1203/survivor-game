@@ -193,5 +193,7 @@ License: Creative Commons Zero (CC0)
 스테이지별 적·보스 그림: Clint Bellanger 의 "Tiny Creatures (1.0)" (CC0, Kenney Tiny Dungeon 확장판)
 https://opengameart.org/content/tiny-creatures
 Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0)를 그대로 잘라 씀:
-  얼음 동굴: icewisp.png = 59 (얼음 정령)   polarbear.png = 164 (북극곰)   iceelem.png = 49 (얼음 원소)
+  얼음 동굴: icewisp.png = 59 (얼음 정령. 그림이 작아 빈 여백을 잘라 11x11 로 → 게임 안에서 박쥐만 하게 보임)   polarbear.png = 164 (북극곰)   iceelem.png = 49 (얼음 원소)
              frostwight.png = 19 (서리 망령)   wendigo.png = 15 (웬디고)   yeti.png = 43 (보스 예티)
+  용암 굴:   hellhound.png = 102 (지옥개)
+  저주받은 어둠: muck.png = 87 (검은 진흙)

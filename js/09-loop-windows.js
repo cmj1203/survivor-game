@@ -260,7 +260,8 @@ function formatTime(sec) {
   return m > 0 ? `${m}분 ${s}초` : `${s}초`;
 }
 
-// 클리어: 게임을 멈추고 결과 창
+// 클리어: 게임을 멈추고 화면 가운데에 STAGE CLEAR → 잠시 뒤 결과 창
+const STAGE_CLEAR_TIME = 1.8;   // STAGE CLEAR 글자만 보여 주는 시간 (초)
 function gameClear() {
   state = "clear";
   spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
@@ -268,7 +269,11 @@ function gameClear() {
   endJoystick();
   setMusic("ending");
   clearReward.innerHTML = finishRun(true);
-  clearBox.style.display = "flex";
+  stageClear.classList.add("show");
+  setTimeout(() => {
+    stageClear.classList.remove("show");
+    if (state === "clear") clearBox.style.display = "flex";   // 그 사이 시작 화면으로 나갔으면 창을 안 띄움
+  }, STAGE_CLEAR_TIME * 1000);
 }
 
 // =====================================================================

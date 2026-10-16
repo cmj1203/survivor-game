@@ -104,35 +104,54 @@ const ENEMY_TYPES = [
 
 // --- 스테이지별 적: 난이도 테마마다 다른 적 5종. 표가 없는 테마는 위 ENEMY_TYPES 를 그대로 씀 ---
 //   자리 순서 = 등장 순서. 같은 자리끼리 능력치를 비슷하게 맞춤 (ENEMY_TYPES 의 몬스터 떼 "bat"·"ghost" 도 같은 자리 적으로 나옴)
-//   chill: 닿으면 잠깐 느려짐   knockback: 부딪히면 밀려남   dashMul: 돌진 속도·시간 배수
+//   knockback: 부딪히면 밀려남
 //   splitType: 죽으면 이 종류가 splitInto 마리 나옴   killStat: 잡으면 이 퀘스트 기록을 +1
-//   behavior "ranged": 거리를 두고 얼음 화살을 쏨   leavesHazard: 죽은 자리에 장판 (hazardQuest: 밟으면 퀘스트 기록)
+//   behavior "gallop": 멀리선 어슬렁, 가까우면 점점 빨라지며 질주   aura: 둘레의 찬 기운 안에 들어가면 느려짐
+//   behavior "leaper": 가끔 뛰어올라 덮침 (착지한 자리에 장판, hazardQuest: 밟으면 퀘스트 기록)
+//   첫 자리 적은 특성 없음 (사용자 결정: 박쥐와 똑같이). 보스가 아닌 적은 쏘는 공격을 하지 않음
 const STAGE_ENEMIES = {
   ice: [
-    { key: "icewisp",    name: "얼음 정령", shape: "icewisp",    color: "#9be7ff", r: 11, speed: 80, hp: 1, damage: 8,  xp: 1, behavior: "chase", chill: true },
-    { key: "polarbear",  name: "북극곰",    shape: "polarbear",  color: "#eef6ff", r: 15, speed: 50, hp: 3, damage: 10, xp: 2, behavior: "charger", dashMul: 1.4, knockback: true },
-    { key: "iceelem",    name: "얼음 원소", shape: "iceelem",    color: "#bfefff", r: 14, speed: 55, hp: 3, damage: 10, xp: 2, behavior: "chase", splitInto: 3, splitType: "icewisp", killStat: "shells" },
-    { key: "frostwight", name: "서리 망령", shape: "frostwight", color: "#8fa8c8", r: 14, speed: 70, hp: 3, damage: 12, xp: 3, behavior: "ranged" },
-    { key: "wendigo",    name: "웬디고",    shape: "wendigo",    color: "#c9b8a0", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "chase", leavesHazard: true, hazardQuest: true },
+    { key: "icewisp",    name: "얼음 정령", shape: "icewisp",    color: "#9be7ff", r: 11, speed: 80, hp: 1, damage: 8,  xp: 1, behavior: "chase" },
+    { key: "polarbear",  name: "북극곰",    shape: "polarbear",  color: "#eef6ff", r: 15, speed: 50, hp: 3, damage: 10, xp: 2, behavior: "gallop", knockback: true },
+    { key: "iceelem",    name: "얼음 원소", shape: "iceelem",    color: "#bfefff", r: 14, speed: 55, hp: 3, damage: 10, xp: 2, behavior: "slide", splitInto: 3, splitType: "icewisp", killStat: "shells" },
+    { key: "frostwight", name: "서리 망령", shape: "frostwight", color: "#8fa8c8", r: 14, speed: 60, hp: 3, damage: 12, xp: 3, behavior: "chase", aura: true },
+    { key: "wendigo",    name: "웬디고",    shape: "wendigo",    color: "#c9b8a0", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "leaper", hazardQuest: true },
   ],
 };
-const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES));
+// --- 다음 스테이지에 쓸 적: 용암 굴·저주받은 어둠의 5종이 다 만들어지면 STAGE_ENEMIES 로 옮김 (그 전에는 게임에 안 나옴) ---
+//   behavior "pack": 무리(PACK_SIZE 마리)로 나와서 양옆 개가 비껴 달려 둘러쌈   splitGens: 몇 번까지 갈라지는지 (갈라질 때마다 작아짐)
+const PLANNED_ENEMIES = [
+  { key: "hellhound", name: "지옥개",    shape: "hellhound", color: "#e2553d", r: 14, speed: 70, hp: 2, damage: 10, xp: 2, behavior: "pack" },
+  { key: "muck",      name: "검은 진흙", shape: "muck",      color: "#4b4560", r: 17, speed: 50, hp: 4, damage: 10, xp: 2, behavior: "chase", splitInto: 2, splitGens: 2 },
+];
+const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES), PLANNED_ENEMIES);
 function enemyTypes() { return STAGE_ENEMIES[diffDef().theme] || ENEMY_TYPES; }             // 지금 스테이지의 적 5종
 function findEnemyType(key) { return ALL_ENEMY_TYPES.find((t) => t.key === key); }
 function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적
-const CHILL_TIME = 1.2;              // 얼음 정령·서리 망령: 닿거나 맞으면 이 시간(초) 동안 느려짐
+const SLIDE_MAX_MUL = 1.7;           // 얼음 원소(미끄러짐): 최고 속도 = 기본 속도 × 이 값
+const SLIDE_GRIP = 0.45;             // 얼음 원소: 방향을 바꾸는 빠르기 (작을수록 더 미끄러져서 플레이어를 지나쳤다 돌아옴)
+const PACK_SIZE = 3;                 // 지옥개: 한 무리 마릿수 (가운데 1 + 양옆 2)
+const PACK_FLANK_ANGLE = 0.65;       // 지옥개: 양옆 개가 플레이어 쪽에서 비껴 달리는 각도 (라디안, 약 37도)
+const PACK_FLANK_SPEED = 1.2;        // 지옥개: 양옆 개는 돌아가는 만큼 조금 빨라서 가운데 개와 비슷하게 도착
+const PACK_CLOSE_DIST = 170;         // 지옥개: 이보다 가까워지면 양옆 개도 곧장 달려듦
+const SPLIT_SHRINK = 0.7;            // 검은 진흙: 갈라질 때마다 크기 배수 (체력은 절반)
+const CHILL_TIME = 1.2;              // 예티 등: 맞으면 이 시간(초) 동안 느려짐
 const CHILL_SLOW_MUL = 0.65;         // 느려졌을 때 이동 속도 배수
 const KNOCKBACK_SPEED = 420;         // 북극곰: 부딪히면 이 속도로 밀려남
 const KNOCKBACK_TIME = 0.18;         // 북극곰: 밀려나는 시간 (초) → 약 75px
-const RANGED_KEEP_DIST = 260;        // 서리 망령: 플레이어와 이 거리를 유지하려 함 (200 보다 가까우면 물러남)
-const RANGED_SHOT_INTERVAL = 3;      // 서리 망령: 얼음 화살 간격 (초)
-const RANGED_SHOT_SPEED = 190;       // 얼음 화살 속도 (플레이어 기본 속도 220 보다 느려서 피할 수 있음)
-const RANGED_SHOT_DAMAGE = 0.7;      // 얼음 화살 피해 = 몸에 닿을 때 피해 × 이 값
+const GALLOP_RANGE = 280;            // 북극곰: 이 거리 안으로 들어오면 질주 시작 (밖에서는 어슬렁)
+const GALLOP_AMBLE = 0.8;            // 북극곰: 어슬렁거릴 때 속도 배수
+const GALLOP_ACCEL = 1.2;            // 북극곰: 질주하면 1초마다 이만큼 빨라짐 (기본 속도의 배수)
+const GALLOP_MAX = 2.6;              // 북극곰: 질주 최고 속도 배수 (130 — 플레이어 기본 속도 220 보다 느려서 피할 수 있음)
+const AURA_RADIUS = 90;              // 서리 망령: 찬 기운 반지름 (이 안에 들어가면 느려짐)
+const LEAP_INTERVAL = 5;             // 웬디고: 덮치기 간격 (초, 적마다 조금씩 다름)
+const LEAP_RANGE = 360;              // 웬디고: 이 거리 안이면 플레이어가 있던 자리로 뛰어오름
+const LEAP_TIME = 0.9;               // 웬디고: 뛰어서 떨어지기까지 (그동안 떨어질 자리에 빨간 그림자 경고)
+const LEAP_HEIGHT = 70;              // 웬디고: 뛰어오르는 높이 (그림만)
+const LEAP_RADIUS = 55;              // 웬디고: 착지할 때 이 안에 있으면 피해, 그 자리에 얼음 장판
 
 // --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
 //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
-const BAT_RUSH_RANGE = 240;                  // 박쥐 '돌격': 이 거리 안으로 들어오면 빨라짐
-const BAT_RUSH_MUL = [1, 1.35, 1.5, 1.65];   // 박쥐 '돌격': 빨라지는 배수
 const CRAB_SHELL = [0, 1, 1, 2];             // 붉은 게 '껍질': 공격을 이 횟수만큼 막아 냄
 const SPIDER_SPLIT = [2, 3, 3, 4];           // 거미 '분열': 죽을 때 나오는 새끼 수
 const GHOST_BLINK_INTERVAL = [0, 5, 4, 3];   // 유령 '순간이동': 몇 초마다

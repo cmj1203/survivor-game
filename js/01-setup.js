@@ -22,6 +22,7 @@ const chestGoldNum = document.getElementById("chestGoldNum");
 const chestInfo = document.getElementById("chestInfo");     // 아래 칸: 고른 보상의 이름·설명
 const chestOk = document.getElementById("chestOk");
 const clearBox = document.getElementById("clearBox");
+const stageClear = document.getElementById("stageClear");   // 보스를 잡으면 잠깐 뜨는 STAGE CLEAR 글자
 const clearText = document.getElementById("clearText");
 const helpBtn = document.getElementById("helpBtn");
 const helpBox = document.getElementById("helpBox");
@@ -90,7 +91,7 @@ function randomEdgePosition(margin) {
 //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
 //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
 // =====================================================================
-const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
+const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "hellhound", "muck", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                       "dagger", "axe", "spear", "firebomb", "staff", "shield",
                       "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
                       "w_aura", "w_firewand", "w_rune", "w_lightning", "w_pentagram", "w_clock", "w_icebeam", "w_bloodsword", "w_shadow", "w_bone", "w_flames", "w_bomb", "boss_shuriken",

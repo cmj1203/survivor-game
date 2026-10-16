@@ -185,8 +185,14 @@ function updateEnemies(dt, frozen) {
       updateBossEnemy(e, dirX, dirY, dt);
     } else if (e.behavior === "charger") {
       updateChargerEnemy(e, dirX, dirY, dt);
-    } else if (e.behavior === "ranged") {
-      updateRangedEnemy(e, dirX, dirY, len, dt);
+    } else if (e.behavior === "gallop") {
+      updateGallopEnemy(e, dirX, dirY, len, dt);
+    } else if (e.behavior === "leaper") {
+      updateLeaperEnemy(e, dirX, dirY, len, dt);
+    } else if (e.behavior === "slide") {
+      updateSlideEnemy(e, dirX, dirY, dt);
+    } else if (e.behavior === "pack") {
+      updatePackEnemy(e, dirX, dirY, len, dt);
     } else if (e.behavior === "swarm") {
       // 박쥐 떼: 플레이어를 쫓지 않고 처음 정해진 방향으로 곧장 날아감
       e.x += e.vx * dt;
@@ -343,31 +349,77 @@ function updateChargerEnemy(e, dirX, dirY, dt) {
   } else if (e.mode === "windup") {
     if (e.modeTimer <= 0) { e.mode = "dash"; e.modeTimer = CHARGER_DASH_TIME; }
   } else {
-    e.x += e.dashX * CHARGER_DASH_SPEED * (e.dashMul || 1) * dt;   // 북극곰은 더 빠르고 길게 (dashMul)
-    e.y += e.dashY * CHARGER_DASH_SPEED * (e.dashMul || 1) * dt;
+    e.x += e.dashX * CHARGER_DASH_SPEED * dt;
+    e.y += e.dashY * CHARGER_DASH_SPEED * dt;
     if (e.modeTimer <= 0) { e.mode = "walk"; e.modeTimer = CHARGER_WALK_TIME; }
   }
 }
 
-// 멀리서 쏘는 적 한 마리 (서리 망령): 일정 거리까지만 다가오고 너무 가까우면 물러나며, 화면 안에 있으면 얼음 화살을 쏨
-function updateRangedEnemy(e, dirX, dirY, len, dt) {
-  const move = len > RANGED_KEEP_DIST ? 1 : len < RANGED_KEEP_DIST - 60 ? -0.6 : 0;
-  e.x += dirX * e.speed * move * dt;
-  e.y += dirY * e.speed * move * dt;
-  e.shootTimer -= dt;
-  if (e.shootTimer <= 0 && inView(e.x, e.y)) {
-    e.shootTimer = RANGED_SHOT_INTERVAL;
-    enemyBullets.push({ x: e.x, y: e.y, vx: dirX * RANGED_SHOT_SPEED, vy: dirY * RANGED_SHOT_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(e.damage * RANGED_SHOT_DAMAGE), color: "#9be7ff", chill: true });
+// 미끄러지는 적 (얼음 원소): 빙판 위처럼 속도가 천천히 바뀜 → 플레이어가 비키면 지나쳤다가 돌아옴
+function updateSlideEnemy(e, dirX, dirY, dt) {
+  const max = e.speed * SLIDE_MAX_MUL, k = Math.min(1, SLIDE_GRIP * dt);
+  e.vx += (dirX * max - e.vx) * k;
+  e.vy += (dirY * max - e.vy) * k;
+  e.x += e.vx * dt;
+  e.y += e.vy * dt;
+}
+
+// 무리 짓는 적 (지옥개): 가운데 개는 곧장, 양옆 개는 플레이어 옆쪽으로 비껴 달리다가 가까워지면 곧장 → 집게처럼 둘러쌈
+function updatePackEnemy(e, dirX, dirY, len, dt) {
+  let mx = dirX, my = dirY;
+  if (e.packSide && len > PACK_CLOSE_DIST) {
+    const turn = e.packSide * PACK_FLANK_ANGLE * Math.min(1, (len - PACK_CLOSE_DIST) / 250);   // 멀수록 크게 비껴 달림
+    const c = Math.cos(turn), s = Math.sin(turn);
+    mx = dirX * c - dirY * s;
+    my = dirX * s + dirY * c;
+  }
+  const speed = e.speed * (e.packSide ? PACK_FLANK_SPEED : 1);
+  e.x += mx * speed * dt;
+  e.y += my * speed * dt;
+}
+
+// 질주하는 적 (북극곰): 멀리서는 어슬렁, GALLOP_RANGE 안으로 들어오면 네 발로 달리며 점점 빨라짐 (멀어지면 다시 어슬렁)
+function updateGallopEnemy(e, dirX, dirY, len, dt) {
+  e.gallop = len < GALLOP_RANGE ? e.gallop + dt : 0;
+  const mul = e.gallop > 0 ? Math.min(GALLOP_MAX, 1 + GALLOP_ACCEL * e.gallop) : GALLOP_AMBLE;
+  e.x += dirX * e.speed * mul * dt;
+  e.y += dirY * e.speed * mul * dt;
+}
+
+// 덮치는 적 (웬디고): 느리게 다가오다가 가끔 플레이어가 있던 자리로 뛰어오름. 착지하면 그 자리에 피해 + 얼음 장판
+function updateLeaperEnemy(e, dirX, dirY, len, dt) {
+  if (e.leap) {                                   // 공중: 출발점 → 착지점으로 LEAP_TIME 동안 이동 (그림은 포물선, drawEnemy 참고)
+    const L = e.leap;
+    L.t += dt;
+    const k = Math.min(1, L.t / LEAP_TIME);
+    e.x = L.sx + (L.tx - L.sx) * k;
+    e.y = L.sy + (L.ty - L.sy) * k;
+    if (k < 1) return;
+    e.leap = null;
+    const r = LEAP_RADIUS * (e.elite ? 1.4 : 1);
+    if (Math.hypot(player.x - e.x, player.y - e.y) < r + player.r && player.invincible <= 0) hurtPlayer(e.damage);
+    effects.push({ kind: "ring", x: e.x, y: e.y, r, color: "#e0f7ff", life: 0.3, maxLife: 0.3 });
+    spawnParticles(e.x, e.y, "#e0f7ff", 10, 200);
+    if (hazards.length < CYCLOPS_HAZARD_MAX) {
+      const life = CYCLOPS_HAZARD_LIFE[enemyTier()] + HAZARD_ARM_TIME;
+      hazards.push({ x: e.x, y: e.y, r, life, maxLife: life, arm: HAZARD_ARM_TIME, quest: !!e.hazardQuest });
+    }
+    return;
+  }
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
+  e.leapTimer -= dt;
+  if (e.leapTimer <= 0 && len < LEAP_RANGE && inView(e.x, e.y)) {
+    e.leapTimer = LEAP_INTERVAL * (0.8 + Math.random() * 0.4);
+    e.leap = { sx: e.x, sy: e.y, tx: player.x, ty: player.y, t: 0 };
   }
 }
 
-// 기본 적 한 마리: 플레이어 쪽으로 곧장 (박쥐 돌격, 유령 순간이동 포함)
+// 기본 적 한 마리: 플레이어 쪽으로 곧장 (유령 순간이동 포함)
 function updateChaseEnemy(e, dirX, dirY, len, dt) {
   // 기본(chase): 플레이어 쪽으로 곧장
-  //   난이도 테마 · 박쥐 '돌격': 가까이 오면 빨라짐
-  const speed = e.rush && len < BAT_RUSH_RANGE ? e.speed * BAT_RUSH_MUL[enemyTier()] : e.speed;
-  e.x += dirX * speed * dt;
-  e.y += dirY * speed * dt;
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
   //   난이도 테마 · 유령 '순간이동': 몇 초마다 플레이어 쪽으로 훌쩍 다가옴 (화면 안에 있고 아직 멀 때만)
   if (e.blinkTimer !== undefined) {
     e.blinkTimer -= dt;
@@ -499,14 +551,18 @@ function updatePlayerDamage(dt, frozen) {
     for (const e of enemies) {
       if ((frozen || e.frozenTimer > 0) && !e.boss) continue; // 빙결 광선으로 얼린 적도 닿아도 안전 (보스는 안 얼음)
       if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
+      if (e.leap) continue;            // 뛰어오른 웬디고는 착지할 때만 피해 (updateLeaperEnemy)
       if (circlesTouch(e, player)) {
         hurtPlayer(e.damage);
-        if (e.chill) chillPlayer();           // 얼음 정령: 잠깐 느려짐
-        if (e.knockback) knockPlayer(e);      // 북극곰: 밀려남
+        if (e.knockback) { knockPlayer(e); e.gallop = 0; }   // 북극곰: 밀려남, 곰은 질주를 멈추고 처음부터
+
         break;               // 한 프레임에 한 번만 맞음
       }
     }
   }
+
+  // --- 서리 망령의 찬 기운: 둘레(AURA_RADIUS) 안에 있으면 느려짐 (빙결 중에는 기운도 멈춤) ---
+  if (!frozen) for (const e of enemies) if (e.aura && !e.dead && !(e.frozenTimer > 0) && Math.hypot(player.x - e.x, player.y - e.y) < AURA_RADIUS) { chillPlayer(0.25); break; }
 
   // --- 난이도 테마 · 끈적한 자국: 시간이 지나면 사라지고, 준비 시간이 끝난 뒤 밟고 있으면 느려짐 (피해는 없음) ---
   for (const h of hazards) {
@@ -527,7 +583,7 @@ function updatePlayerDamage(dt, frozen) {
     b.y += b.vy * dt;
     if (circlesTouch(b, player)) {
       b.dead = true;
-      if (player.invincible <= 0) { hurtPlayer(b.damage); if (b.chill) chillPlayer(); }   // 서리 망령의 얼음 화살: 느려짐
+      if (player.invincible <= 0) hurtPlayer(b.damage);
     }
   }
   enemyBullets = enemyBullets.filter((b) => !b.dead && inView(b.x, b.y, 40));
