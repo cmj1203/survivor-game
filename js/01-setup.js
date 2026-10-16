@@ -91,6 +91,9 @@ function randomEdgePosition(margin) {
 //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
 //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
 // =====================================================================
+// 그림 주소에 붙일 버전: index.html 이 이 파일을 부를 때 붙인 ?v= 값을 그대로 씀 (올릴 때 index.html 의 ?v= 만 바꾸면 됨)
+const ASSET_VERSION = new URL(document.currentScript.src).searchParams.get("v") || "";
+const assetUrl = (name) => `assets/${name}.png${ASSET_VERSION ? `?v=${ASSET_VERSION}` : ""}`;
 const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "hellhound", "muck", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                       "dagger", "axe", "spear", "firebomb", "staff", "shield",
                       "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",
@@ -120,7 +123,7 @@ for (const name of SPRITE_NAMES) {
     sprite.white = c;
     sprite.ready = true;
   };
-  sprite.normal.src = `assets/${name}.png`;
+  sprite.normal.src = assetUrl(name);
   SPRITES[name] = sprite;
 }
 ctx.imageSmoothingEnabled = false;   // 픽셀아트를 키워도 뿌옇게 번지지 않게
@@ -146,7 +149,7 @@ for (const name of [FLOOR_PLAIN, ...FLOOR_EXTRAS, "wall"]) {
     floorLoaded += 1;
     if (floorLoaded === 2 + FLOOR_EXTRAS.length) buildBackground();   // 전부 불러와지면 배경 만들기
   };
-  img.src = `assets/${name}.png`;
+  img.src = assetUrl(name);
   floorImages[name] = img;
 }
 // 난이도 테마용 바닥·벽 그림 (예: floor_plain_ice.png). 늦게 불러와져도 지금 테마의 그림이면 배경을 다시 만듦
@@ -155,7 +158,7 @@ for (const theme of THEME_KEYS) {
   for (const name of [FLOOR_PLAIN, ...FLOOR_EXTRAS, "wall"]) {
     const img = new Image();
     img.onload = () => { if (bgTheme === theme) rebuildBackground(); };
-    img.src = `assets/${name}_${theme}.png`;
+    img.src = assetUrl(`${name}_${theme}`);
     floorImages[`${name}_${theme}`] = img;
   }
 }
