@@ -5,6 +5,7 @@
 //   제목·버튼은 HTML (#titleOverlay) 이 그 위에 얹힘
 const TITLE_MONSTERS = ["bat", "crab", "spider", "ghost", "cyclops", "bat", "spider", "bat"];   // 시작 화면에 돌아다니는 몬스터 (박쥐가 많게)
 const TITLE_MONSTER_COUNT = 22;
+document.getElementById("titleVersion").textContent = ASSET_VERSION ? `v${ASSET_VERSION}` : "";   // 시작 화면 오른쪽 아래 버전 (index.html 의 ?v= 값)
 let titleScene = null;      // { t, monsters[] }  시작 화면 애니메이션 상태
 let titleLastTime = null;
 
