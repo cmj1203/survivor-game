@@ -13,6 +13,7 @@ let chests;        // 바닥에 떨어진 보물 상자 목록
 let items;         // 바닥에 떨어진 아이템(물약) 목록
 let zones;         // 바닥에 남아 피해를 주는 지역 목록 (화염병 불바다 등)
 let hazards;       // 적이 남긴 위험한 자국 목록 (난이도 테마: 외눈 거인이 죽은 자리. 밟고 있으면 플레이어가 느려짐)
+let enemyFires;    // 적이 바닥에 남긴 불 목록 (불 원소 웅덩이·불타는 해골 꼬리·악마 돌진 불길. 밟으면 피해)
 let eliteTimer;    // 다음 엘리트가 나올 때까지 남은 시간
 let eventIndex;    // 이벤트 시간표에서 다음에 확인할 칸
 let eventQueue;    // 지금 진행 중인 이벤트 (연달아 나오는 중인 것)
@@ -73,6 +74,7 @@ function resetGame() {
   items = [];
   zones = [];
   hazards = [];
+  enemyFires = [];
   eliteTimer = ELITE_INTERVAL;
   eventIndex = 0;
   eventQueue = [];

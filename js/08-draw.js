@@ -74,41 +74,36 @@ function drawFloorZones() {
     }
   }
 
-  // 보스(예티) 공격 경고 원: 얼음색 원 + 안에서 차오르는 원 (다 차면 그 자리에서 터짐). 웬디고의 빨간 원과 구분되게
-  //   땅 내리치기(spikes)는 테두리 대신 원 둘레에 얼음 가시가 차례로 솟음
+  // 보스 공격 경고: 색칠한 원 대신 공격마다 다른 그림 (다 차면 그 자리에서 터짐)
+  //   warn: 마법진(fx_circlefire = 악마 불기둥, fx_castcircle = 죽음의 기사 순간이동, fx_circleice = 예티 고드름) / arrows = 화살표(악마 돌진, 십자 파동) / swords = 유령 칼(기사 베기)
+  //   땅 내리치기(spikes)는 큰 얼음 가시. 얼음덩이·운석은 그 자리에 픽셀 그림자가 커짐 (떨어지는 물체는 drawFallingObjects). 용암 골렘은 둘레에 불꽃이 차례로 솟음
   for (const m of bossMarks) {
     const p = 1 - Math.max(0, m.time) / m.maxTime;
-    ctx.fillStyle = "rgba(160, 230, 255, 0.15)";
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
-    ctx.fill();
-    if (!m.spikes) {
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(190, 240, 255, 0.7)";
-      ctx.stroke();
-    }
-    ctx.fillStyle = "rgba(160, 230, 255, 0.28)";
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, m.r * p, 0, Math.PI * 2);
-    ctx.fill();
+    if (m.fall === "rock" || m.fall === "meteor") drawPixelShadow(m.x, m.y, m.r * p);
     if (m.spikes) drawIceSpikes(m.x, m.y, m.r, p, 1);
+    else if (m.warn === "arrows") drawArrows(m, p);
+    else if (m.warn === "swords") drawGhostSwords(m, p);
+    else if (m.warn) drawMagicCircle(m, p);
+    else if (!m.fall) drawRim(rimPoints(m), p);
   }
 
-  // 웬디고가 떨어질 자리: 빨간 원 (안쪽 원이 다 차면 착지) + 가운데 빨간 발톱 자국
+  // 적이 남긴 불: 웅덩이는 켜지기 전엔 둘레에 불꽃이 차례로 솟고, 켜지면 바닥 불꽃(Burning Ground). 꼬리·돌진 불길은 작은 불꽃이 옅어지며 사라짐
+  for (const f of enemyFires) {
+    if (f.arm > 0 && f.kind === "pool") {
+      drawRim(rimPoints(f), 1 - f.arm / FIRE_POOL_ARM);   // 켜지기 전: 둘레에 불꽃이 차례로 솟음
+      continue;
+    }
+    ctx.globalAlpha = Math.min(1, (f.life / f.maxLife) * (f.kind === "pool" ? 4 : 1.5));
+    const size = f.r * 2.2;
+    drawFxFrame("fx_burn", fxLoopFrame("fx_burn", f.x + f.y), f.x, f.y, size, size);
+    ctx.globalAlpha = 1;
+  }
+
+  // 웬디고가 떨어질 자리: 커지는 픽셀 그림자 (다 커지면 착지) + 가운데 빨간 발톱 자국
   for (const e of enemies) {
     if (!e.leap) continue;
     const r = LEAP_RADIUS * (e.elite ? 1.4 : 1), p = Math.min(1, e.leap.t / LEAP_TIME);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255, 70, 70, 0.9)";
-    ctx.fillStyle = "rgba(255, 70, 70, 0.12)";
-    ctx.beginPath();
-    ctx.arc(e.leap.tx, e.leap.ty, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255, 70, 70, 0.28)";
-    ctx.beginPath();
-    ctx.arc(e.leap.tx, e.leap.ty, r * p, 0, Math.PI * 2);
-    ctx.fill();
+    drawPixelShadow(e.leap.tx, e.leap.ty, r * p);
     if (SPRITES.fx_leapclaw.ready) {
       const s = (LEAP_CLAW_SIZE * r) / LEAP_RADIUS;
       ctx.drawImage(SPRITES.fx_leapclaw.normal, e.leap.tx - s / 2, e.leap.ty - s / 2, s, s);
@@ -135,6 +130,141 @@ function drawFloorZones() {
     }
     ctx.globalAlpha = 1;
   }
+}
+
+// 경고 둘레 불꽃을 놓을 자리 (용암 골렘 폭발·불 원소 웅덩이): 원 둘레를 위에서부터 시계 방향으로. key = 솟는 차례 (0 → 1)
+const RIM_GAP = 34;   // 둘레 불꽃 사이 거리
+function rimPoints(m) {
+  const pts = [], n = Math.max(8, Math.round((2 * Math.PI * m.r) / RIM_GAP));
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+    pts.push({ x: m.x + Math.cos(a) * m.r, y: m.y + Math.sin(a) * m.r, key: i / n });
+  }
+  return pts.sort((a, b) => a.y - b.y);   // 아래쪽 불꽃이 위쪽 불꽃을 덮게
+}
+
+// 둘레 불꽃 그리기 (p = 경고 진행 0 → 1): IceMaan Flame Loop 불꽃이 차례로 작은 불씨에서 커짐
+const RIM_FLAME_SIZE = 60;   // 불꽃 크기 (32px 그림 속 불이 작아서 더 크게)
+function drawRim(pts, p) {
+  if (!SPRITES.fx_flameloop.ready) return;
+  for (const q of pts) {
+    const show = p * 1.3 - q.key * 0.3;
+    if (show <= 0) continue;
+    const s = RIM_FLAME_SIZE * (0.35 + 0.65 * Math.min(1, show));
+    drawFxFrame("fx_flameloop", fxLoopFrame("fx_flameloop", q.x + q.y), q.x, q.y, s, s, 0, 0.5, 0.85);
+  }
+}
+
+// 악마 불기둥·죽음의 기사 순간이동·예티 고드름 경고: 바닥 마법진이 돌면서 작게 생겨 경고 범위만큼 커짐 (다 커지면 터짐)
+//   fx_circlefire / fx_circleice = reodesuxz circle_fire / circle_ice (비스듬히 본 납작한 마법진이라 세로로 늘려 동그랗게), fx_castcircle = IceMaan Cast Circle (원래 동그람)
+//   fit = 32px 그림 속 마법진 너비, squash = 세로로 늘리는 배수
+const MAGIC_CIRCLES = { fx_circlefire: { fit: 30, squash: 1.8 }, fx_circleice: { fit: 30, squash: 1.8 }, fx_castcircle: { fit: 26, squash: 1 } };
+const MAGIC_START = 0.5;   // 처음 크기 (경고 범위 대비)
+function drawMagicCircle(m, p) {
+  const c = MAGIC_CIRCLES[m.warn], s = ((m.r * 2 * 32) / c.fit) * (MAGIC_START + (1 - MAGIC_START) * p);
+  drawFxFrame(m.warn, fxLoopFrame(m.warn, m.x), m.x, m.y, s, s * c.squash);
+}
+
+// 화살표 경고 (악마 화염 돌진 = 주황 fx_arrow, 십자 파동 = 보라 fx_arrowdark): 띠를 따라 꺼진 화살표가 깔리고,
+//   보스 쪽(center 면 가운데)부터 차례로 밝게 켜짐. 그림 = Kenney "1-Bit Pack" 꺾쇠, 16px 2칸 (0 = 꺼짐, 1 = 켜짐). 크기 = 띠 두께
+function drawArrows(m, p) {
+  const sp = SPRITES[m.center ? "fx_arrowdark" : "fx_arrow"];
+  if (!sp.ready) return;
+  const size = m.half * 2, c = Math.cos(m.angle), s = Math.sin(m.angle);
+  const n = Math.floor((m.center ? m.len : 2 * m.len) / size);
+  for (const side of m.center ? [1, -1] : [1]) {
+    for (let k = 0; k < n; k++) {
+      const d = m.center ? (k + 0.5) * size * side : -m.len + (k + 0.5) * size;
+      ctx.save();
+      ctx.translate(m.x + c * d, m.y + s * d);
+      ctx.rotate(m.angle + (side < 0 ? Math.PI : 0));
+      ctx.drawImage(sp.normal, p * n > k ? 16 : 0, 0, 16, 16, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+  }
+}
+
+// 죽음의 기사 베기 경고: 밝은 보라 칼 하나가 부채꼴 끝에서 시작 쪽으로 6칸에 걸쳐 감기며 이동 (사용자 선택 10-19, 어두운 칼은 사용자 요청으로 뺌)
+//   fx_ghostsword = 게임의 큰 칼 그림(bigsword)을 보라로 칠한 16px 2칸: 0 = 어두운 칼, 1 = 밝은 칼. 칼 길이 = 베기 범위
+const GHOST_SWORDS = 6;   // 밝은 칼이 멈춰 서는 자리 수
+const GHOST_SWORD_HILT = 0.92;   // 칼 그림에서 손잡이(기사 쪽에 놓이는 점)의 세로 위치 (0 = 칼끝, 1 = 손잡이 끝)
+function drawGhostSwords(m, p) {
+  const sp = SPRITES.fx_ghostsword;
+  if (!sp.ready) return;
+  const len = m.r / GHOST_SWORD_HILT, wid = len * 0.45;
+  const draw = (a, frame) => {
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(a + Math.PI / 2);   // 칼 그림은 칼끝이 위쪽
+    ctx.drawImage(sp.normal, frame * 16, 0, 16, 16, -wid / 2, -len * GHOST_SWORD_HILT, wid, len);
+    ctx.restore();
+  };
+  const k = Math.min(GHOST_SWORDS - 1, Math.floor(p * GHOST_SWORDS));
+  draw(m.angle + m.spread / 2 - (m.spread * k) / (GHOST_SWORDS - 1), 1);
+}
+
+// 떨어지는 공격·웬디고 착지점 그림자: 바둑판으로 찍은 진한 픽셀 원 (가운데는 꽉 참, 반투명 아님). 칸 수마다 한 번만 만들어 둠
+const SHADOW_PIXEL = 3;   // 그림자 한 칸 크기 (16px 그림을 3배로 키운 픽셀과 같게)
+const shadowImages = {};
+function drawPixelShadow(x, y, r) {
+  const n = Math.round(r / SHADOW_PIXEL);
+  if (n < 1) return;
+  if (!shadowImages[n]) {
+    const c = document.createElement("canvas"), g = c.getContext("2d");
+    c.width = c.height = n * 2 + 1;
+    g.fillStyle = "#06040e";
+    for (let i = -n; i <= n; i++) {
+      for (let j = -n; j <= n; j++) {
+        const d = i * i + j * j;
+        if (d <= n * n && (((i + j) & 1) === 0 || d <= (n * 0.55) ** 2)) g.fillRect(i + n, j + n, 1, 1);
+      }
+    }
+    shadowImages[n] = c;
+  }
+  const s = (n * 2 + 1) * SHADOW_PIXEL;
+  ctx.drawImage(shadowImages[n], Math.round(x - s / 2), Math.round(y - s / 2), s, s);
+}
+
+// 떨어지는 물체 (얼음덩이·고드름은 터지기 BOSS_FALL_TIME 초 전부터 위에서 곧장, 운석은 경고가 뜬 때부터 왼쪽 위에서 비스듬히 같은 빠르기로)
+const FALL_METEOR_SIZE = 170, FALL_ROCK_SIZE = 96, FALL_ICICLE_SIZE = 60;
+function drawFallingObjects() {
+  for (const m of bossMarks) {
+    const fallTime = m.fall === "meteor" ? m.maxTime : BOSS_FALL_TIME;
+    if (!m.fall || m.time > fallTime) continue;
+    const k = Math.max(0, m.time) / BOSS_FALL_TIME;   // 0 이 되면 땅에 닿음 (운석은 1 보다 큰 데서 시작 = 화면 밖에서 날아옴)
+    if (m.fall === "meteor") {
+      drawFxFrame("fx_meteor", fxLoopFrame("fx_meteor", m.x), m.x - 260 * k, m.y - 330 * k, FALL_METEOR_SIZE, FALL_METEOR_SIZE, 0, 22 / 32, 24 / 32);   // 그림 속 운석 머리가 떨어질 자리에 닿게
+      continue;
+    }
+    const sp = SPRITES[m.fall === "rock" ? "fx_icerock" : "fx_icicle"], s = m.fall === "rock" ? FALL_ROCK_SIZE : FALL_ICICLE_SIZE;
+    if (sp.ready) ctx.drawImage(sp.normal, m.x - s / 2, m.y - 420 * k - s * 0.9, s, s);
+  }
+}
+
+// 죽음의 기사 베기: IceMaan Dark Slash (보라 초승달 → 연기, 32×32 11프레임). 장검처럼 초승달 바깥 끝이 부채꼴 끝(r)에 닿게
+const DARK_SLASH_THIN = 0.75;   // 휘두르는 방향(반지름 쪽)으로만 이만큼 눌러 그림
+function drawDarkSlash(f, t) {
+  const size = f.r / FX_SLASH_REACH, push = f.r * (1 - DARK_SLASH_THIN);
+  drawFxSprite("fx_darkslash", f.x + Math.cos(f.angle) * push, f.y + Math.sin(f.angle) * push, size * DARK_SLASH_THIN, size, t, f.angle);
+}
+
+// 십자 파동: 가운데에서 띠 양쪽 끝으로 어둠 폭발(burst_dark)이 KNIGHT_WAVE_GAP 마다 차례로 터져 나감
+function drawDarkWave(f) {
+  const elapsed = f.maxLife - f.life, c = Math.cos(f.angle), s = Math.sin(f.angle);
+  for (let d = 0; d <= f.len; d += KNIGHT_WAVE_GAP) {
+    const age = elapsed - d / KNIGHT_WAVE_SPEED;
+    if (age < 0 || age >= KNIGHT_WAVE_PUFF) continue;
+    const size = d === 0 ? KNIGHT_WAVE_SIZE * 1.2 : KNIGHT_WAVE_SIZE;
+    for (const side of d === 0 ? [1] : [1, -1]) drawFxSprite("fx_darkburst", f.x + c * d * side, f.y + s * d * side, size, size, 1 - age / KNIGHT_WAVE_PUFF);
+  }
+}
+
+// 서리 망령 찬 기운: 큰 눈송이 하나(Kenney 1-Bit Pack 눈송이 칸을 얼음색으로)를 찬 기운 크기(지름)로 발밑에 깖 (사용자 요청 10-19)
+function drawAuraFlakes(e) {
+  const sp = SPRITES.fx_snowflake;
+  if (!sp.ready) return;
+  const size = Math.round(auraRadius(e) * 2);
+  ctx.drawImage(sp.normal, Math.round(e.x - size / 2), Math.round(e.y - size / 2), size, size);
 }
 
 // 외눈 거인 자국 웅덩이: 회색 그림에 테마의 보색을 곱해 칠한 것 (테마·모양마다 한 번만 만들어 둠)
@@ -217,13 +347,19 @@ function drawPickups() {
 
 // 연출 그리기 (종류마다 맞는 함수로 나눠 그림)
 function drawEffects() {
+  drawFallingObjects();
   // 연출: 폭발(주황 원이 점점 옅어짐) / 처치 고리(바깥으로 퍼지며 옅어짐)
   for (const f of effects) {
     const t = f.life / f.maxLife;          // 1 → 0 으로 줄어듦
     if (f.fx) {
       // 그림으로 그리는 폭발·고리 (fx = 그림 이름). 고리는 예전처럼 r 보다 조금 크게 퍼진 크기로
-      const size = (f.kind === "ring" ? f.r + 22 : f.r) * FX_BURST_SIZE;
-      drawFxSprite(f.fx, f.x, f.y, size, size, t);
+      const size = (f.kind === "ring" ? f.r + 22 : f.r) * FX_BURST_SIZE * (f.scale || 1);
+      if (f.fx === "fx_pillar") drawFxSprite(f.fx, f.x, f.y + 10, size * 1.5, size * 2.1, t, 0, 0.5, 0.88);   // 악마 불기둥: 밑동이 경고 자리에 오게 위로 솟음
+      else drawFxSprite(f.fx, f.x, f.y, size, size, t);
+    } else if (f.kind === "darkslash") {
+      drawDarkSlash(f, t);
+    } else if (f.kind === "darkwave") {
+      drawDarkWave(f);
     } else if (f.kind === "icespikes") {
       drawIceSpikes(f.x, f.y, f.r, 1, t);   // 예티 땅 내리치기 뒤 둘레 가시가 옅어짐
     } else if (f.kind === "chest") {
@@ -696,6 +832,7 @@ function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0 }
 
 // 적 하나 그리기
 function drawEnemy(e) {
+  if (e.vanished) return;                           // 순간이동 중인 죽음의 기사
   // 붉은 게는 돌진 직전에 흰색으로 번쩍임 (피하라는 신호)
   const flashing = e.mode === "windup" && Math.floor(e.modeTimer * 16) % 2 === 0;
   const hit = e.hitFlash > 0;                       // 방금 맞았으면 흰색으로 번쩍
@@ -707,27 +844,8 @@ function drawEnemy(e) {
   const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12
     - (e.leap ? Math.sin(Math.PI * Math.min(1, e.leap.t / LEAP_TIME)) * LEAP_HEIGHT : 0);   // 뛰어오른 웬디고는 포물선으로 떠오름
 
-  // 서리 망령: 둘레의 찬 기운 (이 원 안에 들어가면 느려짐)
-  if (e.aura) {
-    ctx.fillStyle = "rgba(160, 230, 255, 0.10)";
-    ctx.strokeStyle = "rgba(160, 230, 255, 0.45)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, auraRadius(e), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // 보스: 큰 고리 (사신 마법사는 보라색, 다른 보스는 ring 색)
-  if (e.boss) {
-    ctx.fillStyle = `rgba(${e.ring || "155, 93, 229"}, 0.18)`;
-    ctx.strokeStyle = e.ring ? `rgb(${e.ring})` : "#c77dff";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.r * 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
+  // 서리 망령: 발밑의 찬 기운 (이 눈송이 안에 들어가면 느려짐). 몸보다 먼저 그려서 아래에 깔림
+  if (e.aura) drawAuraFlakes(e);
 
   // 엘리트: 금색 고리로 표시 (잡으면 상자를 주는 몬스터)
   if (e.elite) {
@@ -742,10 +860,16 @@ function drawEnemy(e) {
 
   // 난이도 테마 그림(예: bat_ice)을 아직 못 불러왔으면 원래 그림으로
   const shape = SPRITES[e.shape] && SPRITES[e.shape].ready ? e.shape : e.baseShape;
+  // 망령: 멀리 있으면 거의 안 보이고 가까이 오면 드러남 (맞으면 잠깐 다 보임)
+  if (e.fade && !hit) {
+    const d = Math.hypot(player.x - e.x, player.y - e.y);
+    ctx.globalAlpha = FADE_MIN_ALPHA + (1 - FADE_MIN_ALPHA) * Math.max(0, Math.min(1, (FADE_FAR - d) / (FADE_FAR - FADE_NEAR)));
+  }
   const drew = drawSprite(shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
-    flip: e.behavior === "swarm" ? e.vx < 0 : player.x < e.x,   // 플레이어가 있는 쪽을 바라봄 (박쥐 떼는 날아가는 쪽)
+    flip: e.behavior === "swarm" ? e.vx < 0 : e.runX !== undefined ? e.runX < 0 : player.x < e.x,   // 플레이어가 있는 쪽을 바라봄 (박쥐 떼는 날아가는 쪽, 악몽마는 달리는 쪽)
     white,
   });
+  ctx.globalAlpha = 1;
 
   // 난이도 테마 · 붉은 게의 껍질: 남아 있는 동안 테마 색 테두리 (두 겹이면 두 줄)
   for (let i = 0; i < (e.shell || 0); i++) {

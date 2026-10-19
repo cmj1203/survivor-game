@@ -99,8 +99,9 @@ function makeEnemy(type, x, y, isChild = false) {
   if (e.behavior === "gallop")  e.gallop = 0;                                         // 북극곰: 질주한 시간
   if (e.behavior === "leaper")  e.leapTimer = LEAP_INTERVAL * (0.5 + Math.random());   // 웬디고: 첫 덮치기 박자를 적마다 다르게
   // 스테이지별 적의 특성 (STAGE_ENEMIES 표 참고)
-  for (const k of ["knockback", "aura", "splitType", "splitGens", "killStat", "leavesHazard", "hazardQuest"]) if (type[k]) e[k] = type[k];
+  for (const k of ["knockback", "aura", "splitType", "splitGens", "killStat", "leavesHazard", "hazardQuest", "firePool", "fireTrail", "deathBlast", "fade", "regen"]) if (type[k]) e[k] = type[k];
   if (e.behavior === "slide") { e.vx = 0; e.vy = 0; }   // 얼음 원소: 지금 미끄러지는 속도
+  if (e.firePool) e.poolTimer = FIRE_POOL_INTERVAL * (0.5 + Math.random());   // 불 원소: 첫 웅덩이 박자를 적마다 다르게
 
   // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (보통 난이도는 tier 0 이라 그대로)
   const tier = enemyTier(), theme = diffDef().theme;
@@ -196,6 +197,8 @@ function spawnBoss() {
   boss.boss = true;
   boss.name = bt.name; boss.pattern = bt.pattern; boss.summon = bt.summon; boss.ring = bt.ring;
   if (bt.pattern === "yeti") { boss.slamTimer = YETI_SLAM_INTERVAL / 2; boss.rockTimer = YETI_ROCK_INTERVAL; boss.icicleTimer = 0; }
+  if (bt.pattern === "demon") { boss.pillarTimer = DEMON_PILLAR_INTERVAL / 2; boss.chargeTimer = DEMON_CHARGE_INTERVAL / 2; boss.meteorTimer = 0; }
+  if (bt.pattern === "deathknight") { boss.slashTimer = KNIGHT_SLASH_INTERVAL / 2; boss.teleTimer = KNIGHT_TELE_INTERVAL / 2; boss.crossTimer = 0; }
   if (run) run.bossAt = stats.time;            // 퀘스트 '속전속결'용: 보스가 나온 시각
   boss.r = bt.r; boss.hp = Math.round((bt.hp + BOSS_HP_PER_LEVEL * player.level) * DIFFICULTY * diffDef().boss); boss.maxHp = boss.hp;
   boss.speed = bt.speed; boss.damage = Math.round(bt.damage * DIFFICULTY); boss.xp = 0;
@@ -523,7 +526,8 @@ function xpNeedFor(level) {
 
 // 적에게 피해 주기. 죽으면 처치 수 +1, 구슬 떨어뜨림 (모든 무기가 이 함수를 씀)
 function damageEnemy(e, dmg) {
-  if (e.dead) return;
+  if (e.dead || e.vanished) return;   // 순간이동으로 사라진 죽음의 기사는 맞지 않음
+  e.hurtAt = stats.time;              // 미라 회복: 마지막으로 맞은 시각
   // 난이도 테마 · 붉은 게의 껍질: 남아 있으면 이번 공격은 껍질만 깨고 끝 (피해 없음)
   if (e.shell > 0) {
     e.shell -= 1;
@@ -566,6 +570,11 @@ function damageEnemy(e, dmg) {
       if ((e.elite || Math.random() < CYCLOPS_HAZARD_CHANCE[enemyTier()]) && hazards.length < CYCLOPS_HAZARD_MAX) {
         hazards.push({ x: e.x, y: e.y, r: CYCLOPS_HAZARD_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: HAZARD_ARM_TIME, quest: !!e.hazardQuest });
       }
+    }
+
+    // 용암 골렘: 죽은 자리에 주황 경고 원이 차오른 뒤 폭발 (원 안이면 몸 피해만큼. final = 이미 난이도 배수를 곱한 피해)
+    if (e.deathBlast) {
+      bossMarks.push({ x: e.x, y: e.y, r: GOLEM_BLAST_RADIUS * (e.elite ? 1.4 : 1), time: GOLEM_BLAST_TIME, maxTime: GOLEM_BLAST_TIME, damage: e.damage, final: true, rgb: DEMON_RGB, fx: "fx_blast" });
     }
 
     // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴. splitType 이 있으면(얼음 원소) 그 종류가 제 크기로 나옴

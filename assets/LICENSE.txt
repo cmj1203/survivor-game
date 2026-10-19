@@ -213,10 +213,35 @@ License: Creative Commons Zero (CC0)
     fx_leapclaw.png  = Kenney "Tiny Dungeon" (CC0) Tiles/tile_0062.png (세 줄 발톱 자국). 흰색을 빨강(220,60,60)으로,
                        어두운 외곽선을 #3F2631 로 바꿈 (웬디고 착지점 경고)
 
+  2026-10-19 보스·적 경고와 악마·죽음의 기사 공격 효과:
+    IceMaan "FREE PIXEL VFX ESSENTIALS" Spritesheets/ 에서 (32×32 가로 띠, 위 fx_slash 와 같은 라이선스):
+      fx_flameloop.png = Fire/Flame Loop 그대로 (불 경고 둘레 불꽃)
+      fx_darkslash.png = Slashes/Dark Slash 그대로 (죽음의 기사 베기)
+    reodesuxz "Pixel Spell and Magic FX" (https://reodesuxz.itch.io/free-pixel-spell-and-magic-fx-sprites-animated-32x32)
+      PNG/strips_32x32/ 에서 그대로 (32×32 가로 띠):
+      fx_pillar.png = pillar_fire (악마 불기둥)          fx_fireburst.png = burst_fire (악마 돌진 끝·운석 터짐)
+      fx_meteor.png = meteor_fire (떨어지는 운석)       fx_cursecloud.png = cloud_curse (죽음의 기사 순간이동 떠날 때)
+      fx_darkburst.png = burst_dark (죽음의 기사 나타날 때·십자 파동)
+      라이선스: 개인·상업 프로젝트 사용·수정 자유, 출처 표기 불필요("Pixel Spell and Magic FX by reodesuxz" 는 환영),
+                파일 자체의 재판매·재배포 금지, AI 학습 금지
+    fx_icerock.png  = Kami "Pixel Icicles" (CC0) icerocks_pixel.png 넷째 줄 넷째 칸 16px (떨어지는 얼음덩이)
+    fx_icicle.png   = Kami "Pixel Icicles" (CC0) icicle_pixel.png 첫째 줄 첫째 칸 16px (떨어지는 고드름)
+    떨어지는 공격의 바둑판 그림자는 그림 파일 없이 게임 코드가 그림 (외부 출처 없음)
+    fx_circleice.png  = reodesuxz "Pixel Spell and Magic FX" circle_ice 그대로 (예티 고드름 경고 마법진, 위 reodesuxz 와 같은 라이선스)
+    fx_snowflake.png  = Kenney "1-Bit Pack" (CC0) 열 28, 행 12 눈송이 칸. 색을 얼음색(215,245,255)으로 (서리 망령 찬 기운 둘레)
+    fx_circlefire.png = reodesuxz "Pixel Spell and Magic FX" circle_fire 그대로 (악마 불기둥 경고 마법진, 위 reodesuxz 와 같은 라이선스)
+    fx_castcircle.png = IceMaan "FREE PIXEL VFX ESSENTIALS" Magic/Cast Circle 그대로 (죽음의 기사 순간이동 경고 마법진)
+    fx_ghostsword.png = 게임의 bigsword.png (Kenney Tiny Dungeon, CC0) 를 보라로 칠한 2칸: 왼쪽 어두운 칼, 오른쪽 밝은 칼 (기사 베기 경고)
+    fx_arrow.png / fx_arrowdark.png = Kenney "1-Bit Pack" (CC0) 열 26, 행 20 꺾쇠(‹)를 좌우로 뒤집어(›) 16px 2칸으로:
+                       왼쪽 칸 = 어둡게 칠한 '꺼짐', 오른쪽 칸 = 밝게 칠한 '켜짐'. fx_arrow 는 주황(악마 돌진), fx_arrowdark 는 보라(십자 파동)
+
 스테이지별 적·보스 그림: Clint Bellanger 의 "Tiny Creatures (1.0)" (CC0, Kenney Tiny Dungeon 확장판)
 https://opengameart.org/content/tiny-creatures
 Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0)를 그대로 잘라 씀:
   얼음 동굴: icewisp.png = 59 (얼음 정령. 그림이 작아 빈 여백을 잘라 11x11 로 → 게임 안에서 박쥐만 하게 보임)   polarbear.png = 164 (북극곰)   iceelem.png = 49 (얼음 원소)
              frostwight.png = 19 (서리 망령)   wendigo.png = 15 (웬디고)   yeti.png = 43 (보스 예티)
-  용암 굴:   hellhound.png = 102 (지옥개)
-  저주받은 어둠: muck.png = 87 (검은 진흙)
+  용암 굴:   imp.png = 39 (임프)   hellhound.png = 102 (지옥개)   fireelem.png = 45 (불 원소)   flameskull.png = 3 (불타는 해골)
+             lavagolem.png = 126 (용암 골렘. 모래색 골렘을 용암색으로 칠함: 몸 #703E38, 그림자 #E85C24, 밝은 곳 #FFBA40)   demon.png = 123 (보스 악마)
+  저주받은 어둠: crow.png = 136 (까마귀)   nightmare.png = 54 (악몽마)   muck.png = 87 (검은 진흙)   wraith.png = 4 (망령)
+             mummy.png = 95 (미라)   deathknight.png = 97 (보스 죽음의 기사)
+  (Tiles/tile_NNNN.png 파일 번호는 칸 번호 + 1. Tiles 폴더 그림은 배경이 검게 칠해져 있어서 투명한 Tilemap 에서 잘라 씀)

@@ -117,14 +117,28 @@ const STAGE_ENEMIES = {
     { key: "frostwight", name: "서리 망령", shape: "frostwight", color: "#8fa8c8", r: 14, speed: 60, hp: 3, damage: 12, xp: 3, behavior: "chase", aura: true },
     { key: "wendigo",    name: "웬디고",    shape: "wendigo",    color: "#c9b8a0", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "leaper", hazardQuest: true },
   ],
+  //   behavior "pack": 무리(PACK_SIZE 마리)로 나와서 양옆 개가 비껴 달려 둘러쌈
+  //   firePool: 몇 초마다 발밑에 불 웅덩이 (잠깐 뒤 켜지고, 밟으면 피해)   fireTrail: 지나간 자리에 짧게 남는 불꽃 꼬리 (닿으면 작은 피해)
+  //   deathBlast: 죽은 자리에 주황 경고 원이 차오른 뒤 폭발 (원 안이면 피해)
+  lava: [
+    { key: "imp",        name: "임프",       shape: "imp",        color: "#e8604c", r: 11, speed: 80,  hp: 1, damage: 8,  xp: 1, behavior: "chase" },
+    { key: "hellhound",  name: "지옥개",     shape: "hellhound",  color: "#e2553d", r: 14, speed: 70,  hp: 2, damage: 10, xp: 2, behavior: "pack" },
+    { key: "fireelem",   name: "불 원소",    shape: "fireelem",   color: "#ffb02e", r: 14, speed: 55,  hp: 3, damage: 10, xp: 2, behavior: "chase", firePool: true },
+    { key: "flameskull", name: "불타는 해골", shape: "flameskull", color: "#ff8a2a", r: 14, speed: 105, hp: 3, damage: 12, xp: 3, behavior: "chase", fireTrail: true },
+    { key: "lavagolem",  name: "용암 골렘",  shape: "lavagolem",  color: "#e85c24", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase", deathBlast: true },
+  ],
+  //   behavior "runner": 방향을 정하면 꺾지 않고 곧게 달려 지나감. 화면 밖으로 멀리 나가면 다시 플레이어 쪽으로 방향을 잡음 (멈춤·번쩍임 없음)
+  //   splitGens: 몇 번까지 갈라지는지 (갈라질 때마다 작아짐)   fade: 멀리 있으면 거의 안 보이고 가까이 오면 드러남 (맞는 건 그대로)
+  //   regen: 몇 초 안 맞으면 체력이 천천히 차오름 (초록 반짝임)
+  dark: [
+    { key: "crow",       name: "까마귀",    shape: "crow",       color: "#5b6478", r: 11, speed: 80, hp: 1, damage: 8,  xp: 1, behavior: "chase" },
+    { key: "nightmare",  name: "악몽마",    shape: "nightmare",  color: "#4a5068", r: 15, speed: 50, hp: 2, damage: 10, xp: 2, behavior: "runner" },
+    { key: "muck",       name: "검은 진흙", shape: "muck",       color: "#4b4560", r: 17, speed: 50, hp: 4, damage: 10, xp: 2, behavior: "chase", splitInto: 2, splitGens: 2 },
+    { key: "wraith",     name: "망령",      shape: "wraith",     color: "#5e6c8a", r: 14, speed: 95, hp: 3, damage: 12, xp: 3, behavior: "chase", fade: true },
+    { key: "mummy",      name: "미라",      shape: "mummy",      color: "#c9d1d8", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "chase", regen: true },
+  ],
 };
-// --- 다음 스테이지에 쓸 적: 용암 굴·저주받은 어둠의 5종이 다 만들어지면 STAGE_ENEMIES 로 옮김 (그 전에는 게임에 안 나옴) ---
-//   behavior "pack": 무리(PACK_SIZE 마리)로 나와서 양옆 개가 비껴 달려 둘러쌈   splitGens: 몇 번까지 갈라지는지 (갈라질 때마다 작아짐)
-const PLANNED_ENEMIES = [
-  { key: "hellhound", name: "지옥개",    shape: "hellhound", color: "#e2553d", r: 14, speed: 70, hp: 2, damage: 10, xp: 2, behavior: "pack" },
-  { key: "muck",      name: "검은 진흙", shape: "muck",      color: "#4b4560", r: 17, speed: 50, hp: 4, damage: 10, xp: 2, behavior: "chase", splitInto: 2, splitGens: 2 },
-];
-const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES), PLANNED_ENEMIES);
+const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES));
 function enemyTypes() { return STAGE_ENEMIES[diffDef().theme] || ENEMY_TYPES; }             // 지금 스테이지의 적 5종
 function findEnemyType(key) { return ALL_ENEMY_TYPES.find((t) => t.key === key); }
 function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적
@@ -135,6 +149,26 @@ const PACK_FLANK_ANGLE = 0.65;       // 지옥개: 양옆 개가 플레이어 �
 const PACK_FLANK_SPEED = 1.2;        // 지옥개: 양옆 개는 돌아가는 만큼 조금 빨라서 가운데 개와 비슷하게 도착
 const PACK_CLOSE_DIST = 170;         // 지옥개: 이보다 가까워지면 양옆 개도 곧장 달려듦
 const SPLIT_SHRINK = 0.7;            // 검은 진흙: 갈라질 때마다 크기 배수 (체력은 절반)
+const FIRE_POOL_INTERVAL = 3.5;      // 불 원소: 불 웅덩이를 남기는 간격 (초). 첫 웅덩이만 적마다 박자가 다름
+const FIRE_POOL_ARM = 0.8;           // 불 원소: 웅덩이가 생긴 뒤 켜지기까지 (그동안 테두리만 깜빡여서 피할 틈)
+const FIRE_POOL_LIFE = 3.5;          // 불 원소: 켜진 웅덩이가 타는 시간
+const FIRE_POOL_RADIUS = 32;         // 불 원소: 웅덩이 크기
+const FIRE_POOL_MAX = 8;             // 불 원소: 동시에 깔려 있을 수 있는 웅덩이 수
+const FIRE_POOL_DAMAGE_MUL = 0.6;    // 불 원소: 웅덩이 피해 = 몸 피해 × 이 값
+const FIRE_TRAIL_INTERVAL = 0.1;     // 불타는 해골: 꼬리 불꽃을 남기는 간격
+const FIRE_TRAIL_LIFE = 0.6;         // 불타는 해골: 꼬리 불꽃이 남는 시간
+const FIRE_TRAIL_ARM = 0.2;          // 불타는 해골: 막 생긴 꼬리는 잠깐 안 아픔 (해골 몸과 겹친 자리라서)
+const FIRE_TRAIL_MAX = 80;           // 불타는 해골: 화면 전체 꼬리 불꽃 수 상한 (해골 떼가 몰려와도 너무 많아지지 않게)
+const FIRE_TRAIL_DAMAGE_MUL = 0.35;  // 불타는 해골: 꼬리 피해 = 몸 피해 × 이 값
+const GOLEM_BLAST_TIME = 1.0;        // 용암 골렘: 죽은 뒤 터지기까지 (주황 경고 원이 차오름)
+const GOLEM_BLAST_RADIUS = 70;       // 용암 골렘: 폭발 범위
+const RUNNER_SPEED_MUL = 3.4;        // 악몽마: 질주 속도 배수 (170 — 플레이어 기본 속도 220 보다 느려서 비킬 수 있음)
+const RUNNER_TURN_DIST = 650;        // 악몽마: 화면 밖에서 플레이어와 이만큼 멀어지면 다시 플레이어 쪽으로 방향을 잡음
+const FADE_NEAR = 130;               // 망령: 이 거리 안이면 다 드러남
+const FADE_FAR = 320;                // 망령: 이 거리 밖이면 가장 흐림
+const FADE_MIN_ALPHA = 0.12;         // 망령: 가장 흐릴 때 진하기
+const REGEN_DELAY = 3;               // 미라: 마지막으로 맞은 뒤 이 시간(초)이 지나면 회복 시작
+const REGEN_RATE = 0.12;             // 미라: 1초에 최대 체력의 이만큼 회복
 const CHILL_TIME = 1.2;              // 예티 등: 맞으면 이 시간(초) 동안 느려짐
 const CHILL_SLOW_MUL = 0.65;         // 느려졌을 때 이동 속도 배수
 const KNOCKBACK_SPEED = 420;         // 북극곰: 부딪히면 이 속도로 밀려남
@@ -183,6 +217,8 @@ const BOSS_TYPE = { key: "boss", name: "사신 마법사", shape: "wizard", colo
 //   pattern: 공격 방식 (updateBossEnemy 참고)   summon: 부르는 부하 종류   ring: 발밑 고리 색 (r, g, b)
 const STAGE_BOSSES = {
   ice: { key: "yeti", name: "예티", shape: "yeti", color: "#cfefff", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "yeti", summon: "icewisp", ring: "125, 249, 255" },
+  lava: { key: "demon", name: "악마", shape: "demon", color: "#e2442f", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "demon", summon: "imp", ring: "255, 123, 46" },
+  dark: { key: "deathknight", name: "죽음의 기사", shape: "deathknight", color: "#7a6aa8", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "deathknight", summon: "crow", ring: "181, 101, 245" },
 };
 function bossType() { return STAGE_BOSSES[diffDef().theme] || BOSS_TYPE; }
 // --- 예티 (얼음 동굴 보스) 공격: 모두 바닥에 얼음색 경고 원을 먼저 띄우고, 안쪽 원이 다 차면 그 자리에서 터짐 ---
@@ -204,6 +240,57 @@ const YETI_ICICLE_RADIUS = 45;
 const YETI_ICICLE_SPREAD = 320;      // 플레이어 주변 이 거리 안에 떨어짐
 const YETI_ICICLE_DAMAGE = 14;
 const YETI_FX_LIFE = 0.45;           // 예티 공격이 터지는 그림(Frost Nova / Ice Shatter / Ice Hit)이 재생되는 시간
+// --- 악마 (용암 굴 보스) 공격: 주황 경고가 먼저 차오른 뒤 터짐 ---
+const DEMON_RGB = "255, 130, 40";    // 경고 색 (주황)
+const DEMON_PILLAR_INTERVAL = 4;     // 불기둥 간격 (초)
+const DEMON_PILLAR_COUNT = 3;        // 한 번에 솟는 불기둥 수 (플레이어 자리 1개 + 근처)
+const DEMON_PILLAR_SPREAD = 150;     // 플레이어 근처 이 거리 안에 솟음
+const DEMON_PILLAR_TIME = 1.0;       // 경고 원이 차는 시간
+const DEMON_PILLAR_RADIUS = 50;
+const DEMON_PILLAR_DAMAGE = 16;
+const DEMON_CHARGE_INTERVAL = 7;     // 화염 돌진 간격
+const DEMON_CHARGE_WINDUP = 1.0;     // 멈춰서 번쩍이며 돌진 방향 띠가 차는 시간
+const DEMON_CHARGE_SPEED = 700;      // 돌진 속도
+const DEMON_CHARGE_TIME = 0.6;       // 돌진 시간 → 약 420px
+const DEMON_TRAIL_GAP = 30;          // 돌진하며 이 거리마다 불길을 남김
+const DEMON_TRAIL_RADIUS = 28;
+const DEMON_TRAIL_LIFE = 3;          // 불길이 남는 시간 (초)
+const DEMON_TRAIL_ARM = 0.3;
+const DEMON_TRAIL_DAMAGE = 8;
+const DEMON_METEOR_INTERVAL = 5;     // 체력 절반 이하: 운석 간격
+const DEMON_METEOR_COUNT = 8;        // 한 번에 떨어지는 운석 수 (화면 여기저기)
+const DEMON_METEOR_TIME = 1.0;       // 첫 운석이 떨어지기까지
+const DEMON_METEOR_STAGGER = 0.2;    // 운석이 차례로 떨어지는 간격
+const DEMON_METEOR_RADIUS = 55;
+const DEMON_METEOR_DAMAGE = 16;
+// --- 죽음의 기사 (저주받은 어둠 보스) 공격: 보라 경고가 먼저 차오른 뒤 터짐 ---
+const KNIGHT_RGB = "180, 90, 255";   // 경고 색 (보라)
+const KNIGHT_SLASH_INTERVAL = 3.5;   // 베기 간격
+const KNIGHT_SLASH_WINDUP = 0.9;     // 멈춰서 부채꼴 경고가 차는 시간
+const KNIGHT_SLASH_RANGE = 190;      // 부채꼴 길이
+const KNIGHT_SLASH_SPREAD = 1.9;     // 부채꼴 벌어진 각도 (라디안, 약 110도)
+const KNIGHT_SLASH_DAMAGE = 20;
+const KNIGHT_TELE_INTERVAL = 8;      // 순간이동 내리찍기 간격
+const KNIGHT_TELE_TIME = 1.0;        // 사라진 뒤 나타나기까지 (그동안 나타날 자리에 경고 원)
+const KNIGHT_TELE_BEHIND = 90;       // 플레이어가 바라보는 쪽의 반대편 이 거리에 나타남
+const KNIGHT_TELE_RADIUS = 80;
+const KNIGHT_TELE_DAMAGE = 20;
+const KNIGHT_CROSS_INTERVAL = 5;     // 체력 절반 이하: 십자 어둠 파동 간격 (4분의 1 이하면 대각선도)
+const KNIGHT_CROSS_TIME = 1.1;
+const KNIGHT_CROSS_LEN = 700;        // 기사 중심에서 띠가 뻗는 길이 (양쪽)
+const KNIGHT_CROSS_HALF = 28;        // 띠 두께의 절반
+const KNIGHT_CROSS_DAMAGE = 18;
+const BOSS_FALL_TIME = 0.6;          // 떨어지는 공격(얼음덩이·고드름·운석): 터지기 전 이 시간 동안 물체가 떨어지는 그림
+const BOSS_BURST_LIFE = 0.55;        // 악마·죽음의 기사 터짐 그림(reodesuxz burst_fire / burst_dark)이 재생되는 시간
+const BOSS_BURST_SCALE = 1.22;       // reodesuxz 터짐 그림은 그림 속 원이 작아서 둥근 효과 크기의 이 배수로 그림
+const DEMON_PILLAR_FX_LIFE = 0.6;    // 악마 불기둥 그림(reodesuxz pillar_fire)이 솟았다 꺼지는 시간
+const KNIGHT_SLASH_FX_LIFE = 0.55;   // 죽음의 기사 베기 그림(IceMaan Dark Slash)이 재생되는 시간
+const KNIGHT_CLOUD_LIFE = 0.6;       // 죽음의 기사가 사라진 자리에 저주 연기(cloud_curse)가 남는 시간
+const KNIGHT_CLOUD_SIZE = 150;       // 저주 연기 크기
+const KNIGHT_WAVE_GAP = 60;          // 십자 파동: 띠를 따라 이 거리마다 어둠 폭발
+const KNIGHT_WAVE_SPEED = 1100;      // 십자 파동: 가운데에서 바깥으로 퍼지는 빠르기
+const KNIGHT_WAVE_PUFF = 0.5;        // 십자 파동: 폭발 하나가 재생되는 시간
+const KNIGHT_WAVE_SIZE = 110;        // 십자 파동: 폭발 하나의 크기
 const BOSS_HP_PER_LEVEL = 120;       // 보스 체력 = 기본 + 플레이어 레벨 × 이 값 (강한 빌드일수록 보스도 튼튼하게)
 const BOSS_FOCUS_RANGE = 450;        // 보스가 이 거리 안이면 자동 조준 무기가 부하 대신 보스를 노림
 //   플레이어를 계속 쫓아오므로(플레이어보다 느림) 도망치며 싸우고, 가까이 오면 근접 무기로도 때릴 수 있음

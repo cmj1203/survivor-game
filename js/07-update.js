@@ -193,6 +193,8 @@ function updateEnemies(dt, frozen) {
       updateSlideEnemy(e, dirX, dirY, dt);
     } else if (e.behavior === "pack") {
       updatePackEnemy(e, dirX, dirY, len, dt);
+    } else if (e.behavior === "runner") {
+      updateRunnerEnemy(e, dirX, dirY, len, dt);
     } else if (e.behavior === "swarm") {
       // 박쥐 떼: 플레이어를 쫓지 않고 처음 정해진 방향으로 곧장 날아감
       e.x += e.vx * dt;
@@ -211,6 +213,8 @@ function updateEnemies(dt, frozen) {
     } else {
       updateChaseEnemy(e, dirX, dirY, len, dt);
     }
+    // 스테이지별 적 특성 (불 웅덩이·불꽃 꼬리·회복): 얼어 있으면 멈춤
+    if (!((frozen || e.frozenTimer > 0) && !e.boss)) updateEnemyTraits(e, dt);
 
     for (const k in e.cd) if (e.cd[k] > 0) e.cd[k] -= dt;
     if (e.hitFlash > 0) e.hitFlash -= dt;
@@ -221,6 +225,10 @@ function updateEnemies(dt, frozen) {
 function updateBossEnemy(e, dirX, dirY, dt) {
   if (e.pattern === "yeti") {
     updateYetiBoss(e, dirX, dirY, dt);
+  } else if (e.pattern === "demon") {
+    updateDemonBoss(e, dirX, dirY, dt);
+  } else if (e.pattern === "deathknight") {
+    updateKnightBoss(e, dirX, dirY, dt);
   } else {
     // 사신 마법사: 플레이어를 계속 쫓아오며 탄환을 쏨 (난이도마다 패턴이 다름)
     e.x += dirX * e.speed * dt;
@@ -259,7 +267,7 @@ function updateYetiBoss(e, dirX, dirY, dt) {
     bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true, spikes: true, fx: "fx_frostnova" });
   } else if (e.rockTimer <= 0) {
     e.rockTimer = YETI_ROCK_INTERVAL;
-    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT, fx: "fx_iceshatter" });
+    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT, fx: "fx_iceshatter", fall: "rock" });
   }
   if (e.hp > e.maxHp / 2) return;
   e.icicleTimer -= dt;
@@ -269,22 +277,148 @@ function updateYetiBoss(e, dirX, dirY, dt) {
       const a = Math.random() * Math.PI * 2;
       const d = i === 0 ? 0 : 60 + Math.random() * (YETI_ICICLE_SPREAD - 60);   // 첫 고드름은 플레이어 자리
       const time = YETI_ICICLE_FALL + i * 0.08;                                  // 차례로 떨어지게 조금씩 어긋나게
-      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE, fx: "fx_icehit" });
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE, fx: "fx_icehit", fall: "icicle", warn: "fx_circleice" });
     }
   }
 }
 
+// 악마(용암 굴 보스): 쫓아오다가 불기둥(플레이어 근처) · 화염 돌진(멈춰서 방향 띠 → 직선 돌진, 지나간 자리에 불길), 체력 절반 이하면 운석까지
+function updateDemonBoss(e, dirX, dirY, dt) {
+  if (e.mode === "windup") {                     // 돌진 준비: 제자리에서 번쩍이며 방향 띠가 참
+    e.modeTimer -= dt;
+    if (e.modeTimer <= 0) { e.mode = "dash"; e.modeTimer = DEMON_CHARGE_TIME; e.trailDist = 0; }
+    return;
+  }
+  if (e.mode === "dash") {                       // 돌진: 정해 둔 방향으로 곧장, DEMON_TRAIL_GAP 마다 불길
+    const step = DEMON_CHARGE_SPEED * dt;
+    e.x += e.dashX * step;
+    e.y += e.dashY * step;
+    e.trailDist += step;
+    if (e.trailDist >= DEMON_TRAIL_GAP) {
+      e.trailDist = 0;
+      enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: DEMON_TRAIL_RADIUS, life: DEMON_TRAIL_LIFE, maxLife: DEMON_TRAIL_LIFE, arm: DEMON_TRAIL_ARM, damage: Math.round(DEMON_TRAIL_DAMAGE * DIFFICULTY) });
+    }
+    e.modeTimer -= dt;
+    if (e.modeTimer <= 0) {
+      e.mode = null;
+      effects.push({ x: e.x + e.dashX * (e.r + 20), y: e.y + e.dashY * (e.r + 20), r: DEMON_TRAIL_RADIUS * 1.8, life: BOSS_BURST_LIFE, maxLife: BOSS_BURST_LIFE, fx: "fx_fireburst", scale: BOSS_BURST_SCALE });   // 돌진 끝에서 불꽃이 터짐
+    }
+    return;
+  }
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
+  e.pillarTimer -= dt;
+  e.chargeTimer -= dt;
+  if (e.chargeTimer <= 0) {
+    e.chargeTimer = DEMON_CHARGE_INTERVAL;
+    e.mode = "windup";
+    e.modeTimer = DEMON_CHARGE_WINDUP;
+    e.dashX = dirX;                              // 이 순간의 방향으로 돌진 (띠 밖으로 비키면 빗나감)
+    e.dashY = dirY;
+    const half = (DEMON_CHARGE_SPEED * DEMON_CHARGE_TIME) / 2;
+    bossMarks.push({ shape: "band", x: e.x + dirX * half, y: e.y + dirY * half, angle: Math.atan2(dirY, dirX), len: half + e.r, half: e.r * 0.8,
+                     time: DEMON_CHARGE_WINDUP, maxTime: DEMON_CHARGE_WINDUP, damage: 0, rgb: DEMON_RGB, warn: "arrows" });   // 피해는 돌진하는 몸과 불길이 줌
+  } else if (e.pillarTimer <= 0) {
+    e.pillarTimer = DEMON_PILLAR_INTERVAL;
+    for (let i = 0; i < DEMON_PILLAR_COUNT; i++) {
+      const a = Math.random() * Math.PI * 2, d = i === 0 ? 0 : 60 + Math.random() * (DEMON_PILLAR_SPREAD - 60);   // 첫 불기둥은 플레이어 자리
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: DEMON_PILLAR_RADIUS, time: DEMON_PILLAR_TIME, maxTime: DEMON_PILLAR_TIME, damage: DEMON_PILLAR_DAMAGE, rgb: DEMON_RGB, fx: "fx_pillar", fxLife: DEMON_PILLAR_FX_LIFE, warn: "fx_circlefire" });
+    }
+  }
+  if (e.hp > e.maxHp / 2) return;
+  e.meteorTimer -= dt;
+  if (e.meteorTimer <= 0) {
+    e.meteorTimer = DEMON_METEOR_INTERVAL;
+    for (let i = 0; i < DEMON_METEOR_COUNT; i++) {
+      const time = DEMON_METEOR_TIME + i * DEMON_METEOR_STAGGER;   // 차례로 떨어지게
+      const x = i === 0 ? player.x : cam.x + 40 + Math.random() * (VW - 80), y = i === 0 ? player.y : cam.y + 40 + Math.random() * (VH - 80);   // 화면 여기저기 (첫 운석은 플레이어 자리)
+      bossMarks.push({ x, y, r: DEMON_METEOR_RADIUS, time, maxTime: time, damage: DEMON_METEOR_DAMAGE, rgb: DEMON_RGB, fx: "fx_fireburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, fall: "meteor" });
+    }
+  }
+}
+
+// 죽음의 기사(저주받은 어둠 보스): 쫓아오다가 베기(부채꼴) · 순간이동 내리찍기(플레이어 뒤쪽), 체력 절반 이하면 십자 어둠 파동 (4분의 1 이하면 대각선도)
+function updateKnightBoss(e, dirX, dirY, dt) {
+  if (e.mode === "windup") {                     // 베기 준비: 제자리에서 번쩍이며 부채꼴이 참
+    e.modeTimer -= dt;
+    if (e.modeTimer <= 0) e.mode = null;
+    return;
+  }
+  if (e.mode === "vanish") {                     // 사라진 동안: 나타날 자리에 경고 원. 다 차면 그 자리에 나타나며 내리찍음 (원 피해는 updateBossMarks)
+    e.modeTimer -= dt;
+    if (e.modeTimer <= 0) {
+      e.mode = null;
+      e.vanished = false;
+      e.x = e.teleX;
+      e.y = e.teleY;
+      spawnParticles(e.x, e.y, `rgb(${KNIGHT_RGB})`, 16, 220);
+    }
+    return;
+  }
+  e.x += dirX * e.speed * dt;
+  e.y += dirY * e.speed * dt;
+  e.slashTimer -= dt;
+  e.teleTimer -= dt;
+  if (e.teleTimer <= 0) {
+    e.teleTimer = KNIGHT_TELE_INTERVAL;
+    e.mode = "vanish";
+    e.vanished = true;
+    e.modeTimer = KNIGHT_TELE_TIME;
+    e.teleX = player.x - player.facingX * KNIGHT_TELE_BEHIND;   // 플레이어가 바라보는 쪽의 반대편 (등 뒤)
+    e.teleY = player.y - player.facingY * KNIGHT_TELE_BEHIND;
+    effects.push({ x: e.x, y: e.y + 10, r: KNIGHT_CLOUD_SIZE / FX_BURST_SIZE, life: KNIGHT_CLOUD_LIFE, maxLife: KNIGHT_CLOUD_LIFE, fx: "fx_cursecloud" });   // 떠난 자리에 저주 연기
+    bossMarks.push({ x: e.teleX, y: e.teleY, r: KNIGHT_TELE_RADIUS, time: KNIGHT_TELE_TIME, maxTime: KNIGHT_TELE_TIME, damage: KNIGHT_TELE_DAMAGE, rgb: KNIGHT_RGB, fx: "fx_darkburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, warn: "fx_castcircle" });
+  } else if (e.slashTimer <= 0) {
+    e.slashTimer = KNIGHT_SLASH_INTERVAL;
+    e.mode = "windup";
+    e.modeTimer = KNIGHT_SLASH_WINDUP;
+    bossMarks.push({ shape: "cone", x: e.x, y: e.y, angle: Math.atan2(dirY, dirX), spread: KNIGHT_SLASH_SPREAD, r: KNIGHT_SLASH_RANGE,
+                     time: KNIGHT_SLASH_WINDUP, maxTime: KNIGHT_SLASH_WINDUP, damage: KNIGHT_SLASH_DAMAGE, rgb: KNIGHT_RGB, warn: "swords" });
+  }
+  if (e.hp > e.maxHp / 2) return;
+  e.crossTimer -= dt;
+  if (e.crossTimer <= 0) {
+    e.crossTimer = KNIGHT_CROSS_INTERVAL;
+    const angles = e.hp > e.maxHp / 4 ? [0, Math.PI / 2] : [0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4];
+    for (const angle of angles) {
+      bossMarks.push({ shape: "band", x: e.x, y: e.y, angle, len: KNIGHT_CROSS_LEN, half: KNIGHT_CROSS_HALF, time: KNIGHT_CROSS_TIME, maxTime: KNIGHT_CROSS_TIME, damage: KNIGHT_CROSS_DAMAGE, rgb: KNIGHT_RGB, center: true, warn: "arrows" });
+    }
+  }
+}
+
+// 경고 모양 안에 플레이어가 있는지 (원 / band: 가운데 (x, y)에서 angle 방향 양쪽으로 len, 두께 절반 half / cone: (x, y)에서 angle 쪽 부채꼴)
+function markHitsPlayer(m) {
+  const dx = player.x - m.x, dy = player.y - m.y;
+  if (m.shape === "band") {
+    const c = Math.cos(m.angle), s = Math.sin(m.angle);
+    return Math.abs(dx * c + dy * s) < m.len + player.r && Math.abs(-dx * s + dy * c) < m.half + player.r;
+  }
+  const d = Math.hypot(dx, dy);
+  if (m.shape === "cone") {
+    const diff = Math.abs(((Math.atan2(dy, dx) - m.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+    return d < m.r + player.r && (d < player.r || diff < m.spread / 2);
+  }
+  return d < m.r + player.r;
+}
+
 // 보스 공격 경고 원: 시간이 다 되면 그 자리에서 터짐 (원 안에 있으면 피해. chill = 느려짐, shards = 사방으로 파편)
+//   final = 이미 난이도 배수를 곱한 피해 (용암 골렘 폭발), damage 0 = 경고만 (악마 돌진 띠)
 function updateBossMarks(dt) {
   for (const m of bossMarks) {
     m.time -= dt;
     if (m.time > 0) continue;
     m.done = true;
-    if (Math.hypot(player.x - m.x, player.y - m.y) < m.r + player.r && player.invincible <= 0) {
-      hurtPlayer(Math.round(m.damage * DIFFICULTY));
+    if (m.damage > 0 && markHitsPlayer(m) && player.invincible <= 0) {
+      hurtPlayer(m.final ? m.damage : Math.round(m.damage * DIFFICULTY));
       if (m.chill) chillPlayer(CHILL_TIME * 2);
     }
-    effects.push({ x: m.x, y: m.y, r: m.r, life: YETI_FX_LIFE, maxLife: YETI_FX_LIFE, fx: m.fx });   // 터지는 그림 (공격마다 다름, 위 bossMarks.push 의 fx)
+    const fxLife = m.fxLife || YETI_FX_LIFE;
+    if (m.fx) effects.push({ x: m.x, y: m.y, r: m.r, life: fxLife, maxLife: fxLife, fx: m.fx, scale: m.fxScale });   // 터지는 그림 (공격마다 다름, 위 bossMarks.push 의 fx)
+    else if (m.shape === "cone") effects.push({ kind: "darkslash", x: m.x, y: m.y, r: m.r, angle: m.angle, life: KNIGHT_SLASH_FX_LIFE, maxLife: KNIGHT_SLASH_FX_LIFE });   // 죽음의 기사 베기: 보라 초승달
+    else if (m.center) {                         // 십자 파동: 가운데에서 띠를 따라 바깥으로 어둠 폭발이 차례로
+      const life = KNIGHT_WAVE_PUFF + m.len / KNIGHT_WAVE_SPEED;
+      effects.push({ kind: "darkwave", x: m.x, y: m.y, angle: m.angle, len: m.len, life, maxLife: life });
+    }
     if (m.spikes) effects.push({ kind: "icespikes", x: m.x, y: m.y, r: m.r, life: 0.35, maxLife: 0.35 });   // 둘레 얼음 가시가 옅어지며 사라짐
     for (let i = 0; i < (m.shards || 0); i++) {
       const a = (Math.PI * 2 * i) / m.shards;
@@ -362,6 +496,44 @@ function updateSlideEnemy(e, dirX, dirY, dt) {
   e.vy += (dirY * max - e.vy) * k;
   e.x += e.vx * dt;
   e.y += e.vy * dt;
+}
+
+// 곧게 달리는 적 (악몽마): 방향을 정하면 꺾지 않고 달려 지나감. 화면 밖에서 RUNNER_TURN_DIST 넘게 멀어지는 중이면 다시 플레이어 쪽으로 방향을 잡음
+function updateRunnerEnemy(e, dirX, dirY, len, dt) {
+  if (e.runX === undefined || (len > RUNNER_TURN_DIST && !inView(e.x, e.y, 60) && e.runX * dirX + e.runY * dirY < 0)) {
+    e.runX = dirX;
+    e.runY = dirY;
+  }
+  e.x += e.runX * e.speed * RUNNER_SPEED_MUL * dt;
+  e.y += e.runY * e.speed * RUNNER_SPEED_MUL * dt;
+}
+
+// 스테이지별 적 특성: 불 원소 웅덩이, 불타는 해골 꼬리, 미라 회복
+function updateEnemyTraits(e, dt) {
+  if (e.firePool) {
+    e.poolTimer -= dt;
+    if (e.poolTimer <= 0) {
+      e.poolTimer = FIRE_POOL_INTERVAL;
+      if (inView(e.x, e.y) && enemyFires.filter((f) => f.kind === "pool").length < FIRE_POOL_MAX) {
+        const life = FIRE_POOL_LIFE + FIRE_POOL_ARM;
+        enemyFires.push({ kind: "pool", x: e.x, y: e.y, r: FIRE_POOL_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: FIRE_POOL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_POOL_DAMAGE_MUL)) });
+      }
+    }
+  }
+  if (e.fireTrail) {
+    e.trailTimer = (e.trailTimer || 0) - dt;
+    if (e.trailTimer <= 0) {
+      e.trailTimer = FIRE_TRAIL_INTERVAL;
+      if (inView(e.x, e.y, 40) && enemyFires.filter((f) => f.kind === "trail").length < FIRE_TRAIL_MAX) {
+        enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: e.r * 0.6, life: FIRE_TRAIL_LIFE, maxLife: FIRE_TRAIL_LIFE, arm: FIRE_TRAIL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_TRAIL_DAMAGE_MUL)) });
+      }
+    }
+  }
+  if (e.regen && e.hp < e.maxHp && stats.time - (e.hurtAt ?? -Infinity) > REGEN_DELAY) {
+    e.hp = Math.min(e.maxHp, e.hp + e.maxHp * REGEN_RATE * dt);
+    e.regenFx = (e.regenFx || 0) - dt;
+    if (e.regenFx <= 0) { e.regenFx = 0.3; spawnParticles(e.x, e.y - e.r * 0.4, "#7dff8a", 3, 50); }   // 초록 반짝임
+  }
 }
 
 // 무리 짓는 적 (지옥개): 가운데 개는 곧장, 양옆 개는 플레이어 옆쪽으로 비껴 달리다가 가까워지면 곧장 → 집게처럼 둘러쌈
@@ -552,6 +724,7 @@ function updatePlayerDamage(dt, frozen) {
       if ((frozen || e.frozenTimer > 0) && !e.boss) continue; // 빙결 광선으로 얼린 적도 닿아도 안전 (보스는 안 얼음)
       if (e.wakeTimer > 0) continue;   // 깨어나는 중인 미믹은 아직 피해를 주지 않음
       if (e.leap) continue;            // 뛰어오른 웬디고는 착지할 때만 피해 (updateLeaperEnemy)
+      if (e.vanished) continue;        // 순간이동으로 사라진 죽음의 기사
       if (circlesTouch(e, player)) {
         hurtPlayer(e.damage);
         if (e.knockback) { knockPlayer(e); e.gallop = 0; }   // 북극곰: 밀려남, 곰은 질주를 멈추고 처음부터
@@ -575,6 +748,14 @@ function updatePlayerDamage(dt, frozen) {
     }
   }
   hazards = hazards.filter((h) => h.life > 0);
+
+  // --- 적이 남긴 불 (불 원소 웅덩이·불타는 해골 꼬리·악마 돌진 불길): 켜진 뒤 밟으면 피해 (무적 시간 규칙은 똑같이 적용) ---
+  for (const f of enemyFires) {
+    f.life -= dt;
+    if (f.arm > 0) { f.arm -= dt; continue; }
+    if (player.invincible <= 0 && circlesTouch(f, player)) hurtPlayer(f.damage);
+  }
+  enemyFires = enemyFires.filter((f) => f.life > 0);
 
   // --- 적 탄환: 이동 → 플레이어에 닿으면 피해 (무적 시간 규칙은 똑같이 적용) ---
   for (const b of enemyBullets) {
