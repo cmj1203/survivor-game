@@ -63,16 +63,6 @@ canvas {
   text-align: center;
 }
 .popup h1 { margin: 0; font-size: 32px; }
-#restart {
-  padding: 10px 24px;
-  font-size: 18px;
-  cursor: pointer;
-  border: none;
-  border-radius: 6px;
-  background: #4a90e2;
-  color: #fff;
-}
-#restart:hover { background: #357abd; }
 
 /* 레벨업 카드 (3~6장): 4장까지는 세로로 쌓고, 5장부터는 두 줄(2열)로 놓음 (세로로만 쌓으면 휴대폰 화면을 넘침) */
 #choices { display: flex; flex-direction: column; gap: 8px; width: 320px; }
@@ -104,9 +94,58 @@ canvas {
 
 /* 보물 상자 창 */
 #chestBox { border-color: #ffd60a; min-width: 320px; }
-#clearBox { border-color: #ffd60a; }
-#clearBox h1 { color: #ffd60a; font-size: 40px; }
-#clearText { margin: 0; line-height: 1.7; }
+/* 게임오버·클리어 창: 시작 화면과 같은 픽셀풍 (각진 두꺼운 테두리, 딱딱한 그림자, Galmuri11 글꼴, 노란 픽셀 버튼)
+   게임오버 = 어두운 빨강 테두리·빨간 제목, 클리어 = 노란 테두리·노란 제목. 뒤 게임 화면은 살짝 어둡게 (맨 마지막 그림자) */
+#gameover, #clearBox {
+  --end-color: #c0303e; --end-dark: #4a0c14;
+  font-family: "Galmuri11", sans-serif; gap: 14px; padding: 26px 40px 30px; min-width: 420px; max-width: 640px;
+  box-sizing: border-box; max-height: calc(var(--app-h) * 0.94 / var(--ui-zoom));   /* 휴대폰처럼 낮은 화면에서도 창이 화면 안에 (넘치는 만큼 보상 칸이 줄어듦) */
+  background: rgba(21, 18, 31, 0.96); border: 4px solid var(--end-color); border-radius: 0;
+  box-shadow: inset 0 0 0 4px #000, 0 0 0 4px #000, 10px 10px 0 4px rgba(0, 0, 0, 0.6), 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+  animation: end-pop 0.3s steps(4) both;
+}
+#clearBox { --end-color: #ffd60a; --end-dark: #6b3a00; }
+@keyframes end-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#gameover h1, #clearBox h1 {
+  flex: none; font-size: 44px; font-weight: normal; letter-spacing: 2px; color: #ff5a5a;
+  text-shadow: 4px 4px 0 var(--end-dark), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+}
+#clearBox h1 { color: #ffd60a; }
+#gameover h1::after, #clearBox h1::after {   /* 제목 밑 픽셀 점선 */
+  content: ""; display: block; height: 4px; margin: 12px auto 0; width: 80%;
+  background: repeating-linear-gradient(90deg, var(--end-color) 0 8px, transparent 8px 14px);
+}
+/* 기록 (시간·처치·레벨): HUD 와 같은 아이콘을 붙인 작은 칸 */
+#result, #clearText { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0; }
+.end-stat {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  background: #1e1e2e; border: 2px solid #4a4560; box-shadow: 3px 3px 0 #000; font-size: 15px; color: #fff;
+}
+.end-stat img { width: 18px; height: 18px; image-rendering: pixelated; }
+/* 보상 (금화·퀘스트·해금): 안쪽 칸. 창이 화면보다 길어지면 이 칸만 줄어들고 칸 안에서 스크롤 */
+#gameover .run-reward, #clearBox .run-reward {
+  align-self: stretch; padding: 10px 16px; font-size: 14px; line-height: 1.75;
+  background: rgba(0, 0, 0, 0.45); border: 2px solid #3a3350;
+  flex: 0 1 auto; min-height: 48px; overflow-y: auto;
+}
+#gameover .run-reward:empty, #clearBox .run-reward:empty { display: none; }
+#gameover .run-reward::before, #clearBox .run-reward::before {   /* 첫 줄(금화) 앞 금화 그림 */
+  content: ""; display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px;
+  background: url("assets/coin.png") center / contain no-repeat; image-rendering: pixelated;
+}
+/* 버튼: 시작 화면의 픽셀 버튼과 같은 모양 (주요 버튼은 노랑) */
+#gameover button, #clearBox button {
+  font-family: inherit; font-size: 18px; letter-spacing: 1px; width: 240px; padding: 10px 0 12px;
+  color: #fff; background: #1e1e2e; border: 4px solid #fff; border-radius: 0; box-shadow: 5px 5px 0 #000; cursor: pointer;
+}
+#gameover button:hover, #clearBox button:hover { background: #2e3a55; transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #000; }
+#gameover button:active, #clearBox button:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 #000; }
+#gameover #restart, #clearBox .ok-button {
+  background: #ffd60a; color: #3a2400; border-color: #2a1606; text-shadow: 1px 1px 0 #fff1a0;
+  box-shadow: inset 0 4px 0 #fff1a0, inset 0 -6px 0 #c98f00, 5px 5px 0 #000;
+}
+#gameover #restart:hover, #clearBox .ok-button:hover { background: #ffe14d; box-shadow: inset 0 4px 0 #fff6c4, inset 0 -6px 0 #d9a000, 7px 7px 0 #000; }
+#gameover #restart:active, #clearBox .ok-button:active { box-shadow: inset 0 6px 0 #c98f00, 2px 2px 0 #000; }
 /* STAGE CLEAR: 보스를 잡은 순간 화면 가운데에 크게 (튀어나오듯 커졌다가 제자리) */
 #stageClear {
   position: absolute; display: none; z-index: 9; pointer-events: none; zoom: var(--ui-zoom);

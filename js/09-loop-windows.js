@@ -245,13 +245,17 @@ function revivePlayer() {
 // =====================================================================
 function gameOver() {
   state = "gameover";
-  resultText.textContent =
-    `생존 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리`;
+  resultText.innerHTML = endStat("w_clock", `생존 시간 ${formatTime(stats.time)}`) + endStat("item_wipe", `처치 ${stats.kills}마리`);
   endJoystick();                            // 판이 끝나면 누르던 조이스틱도 놓은 것으로
   setMusic(null);
   playSfx("gameover");
   runReward.innerHTML = finishRun(false);   // 다회차: 금화·해금 정산
   gameoverBox.style.display = "flex";
+}
+
+// 게임오버·클리어 창의 기록 한 칸 (HUD 와 같은 아이콘 + 글)
+function endStat(icon, text) {
+  return `<span class="end-stat">${icon ? `<img src="assets/${icon}.png" alt="">` : ""}${text}</span>`;
 }
 
 // 초 → "12분 34초"
@@ -265,7 +269,7 @@ const STAGE_CLEAR_TIME = 1.8;   // STAGE CLEAR 글자만 보여 주는 시간 (�
 function gameClear() {
   state = "clear";
   spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
-  clearText.innerHTML = `걸린 시간 ${formatTime(stats.time)} · 처치 ${stats.kills}마리 · Lv.${player.level}`;
+  clearText.innerHTML = endStat("w_clock", `걸린 시간 ${formatTime(stats.time)}`) + endStat("item_wipe", `처치 ${stats.kills}마리`) + endStat(null, `Lv.${player.level}`);
   endJoystick();
   setMusic("ending");
   clearReward.innerHTML = finishRun(true);
