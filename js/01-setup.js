@@ -108,6 +108,10 @@ const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "f
 const THEME_KEYS = ["ice", "lava", "dark"];
 const THEMED_SPRITES = ["bat", "crab", "spider", "ghost", "cyclops", "flower", "wizard"];
 for (const theme of THEME_KEYS) for (const name of THEMED_SPRITES) SPRITE_NAMES.push(`${name}_${theme}`);
+// 걷는 동작 그림 (16px 프레임을 가로로 이어 붙인 띠, 원본은 art/pxo/<이름>.pxo — Pixelorama 파일). 다리가 있는 적만
+const WALK_SHEETS = ["crab", "spider", "cyclops", "polarbear", "wendigo", "yeti", "imp", "hellhound", "lavagolem", "demon", "mummy", "deathknight"];
+for (const name of WALK_SHEETS) SPRITE_NAMES.push(`${name}_walk`);
+SPRITE_NAMES.push("nightmare_anim");   // 악몽마: 준비 3프레임 + 달리기 4프레임
 const SPRITES = {};
 for (const name of SPRITE_NAMES) {
   const sprite = { ready: false, normal: new Image(), white: null };

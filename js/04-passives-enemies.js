@@ -117,7 +117,7 @@ const STAGE_ENEMIES = {
     { key: "frostwight", name: "서리 망령", shape: "frostwight", color: "#8fa8c8", r: 14, speed: 60, hp: 3, damage: 12, xp: 3, behavior: "chase", aura: true },
     { key: "wendigo",    name: "웬디고",    shape: "wendigo",    color: "#c9b8a0", r: 20, speed: 40, hp: 8, damage: 18, xp: 4, behavior: "leaper", hazardQuest: true },
   ],
-  //   behavior "pack": 무리(PACK_SIZE 마리)로 나와서 양옆 개가 비껴 달려 둘러쌈
+  //   behavior "pack": 한 마리로 오다가 가까워지면 세 마리로 늘어나 양옆 개가 비껴 달려 둘러쌈
   //   firePool: 몇 초마다 발밑에 불 웅덩이 (잠깐 뒤 켜지고, 밟으면 피해)   fireTrail: 지나간 자리에 짧게 남는 불꽃 꼬리 (닿으면 작은 피해)
   //   deathBlast: 죽은 자리에 주황 경고 원이 차오른 뒤 폭발 (원 안이면 피해)
   lava: [
@@ -127,7 +127,7 @@ const STAGE_ENEMIES = {
     { key: "flameskull", name: "불타는 해골", shape: "flameskull", color: "#ff8a2a", r: 14, speed: 105, hp: 3, damage: 12, xp: 3, behavior: "chase", fireTrail: true },
     { key: "lavagolem",  name: "용암 골렘",  shape: "lavagolem",  color: "#e85c24", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase", deathBlast: true },
   ],
-  //   behavior "runner": 방향을 정하면 꺾지 않고 곧게 달려 지나감. 화면 밖으로 멀리 나가면 다시 플레이어 쪽으로 방향을 잡음 (멈춤·번쩍임 없음)
+  //   behavior "runner": 준비 동작 → 캐릭터 쪽으로 일직선 돌진 → 2초 숨 고르기를 되풀이 (RUSH_* 값)
   //   splitGens: 몇 번까지 갈라지는지 (갈라질 때마다 작아짐)   fade: 멀리 있으면 거의 안 보이고 가까이 오면 드러남 (맞는 건 그대로)
   //   regen: 몇 초 안 맞으면 체력이 천천히 차오름 (초록 반짝임)
   dark: [
@@ -144,7 +144,8 @@ function findEnemyType(key) { return ALL_ENEMY_TYPES.find((t) => t.key === key);
 function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적
 const SLIDE_MAX_MUL = 1.7;           // 얼음 원소(미끄러짐): 최고 속도 = 기본 속도 × 이 값
 const SLIDE_GRIP = 0.45;             // 얼음 원소: 방향을 바꾸는 빠르기 (작을수록 더 미끄러져서 플레이어를 지나쳤다 돌아옴)
-const PACK_SIZE = 3;                 // 지옥개: 한 무리 마릿수 (가운데 1 + 양옆 2)
+const PACK_SPLIT_DIST = 300;         // 지옥개: 플레이어와 이 거리 안으로 들어오면 한 마리 → 세 마리로 늘어남 (사용자 요청 10-19)
+const PACK_SPLIT_GAP = 30;           // 지옥개: 늘어날 때 양옆 개가 가운데 개에서 떨어져 나오는 거리
 const PACK_FLANK_ANGLE = 0.65;       // 지옥개: 양옆 개가 플레이어 쪽에서 비껴 달리는 각도 (라디안, 약 37도)
 const PACK_FLANK_SPEED = 1.2;        // 지옥개: 양옆 개는 돌아가는 만큼 조금 빨라서 가운데 개와 비슷하게 도착
 const PACK_CLOSE_DIST = 170;         // 지옥개: 이보다 가까워지면 양옆 개도 곧장 달려듦
@@ -162,8 +163,11 @@ const FIRE_TRAIL_MAX = 80;           // 불타는 해골: 화면 전체 꼬리 �
 const FIRE_TRAIL_DAMAGE_MUL = 0.35;  // 불타는 해골: 꼬리 피해 = 몸 피해 × 이 값
 const GOLEM_BLAST_TIME = 1.0;        // 용암 골렘: 죽은 뒤 터지기까지 (주황 경고 원이 차오름)
 const GOLEM_BLAST_RADIUS = 70;       // 용암 골렘: 폭발 범위
-const RUNNER_SPEED_MUL = 3.4;        // 악몽마: 질주 속도 배수 (170 — 플레이어 기본 속도 220 보다 느려서 비킬 수 있음)
-const RUNNER_TURN_DIST = 650;        // 악몽마: 화면 밖에서 플레이어와 이만큼 멀어지면 다시 플레이어 쪽으로 방향을 잡음
+// 악몽마: 준비(뒤로 젖히며 발 구름) → 캐릭터 쪽으로 일직선 돌진(맞든 안 맞든 끝까지) → 숨 고르기 → 다시 준비 (사용자 요청 10-19)
+const RUSH_AIM_TIME = 0.8;           // 준비 시간 (초). 돌진 방향은 준비를 시작할 때 정해짐 → 그동안 옆으로 비키면 빗나감
+const RUSH_DIST = 450;               // 한 번 돌진하는 거리
+const RUSH_SPEED_MUL = 6.6;          // 돌진 속도 배수 (기본 속도 50 → 330)
+const RUSH_REST_TIME = 2;            // 돌진 뒤 숨 고르는 시간 (초)
 const FADE_NEAR = 130;               // 망령: 이 거리 안이면 다 드러남
 const FADE_FAR = 320;                // 망령: 이 거리 밖이면 가장 흐림
 const FADE_MIN_ALPHA = 0.12;         // 망령: 가장 흐릴 때 진하기

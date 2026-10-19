@@ -815,7 +815,8 @@ function drawPlayerBars() {
 //   half  : 그림 절반 크기 (가운데에서 가장자리까지)
 //   flip  : 좌우 뒤집기      white : 흰색 실루엣으로 그리기 (맞았을 때)
 //   angle : 돌리는 각도 (라디안). 무기 그림을 날아가는 방향으로 돌릴 때 씀
-function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0 } = {}) {
+//   frame : 프레임 띠 그림(정사각 프레임을 가로로 이어 붙인 것)에서 몇 번째 칸을 그릴지 (없으면 그림 전체)
+function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0, frame } = {}) {
   const sprite = SPRITES[name];
   if (!sprite?.ready) return false;
   const img = white ? sprite.white : sprite.normal;
@@ -825,9 +826,47 @@ function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0 }
   ctx.translate(Math.round(x), Math.round(y));
   if (flip) ctx.scale(-1, 1);
   if (angle) ctx.rotate(angle);
-  ctx.drawImage(img, -size / 2, -size / 2, size, size);
+  if (frame === undefined) ctx.drawImage(img, -size / 2, -size / 2, size, size);
+  else {
+    const fh = sprite.normal.height;
+    ctx.drawImage(img, frame * fh, 0, fh, fh, -size / 2, -size / 2, size, size);
+  }
   ctx.restore();
   return true;
+}
+
+// 적의 동작 그림: { name, frame } (동작 그림이 없거나 쓸 때가 아니면 null → 원래 그림 한 장)
+//   악몽마: 준비 중엔 준비 3프레임을 차례로, 달리는 중엔 달리기 4프레임 반복, 숨 고를 땐 원래 그림
+//   다리 있는 적: 움직이고 있을 때만 걷기 4프레임 반복 (멈춰 있으면 첫 프레임)
+const WALK_FPS = 8, RUN_FPS = 14;
+function enemyAnim(e) {
+  const moved = e.px !== undefined && Math.abs(e.x - e.px) + Math.abs(e.y - e.py) > 0.05;
+  e.px = e.x;
+  e.py = e.y;
+  if (e.rush) {
+    if (!SPRITES.nightmare_anim.ready || e.rush === "rest") return null;
+    if (e.rush === "aim") return { name: "nightmare_anim", frame: Math.min(2, Math.floor((e.rushT / RUSH_AIM_TIME) * 3)) };
+    return { name: "nightmare_anim", frame: 3 + (Math.floor(e.rushT * RUN_FPS) % 4) };
+  }
+  const name = `${e.baseShape}_walk`;
+  if (e.shape !== e.baseShape || !SPRITES[name]?.ready) return null;   // 테마 색 그림(예: crab_ice)은 걷기 그림이 없음
+  if (e.leap) return { name, frame: 1 };                               // 뛰어오른 웬디고: 다리를 모은 프레임
+  return { name, frame: moved && !e.wakeTimer ? Math.floor(stats.time * WALK_FPS + e.id) % 4 : 0 };
+}
+
+// 악몽마 동작: 그림을 옮기고(dx, dy) 기울임(angle, 바라보는 쪽 기준 + = 앞으로 숙임, - = 뒤로 젖힘). 준비·달리기는 프레임 그림(nightmare_anim)이 있으면 그것으로
+//   aim  : 앞발을 들듯 뒤로 젖혔다가 발을 구르며 들썩임 (끝으로 갈수록 빨라짐)
+//   run  : 앞으로 숙이고 빠르게 들썩이며 달림
+//   rest : 고개를 숙이고 천천히 숨을 고름
+function rushPose(e) {
+  const t = e.rushT;
+  if (SPRITES.nightmare_anim.ready && e.rush !== "rest") return { dx: 0, dy: 0, angle: 0 };   // 준비·달리기 프레임 그림이 있으면 그림이 동작을 보여 줌
+  if (e.rush === "aim") {
+    const k = Math.min(1, t / RUSH_AIM_TIME);
+    return { dx: Math.sin(t * (30 + 30 * k)) * 1.5, dy: -Math.min(1, t / 0.2) * e.r * 0.35 + Math.abs(Math.sin(t * 22)) * 2, angle: -0.45 * Math.min(1, t / 0.2) };
+  }
+  if (e.rush === "run") return { dx: 0, dy: -Math.abs(Math.sin(t * 16)) * e.r * 0.35, angle: 0.22 + Math.sin(t * 16) * 0.08 };
+  return { dx: 0, dy: Math.sin(t * 3.5) * e.r * 0.08, angle: 0.15 + Math.sin(t * 3.5) * 0.04 };
 }
 
 // 적 하나 그리기
@@ -865,9 +904,13 @@ function drawEnemy(e) {
     const d = Math.hypot(player.x - e.x, player.y - e.y);
     ctx.globalAlpha = FADE_MIN_ALPHA + (1 - FADE_MIN_ALPHA) * Math.max(0, Math.min(1, (FADE_FAR - d) / (FADE_FAR - FADE_NEAR)));
   }
-  const drew = drawSprite(shape, e.x, e.y + bob, e.r * SPRITE_SCALE, {
+  const pose = e.rush ? rushPose(e) : null;          // 악몽마: 준비·돌진·숨 고르기 동작
+  const anim = enemyAnim(e);                         // 동작 그림 (걷기, 악몽마 준비·달리기)
+  const drew = drawSprite(anim ? anim.name : shape, e.x + (pose ? pose.dx : 0), e.y + (pose ? pose.dy : bob), e.r * SPRITE_SCALE, {
     flip: e.behavior === "swarm" ? e.vx < 0 : e.runX !== undefined ? e.runX < 0 : player.x < e.x,   // 플레이어가 있는 쪽을 바라봄 (박쥐 떼는 날아가는 쪽, 악몽마는 달리는 쪽)
     white,
+    angle: pose ? pose.angle : 0,
+    frame: anim ? anim.frame : undefined,
   });
   ctx.globalAlpha = 1;
 

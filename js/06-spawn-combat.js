@@ -4,17 +4,25 @@
 function spawnEnemy() {
   const { x, y } = randomEdgePosition(30);    // 화면 밖 30px 지점 (맵 안쪽 변만)
   const type = pickEnemyType();
-  if (type.behavior === "pack") spawnPack(type, x, y);
-  else enemies.push(makeEnemy(type, x, y));
+  const e = makeEnemy(type, x, y);
+  if (type.behavior === "pack") e.packLead = true;   // 지옥개: 한 마리로 와서 가까워지면 세 마리로 늘어남 (splitPack)
+  enemies.push(e);
 }
 
-// 지옥개 무리: 가운데 1마리 + 양옆 1마리씩 붙어서 나옴. 양옆은 플레이어 옆쪽으로 비껴 달려 둘러쌈 (packSide -1 / 0 / 1)
-function spawnPack(type, x, y) {
-  for (let i = 0; i < PACK_SIZE && enemies.length < MAX_ENEMIES; i++) {
-    const e = makeEnemy(type, x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
-    e.packSide = i === 0 ? 0 : i % 2 ? -1 : 1;
-    enemies.push(e);
+// 지옥개 증식: 가운데 개(e) 양옆으로 한 마리씩 갈라져 나와 세 마리가 됨. 양옆 개는 플레이어 옆쪽으로 비껴 달려 둘러쌈 (packSide -1 / 0 / 1)
+//   갈라진 개는 가운데 개의 지금 능력치(엘리트면 엘리트 그대로)를 똑같이 가짐. 같은 무리는 packId 로 묶음 (엘리트 상자는 무리를 다 잡아야 나옴)
+function splitPack(e, dirX, dirY) {
+  e.packLead = false;
+  e.packId = `p${e.id}_${Math.round(stats.time * 1000)}`;
+  for (const side of [-1, 1]) {
+    if (!e.elite && enemies.length >= MAX_ENEMIES) break;   // 엘리트는 상자 규칙 때문에 항상 세 마리
+    const c = makeEnemy(findEnemyType("hellhound"), e.x - dirY * side * PACK_SPLIT_GAP, e.y + dirX * side * PACK_SPLIT_GAP);
+    for (const k of ["r", "hp", "maxHp", "damage", "speed", "xp", "elite", "packId"]) c[k] = e[k];
+    c.packSide = side;
+    enemies.push(c);
+    spawnParticles(c.x, c.y, "#ff7a3d", 10, 160);
   }
+  spawnParticles(e.x, e.y, "#ffd60a", 14, 200);
 }
 
 // 지금 시각이 "몇 번째 몬스터 단계"인지 (0 = 박쥐만, 1 = 붉은 게까지, 2 = 거미까지 ... 5 = 박쥐 두 바퀴째 ...)
@@ -145,6 +153,7 @@ function spawnElite() {
   e.speed *= ELITE_SPEED;
   e.xp *= ELITE_XP;
   e.maxHp = e.hp;
+  if (e.behavior === "pack") e.packLead = true;   // 엘리트 지옥개도 가까워지면 세 마리로 (상자는 셋 다 잡아야 하나)
   enemies.push(e);
   return e;
 }
@@ -554,8 +563,11 @@ function damageEnemy(e, dmg) {
     if (e.type === "mimic") {
       spawnChest(e.x, e.y, true);                                  // 미믹을 잡으면 진짜 상자를 반드시 떨어뜨림
     } else if (e.elite) {
-      spawnChest(e.x, e.y);                                        // 엘리트를 잡으면 상자를 반드시 떨어뜨림 (20레벨부터는 미믹일 수도)
-      if (run) run.elites += 1;                                    // 퀘스트 '정예 사냥꾼'용
+      // 엘리트를 잡으면 상자를 반드시 떨어뜨림 (20레벨부터는 미믹일 수도). 세 마리로 늘어난 엘리트 지옥개는 마지막 한 마리를 잡을 때만
+      if (!e.packId || !enemies.some((o) => o !== e && !o.dead && o.packId === e.packId)) {
+        spawnChest(e.x, e.y);
+        if (run) run.elites += 1;                                  // 퀘스트 '정예 사냥꾼'용
+      }
     } else if (Math.random() < ITEM_DROP_CHANCE * luckMul()) {          // 클로버(패시브)가 있으면 더 자주
       spawnItem(e.x, e.y);                                         // 일반 몬스터: 낮은 확률로 바닥 아이템
     }

@@ -245,3 +245,9 @@ Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0
   저주받은 어둠: crow.png = 136 (까마귀)   nightmare.png = 54 (악몽마)   muck.png = 87 (검은 진흙)   wraith.png = 4 (망령)
              mummy.png = 95 (미라)   deathknight.png = 97 (보스 죽음의 기사)
   (Tiles/tile_NNNN.png 파일 번호는 칸 번호 + 1. Tiles 폴더 그림은 배경이 검게 칠해져 있어서 투명한 Tilemap 에서 잘라 씀)
+
+적 동작 그림 (2026-10-19, 새 외부 그림 없음):
+  <이름>_walk.png (crab, spider, cyclops, polarbear, wendigo, yeti, imp, hellhound, lavagolem, demon, mummy, deathknight)
+    = 각 적 그림(<이름>.png, 위 Kenney Tiny Dungeon / Tiny Creatures, CC0)의 다리를 고쳐 그린 걷기 4프레임 (16px 4칸 가로 띠)
+  nightmare_anim.png = nightmare.png 를 고쳐 그린 준비 3프레임 + 달리기 4프레임 (16px 7칸)
+  원본 프레임은 Pixelorama 프로젝트 파일로 art/pxo/<이름>.pxo 에 있음

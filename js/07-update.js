@@ -498,14 +498,25 @@ function updateSlideEnemy(e, dirX, dirY, dt) {
   e.y += e.vy * dt;
 }
 
-// 곧게 달리는 적 (악몽마): 방향을 정하면 꺾지 않고 달려 지나감. 화면 밖에서 RUNNER_TURN_DIST 넘게 멀어지는 중이면 다시 플레이어 쪽으로 방향을 잡음
+// 들이박는 적 (악몽마): aim(준비) → run(일직선 돌진, RUSH_DIST 만큼) → rest(숨 고르기) → aim ...
+//   e.runX/runY = 돌진 방향 (그림도 이쪽을 바라봄)   e.rushT = 지금 동작에서 지난 시간   e.rushLeft = 남은 돌진 거리
 function updateRunnerEnemy(e, dirX, dirY, len, dt) {
-  if (e.runX === undefined || (len > RUNNER_TURN_DIST && !inView(e.x, e.y, 60) && e.runX * dirX + e.runY * dirY < 0)) {
-    e.runX = dirX;
-    e.runY = dirY;
+  if (!e.rush) e.rush = "rest", e.rushT = RUSH_REST_TIME * Math.random(), e.runX = dirX, e.runY = dirY;   // 처음엔 박자를 적마다 다르게
+  e.rushT += dt;
+  if (e.rush === "rest") {
+    if (e.rushT >= RUSH_REST_TIME) { e.rush = "aim"; e.rushT = 0; e.runX = dirX; e.runY = dirY; }   // 이 순간 캐릭터 쪽으로 방향을 정함
+    else if (inView(e.x, e.y) && Math.floor((e.rushT - dt) / 0.6) !== Math.floor(e.rushT / 0.6)) spawnParticles(e.x + e.runX * e.r, e.y - e.r * 0.3, "#c9c4d8", 2, 40);   // 거친 숨
+  } else if (e.rush === "aim") {
+    if (inView(e.x, e.y) && Math.floor((e.rushT - dt) / 0.15) !== Math.floor(e.rushT / 0.15)) spawnParticles(e.x - e.runX * e.r * 0.4, e.y + e.r * 0.8, "#5b5470", 2, 70);   // 발 구르며 흙먼지
+    if (e.rushT >= RUSH_AIM_TIME) { e.rush = "run"; e.rushT = 0; e.rushLeft = RUSH_DIST; }
+  } else {
+    const step = Math.min(e.rushLeft, e.speed * RUSH_SPEED_MUL * dt);
+    e.x += e.runX * step;
+    e.y += e.runY * step;
+    e.rushLeft -= step;
+    if (inView(e.x, e.y) && Math.floor((e.rushT - dt) / 0.08) !== Math.floor(e.rushT / 0.08)) spawnParticles(e.x - e.runX * e.r, e.y + e.r * 0.7, "#5b5470", 2, 60);   // 뒤로 날리는 먼지
+    if (e.rushLeft <= 0) { e.rush = "rest"; e.rushT = 0; }
   }
-  e.x += e.runX * e.speed * RUNNER_SPEED_MUL * dt;
-  e.y += e.runY * e.speed * RUNNER_SPEED_MUL * dt;
 }
 
 // 스테이지별 적 특성: 불 원소 웅덩이, 불타는 해골 꼬리, 미라 회복
@@ -536,8 +547,9 @@ function updateEnemyTraits(e, dt) {
   }
 }
 
-// 무리 짓는 적 (지옥개): 가운데 개는 곧장, 양옆 개는 플레이어 옆쪽으로 비껴 달리다가 가까워지면 곧장 → 집게처럼 둘러쌈
+// 무리 짓는 적 (지옥개): 한 마리로 오다가 PACK_SPLIT_DIST 안에서 세 마리로 늘어남. 가운데 개는 곧장, 양옆 개는 플레이어 옆쪽으로 비껴 달리다가 가까워지면 곧장 → 집게처럼 둘러쌈
 function updatePackEnemy(e, dirX, dirY, len, dt) {
+  if (e.packLead && len < PACK_SPLIT_DIST) splitPack(e, dirX, dirY);   // 가까워지면 세 마리로 늘어남
   let mx = dirX, my = dirY;
   if (e.packSide && len > PACK_CLOSE_DIST) {
     const turn = e.packSide * PACK_FLANK_ANGLE * Math.min(1, (len - PACK_CLOSE_DIST) / 250);   // 멀수록 크게 비껴 달림
