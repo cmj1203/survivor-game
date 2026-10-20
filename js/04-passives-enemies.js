@@ -141,7 +141,7 @@ const STAGE_ENEMIES = {
 const ALL_ENEMY_TYPES = ENEMY_TYPES.concat(...Object.values(STAGE_ENEMIES));
 function enemyTypes() { return STAGE_ENEMIES[diffDef().theme] || ENEMY_TYPES; }             // 지금 스테이지의 적 5종
 function findEnemyType(key) { return ALL_ENEMY_TYPES.find((t) => t.key === key); }
-function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적
+function stageEnemyType(baseKey) { return enemyTypes()[ENEMY_TYPES.findIndex((t) => t.key === baseKey)] || findEnemyType(baseKey) || enemyTypes()[0]; }   // ENEMY_TYPES 의 자리 → 지금 스테이지의 같은 자리 적 (없는 이름이면 그 이름의 적, 그것도 없으면 첫 적)
 const SLIDE_MAX_MUL = 1.7;           // 얼음 원소(미끄러짐): 최고 속도 = 기본 속도 × 이 값
 const SLIDE_GRIP = 0.45;             // 얼음 원소: 방향을 바꾸는 빠르기 (작을수록 더 미끄러져서 플레이어를 지나쳤다 돌아옴)
 const PACK_SPLIT_DIST = 300;         // 지옥개: 플레이어와 이 거리 안으로 들어오면 한 마리 → 세 마리로 늘어남 (사용자 요청 10-19)
