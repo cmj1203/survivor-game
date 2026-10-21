@@ -431,7 +431,7 @@ const WEAPONS = {
   // --- 별의 문양: 긴 간격으로 화면의 적을 전부 지움 (원작 Pentagram). 구슬은 안 나옴(Lv5부터 나옴). 간격 -15%/레벨 ---
   pentagram: {
     name: "별의 문양",
-    desc: "긴 간격으로 화면의 적을 전부 지움 (경험치 구슬은 안 나옴)",
+    desc: "긴 간격으로 화면의 적을 전부 지움 (Lv5부터 경험치 구슬이 나옴)",
     icon: "w_pentagram",
     interval: 25,
     upgradeDesc: "간격 -15% (Lv5: 지운 적도 경험치 구슬을 남김)",

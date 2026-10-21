@@ -319,6 +319,7 @@ function openChest(chest, forcedCount) {
     playSfx("evolve");                     // 다회차: 퀘스트용 진화 수
     evolvable.level = WEAPON_MAX_LEVEL;
     evolvable.timer = 0;
+    if (evolvable.ready === false && to.getRecharge) evolvable.recharge = Math.min(evolvable.recharge, to.getRecharge(evolvable));   // 보호막: 깨진 채 진화하면 진화 무기의 재충전 시간으로
     gains.push({ title: `진화! ${from.name} → ${to.name}`, desc: to.desc, iconUrl: weaponIconUrl(evolvable.type), evolved: true });
     spawnParticles(player.x, player.y, "#ffd60a", 30, 240);
   }

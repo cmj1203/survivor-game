@@ -316,7 +316,7 @@ function updateDemonBoss(e, dirX, dirY, dt) {
     e.dashX = dirX;                              // 이 순간의 방향으로 돌진 (띠 밖으로 비키면 빗나감)
     e.dashY = dirY;
     const half = (DEMON_CHARGE_SPEED * DEMON_CHARGE_TIME) / 2;
-    bossMarks.push({ shape: "band", x: e.x + dirX * half, y: e.y + dirY * half, angle: Math.atan2(dirY, dirX), len: half + e.r, half: e.r * 0.8,
+    bossMarks.push({ shape: "band", x: e.x + dirX * half, y: e.y + dirY * half, angle: Math.atan2(dirY, dirX), len: half + e.r + player.r, half: e.r + player.r,
                      time: DEMON_CHARGE_WINDUP, maxTime: DEMON_CHARGE_WINDUP, damage: 0, rgb: DEMON_RGB, warn: "arrows" });   // 피해는 돌진하는 몸과 불길이 줌
   } else if (e.pillarTimer <= 0) {
     e.pillarTimer = DEMON_PILLAR_INTERVAL;
@@ -366,6 +366,8 @@ function updateKnightBoss(e, dirX, dirY, dt) {
     e.modeTimer = KNIGHT_TELE_TIME;
     e.teleX = player.x - player.facingX * KNIGHT_TELE_BEHIND;   // 플레이어가 바라보는 쪽의 반대편 (등 뒤)
     e.teleY = player.y - player.facingY * KNIGHT_TELE_BEHIND;
+    e.teleX = Math.max(WALL_SIZE + e.r, Math.min(WORLD_W - WALL_SIZE - e.r, e.teleX));   // 맵 가장자리에서도 맵 안에 나타나게
+    e.teleY = Math.max(WALL_SIZE + e.r, Math.min(WORLD_H - WALL_SIZE - e.r, e.teleY));
     effects.push({ x: e.x, y: e.y + 10, r: KNIGHT_CLOUD_SIZE / FX_BURST_SIZE, life: KNIGHT_CLOUD_LIFE, maxLife: KNIGHT_CLOUD_LIFE, fx: "fx_cursecloud" });   // 떠난 자리에 저주 연기
     bossMarks.push({ x: e.teleX, y: e.teleY, r: KNIGHT_TELE_RADIUS, time: KNIGHT_TELE_TIME, maxTime: KNIGHT_TELE_TIME, damage: KNIGHT_TELE_DAMAGE, rgb: KNIGHT_RGB, fx: "fx_darkburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, warn: "fx_castcircle" });
   } else if (e.slashTimer <= 0) {

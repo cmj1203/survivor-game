@@ -127,7 +127,7 @@ window.addEventListener("keydown", (e) => {
   if (name === "m" && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) { toggleSound(); return; }   // M: 소리 켜기/끄기 (어느 화면에서나)
   // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
   if (state === "title") { if (name === "enter") startGame(); else if (name === "escape") newGameBox.style.display = "none"; return; }   // Esc: 새로 시작 경고 창 닫기
-  if (state === "intro") { if (name === "enter" || name === "escape") closeIntro(); return; }
+  if (state === "intro") { if (name === "enter" || name === "escape") { e.preventDefault(); closeIntro(); } return; }   // preventDefault: 포커스가 남은 '게임 설명' 버튼이 Enter 로 다시 눌려 창이 또 열리지 않게
   if (state === "paused") { if ((name === "escape" || name === "p" || name === "enter") && !e.repeat) resumeFromPause(); return; }
   if (state === "playing" && (name === "escape" || name === "p") && !e.repeat) { pauseGame("일시정지"); return; }
   if (name === "h" && !e.repeat) { toggleHelp(); return; }          // H: 도움말 열기/닫기

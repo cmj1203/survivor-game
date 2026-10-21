@@ -417,15 +417,15 @@ canvas {
 .meta-note:empty { display: none; }   /* 설명 글이 없는 창에서는 자리도 차지하지 않게 */
 #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-x pan-y; }   /* pan-x 도 허용: 세로로 들면 화면이 90도 돌아가서, 목록을 미는 손짓이 화면 기준으로는 가로 방향이 됨 */
 #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
-.meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: 1.25cqw; color: #ddd; text-align: left; }
+.meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: max(1.25cqw, 12px); color: #ddd; text-align: left; }
 .meta-row img { width: 3.2cqw; height: 3.2cqw; flex: none; image-rendering: pixelated; }
 .meta-row .grow { flex: 1; min-width: 0; }
-.meta-row b { display: block; color: #fff; font-weight: normal; font-size: 1.45cqw; }
-.meta-row small { color: #aaa; font-size: 1.1cqw; }
+.meta-row b { display: block; color: #fff; font-weight: normal; font-size: max(1.45cqw, 13px); }
+.meta-row small { color: #aaa; font-size: max(1.1cqw, 11px); }
 .meta-row.done { border-color: #2ecc71; }
 .meta-row.sel { border-color: #ffd60a; background: rgba(60, 50, 10, 0.95); }
 .meta-row.locked { opacity: 0.55; }
-.meta-btn { flex: none; font-family: inherit; font-size: 1.25cqw; padding: 0.5cqw 1cqw; border: 0.2cqw solid #fff; border-radius: 0; background: #1e1e2e; color: #fff; cursor: pointer; box-shadow: 0.3cqw 0.3cqw 0 #000; }
+.meta-btn { flex: none; min-height: 32px; font-family: inherit; font-size: max(1.25cqw, 12px); padding: 0.5cqw 1cqw; border: 0.2cqw solid #fff; border-radius: 0; background: #1e1e2e; color: #fff; cursor: pointer; box-shadow: 0.3cqw 0.3cqw 0 #000; }
 .meta-btn:disabled { box-shadow: none; }
 .meta-btn.buy { background: #ffd60a; color: #111; }
 .meta-btn:disabled { opacity: 0.35; cursor: default; }

@@ -757,7 +757,7 @@ function drawSlotColumn(list, defs, x, size, gap, isMax) {
     drawSprite(def.icon, cx, cy, 17);
 
     // 보호막 재충전 중: 위에서부터 어둡게 덮고, 찰수록 걷힘
-    if (item.type === "shield" && defs === WEAPONS && item.ready === false) {
+    if (def.getRecharge && defs === WEAPONS && item.ready === false) {   // 보호막·푸른 장막
       const remain = Math.max(0, Math.min(1, item.recharge / def.getRecharge(item)));
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(x, y, size, size * remain);

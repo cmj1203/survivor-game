@@ -363,7 +363,7 @@ function saveRun() {
     stats: { time: stats.time, kills: stats.kills },
     eventIndex, spawnTimer, eliteTimer,
     world: {
-      enemies: enemies.concat(pendingSpawns), enemyBullets, chests, hazards,
+      enemies: enemies.concat(pendingSpawns), enemyBullets, chests, hazards, enemyFires,
       gems: gems.map((g) => ({ ...g, x: Math.round(g.x), y: Math.round(g.y) })),   // 구슬은 수천 개라 좌표를 정수로 줄여 저장
       items: items.map((it) => ({ ...it, type: it.type.key })),                     // 아이템 종류는 이름(key)으로
       events: eventQueue.map((q) => ({ ...q, ev: EVENT_SCHEDULE.indexOf(q.ev) })),   // 시간표 칸은 번호로
@@ -374,7 +374,7 @@ function saveRun() {
   try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch {}
 }
 function loadRun() {
-  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player && s.stats ? s : null; }   // 시간 정보가 없는 망가진 저장은 없는 것으로 (시작 버튼이 멈추지 않게)
+  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player && s.stats && [s.player.x, s.player.y, s.player.hp, s.player.level, s.stats.time].every(Number.isFinite) ? s : null; }   // 시간 정보가 없는 망가진 저장은 없는 것으로 (시작 버튼이 멈추지 않게)
   catch { return null; }
 }
 function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch {} }
@@ -400,7 +400,7 @@ function continueRun() {
     const list = (a) => (Array.isArray(a) ? a : []);
     enemies = list(wd.enemies);
     boss = enemies.find((e) => e.boss) || null;
-    enemyBullets = list(wd.enemyBullets); chests = list(wd.chests); hazards = list(wd.hazards); gems = list(wd.gems);
+    enemyBullets = list(wd.enemyBullets); chests = list(wd.chests); hazards = list(wd.hazards); enemyFires = list(wd.enemyFires); gems = list(wd.gems);
     items = list(wd.items).map((it) => ({ ...it, type: ITEM_TYPES.find((t) => t.key === it.type) })).filter((it) => it.type);
     eventQueue = list(wd.events).map((q) => ({ ...q, ev: EVENT_SCHEDULE[q.ev] })).filter((q) => q.ev);
     freezeTimer = wd.freezeTimer || 0;
