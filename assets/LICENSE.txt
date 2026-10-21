@@ -242,7 +242,7 @@ Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0
              frostwight.png = 19 (서리 망령)   wendigo.png = 15 (웬디고)   yeti.png = 43 (보스 예티)
   용암 굴:   imp.png = 39 (임프)   hellhound.png = 102 (지옥개)   fireelem.png = 45 (불 원소)   flameskull.png = 3 (불타는 해골)
              lavagolem.png = 126 (용암 골렘. 모래색 골렘을 용암색으로 칠함: 몸 #703E38, 그림자 #E85C24, 밝은 곳 #FFBA40)   demon.png = 123 (보스 악마)
-  저주받은 어둠: crow.png = 136 (까마귀)   nightmare.png = 54 (악몽마)   muck.png = 87 (검은 진흙)   wraith.png = 4 (망령)
+  저주받은 어둠: crow.png = 136 (까마귀)   nightmare.png = 54 (악몽마)   muck.png = 87 (검은 진흙)   wraith.png = 4 (망령, 10-21 어두운 배경에서 잘 보이게 색만 바꿈: 두건 밝게·얼굴 어둡게·눈 하늘색)
              mummy.png = 95 (미라)   deathknight.png = 97 (보스 죽음의 기사)
   (Tiles/tile_NNNN.png 파일 번호는 칸 번호 + 1. Tiles 폴더 그림은 배경이 검게 칠해져 있어서 투명한 Tilemap 에서 잘라 씀)
 

@@ -263,7 +263,7 @@ function updateYetiBoss(e, dirX, dirY, dt) {
   if (e.slamTimer <= 0) {
     e.slamTimer = YETI_SLAM_INTERVAL;
     e.mode = "windup";
-    e.modeTimer = YETI_SLAM_WINDUP;
+    e.modeTimer = YETI_SLAM_WINDUP * warnMul();
     bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true, spikes: true, fx: "fx_frostnova" });
   } else if (e.rockTimer <= 0) {
     e.rockTimer = YETI_ROCK_INTERVAL;
@@ -312,7 +312,7 @@ function updateDemonBoss(e, dirX, dirY, dt) {
   if (e.chargeTimer <= 0) {
     e.chargeTimer = DEMON_CHARGE_INTERVAL;
     e.mode = "windup";
-    e.modeTimer = DEMON_CHARGE_WINDUP;
+    e.modeTimer = DEMON_CHARGE_WINDUP * warnMul();
     e.dashX = dirX;                              // 이 순간의 방향으로 돌진 (띠 밖으로 비키면 빗나감)
     e.dashY = dirY;
     const half = (DEMON_CHARGE_SPEED * DEMON_CHARGE_TIME) / 2;
@@ -363,7 +363,7 @@ function updateKnightBoss(e, dirX, dirY, dt) {
     e.teleTimer = KNIGHT_TELE_INTERVAL;
     e.mode = "vanish";
     e.vanished = true;
-    e.modeTimer = KNIGHT_TELE_TIME;
+    e.modeTimer = KNIGHT_TELE_TIME * warnMul();
     e.teleX = player.x - player.facingX * KNIGHT_TELE_BEHIND;   // 플레이어가 바라보는 쪽의 반대편 (등 뒤)
     e.teleY = player.y - player.facingY * KNIGHT_TELE_BEHIND;
     e.teleX = Math.max(WALL_SIZE + e.r, Math.min(WORLD_W - WALL_SIZE - e.r, e.teleX));   // 맵 가장자리에서도 맵 안에 나타나게
@@ -373,7 +373,7 @@ function updateKnightBoss(e, dirX, dirY, dt) {
   } else if (e.slashTimer <= 0) {
     e.slashTimer = KNIGHT_SLASH_INTERVAL;
     e.mode = "windup";
-    e.modeTimer = KNIGHT_SLASH_WINDUP;
+    e.modeTimer = KNIGHT_SLASH_WINDUP * warnMul();
     bossMarks.push({ shape: "cone", x: e.x, y: e.y, angle: Math.atan2(dirY, dirX), spread: KNIGHT_SLASH_SPREAD, r: KNIGHT_SLASH_RANGE,
                      time: KNIGHT_SLASH_WINDUP, maxTime: KNIGHT_SLASH_WINDUP, damage: KNIGHT_SLASH_DAMAGE, rgb: KNIGHT_RGB, warn: "swords" });
   }
@@ -407,6 +407,7 @@ function markHitsPlayer(m) {
 //   final = 이미 난이도 배수를 곱한 피해 (용암 골렘 폭발), damage 0 = 경고만 (악마 돌진 띠)
 function updateBossMarks(dt) {
   for (const m of bossMarks) {
+    if (!m.warnScaled) { m.warnScaled = true; m.time *= warnMul(); m.maxTime *= warnMul(); }   // 난이도별 경고 시간 (보스 준비 동작도 같은 배수)
     m.time -= dt;
     if (m.time > 0) continue;
     m.done = true;
@@ -478,7 +479,7 @@ function updateChargerEnemy(e, dirX, dirY, dt) {
     e.y += dirY * e.speed * dt;
     if (e.modeTimer <= 0) {
       e.mode = "windup";
-      e.modeTimer = CHARGER_WINDUP_TIME;
+      e.modeTimer = CHARGER_WINDUP_TIME * warnMul();
       e.dashX = dirX;       // 이 순간의 방향으로 돌진 (그 사이 피하면 빗나감)
       e.dashY = dirY;
     }
@@ -510,7 +511,7 @@ function updateRunnerEnemy(e, dirX, dirY, len, dt) {
     else if (inView(e.x, e.y) && Math.floor((e.rushT - dt) / 0.6) !== Math.floor(e.rushT / 0.6)) spawnParticles(e.x + e.runX * e.r, e.y - e.r * 0.3, "#c9c4d8", 2, 40);   // 거친 숨
   } else if (e.rush === "aim") {
     if (inView(e.x, e.y) && Math.floor((e.rushT - dt) / 0.15) !== Math.floor(e.rushT / 0.15)) spawnParticles(e.x - e.runX * e.r * 0.4, e.y + e.r * 0.8, "#5b5470", 2, 70);   // 발 구르며 흙먼지
-    if (e.rushT >= RUSH_AIM_TIME) { e.rush = "run"; e.rushT = 0; e.rushLeft = RUSH_DIST; }
+    if (e.rushT >= rushAimTime()) { e.rush = "run"; e.rushT = 0; e.rushLeft = RUSH_DIST; }
   } else {
     const step = Math.min(e.rushLeft, e.speed * RUSH_SPEED_MUL * dt);
     e.x += e.runX * step;
@@ -577,7 +578,7 @@ function updateLeaperEnemy(e, dirX, dirY, len, dt) {
   if (e.leap) {                                   // 공중: 출발점 → 착지점으로 LEAP_TIME 동안 이동 (그림은 포물선, drawEnemy 참고)
     const L = e.leap;
     L.t += dt;
-    const k = Math.min(1, L.t / LEAP_TIME);
+    const k = Math.min(1, L.t / leapTime());
     e.x = L.sx + (L.tx - L.sx) * k;
     e.y = L.sy + (L.ty - L.sy) * k;
     if (k < 1) return;
@@ -596,7 +597,7 @@ function updateLeaperEnemy(e, dirX, dirY, len, dt) {
   e.y += dirY * e.speed * dt;
   e.leapTimer -= dt;
   if (e.leapTimer <= 0 && len < LEAP_RANGE && inView(e.x, e.y)) {
-    e.leapTimer = LEAP_INTERVAL - LEAP_TIME;   // 땅에 있을 때만 줄어드므로 공중 시간을 빼서, 덮치기 시작 간격이 LEAP_INTERVAL
+    e.leapTimer = LEAP_INTERVAL - leapTime();   // 땅에 있을 때만 줄어드므로 공중 시간을 빼서, 덮치기 시작 간격이 LEAP_INTERVAL
     e.leap = { sx: e.x, sy: e.y, tx: player.x, ty: player.y, t: 0 };
   }
 }

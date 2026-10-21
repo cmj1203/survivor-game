@@ -23,12 +23,12 @@ const CHARACTERS = {
 const DIFFS = [
   //   item: 바닥 아이템(회복·자석·빙결·전멸)이 떨어지는 양의 배수. 난이도가 높을수록 덜 나옴
   //   theme: 배경·적 그림 테마 (null = 기본 던전)   place: 장소 이름   tier: 적 특성 단계 (위 '난이도 테마의 적 특성' 참고)
-  { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   tier: 0, theme: null,   place: "던전",          item: 1,    desc: "기본" },
+  { name: "보통",        hp: 1,    dmg: 1,    speed: 1,    elite: 1,   boss: 1,   gold: 1,   tier: 0, theme: null,   place: "던전",          item: 1,    warn: 1,    desc: "기본" },
   // 정예를 늘리면 상자도 늘어 오히려 쉬워졌으므로, 간격은 같게 둠.
   // 능력치 배수는 특성을 넣기 전과 같은 값 (한때 낮췄다가 '너무 쉽다'는 의견으로 되돌림)
-  { name: "어려움",      hp: 1.15, dmg: 1.05, speed: 1.02, elite: 1, boss: 1.1,  gold: 1.3, tier: 1, theme: "ice",  place: "얼음 동굴",     item: 0.75, desc: "적 특성 등장 · 적 체력 +15%, 피해 +5%, 속도 +2%, 보스 체력 +10% · 아이템 -25%" },
-  { name: "매우 어려움", hp: 1.35, dmg: 1.15, speed: 1.08, elite: 1, boss: 1.25, gold: 1.6, tier: 2, theme: "lava", place: "용암 굴",       item: 0.55, desc: "적 특성 강화 · 적 체력 +35%, 피해 +15%, 속도 +8%, 보스 체력 +25% · 아이템 -45%" },
-  { name: "지옥",        hp: 1.6,  dmg: 1.3,  speed: 1.12, elite: 1, boss: 1.5,  gold: 2,   tier: 3, theme: "dark", place: "저주받은 어둠", item: 0.4,  desc: "적 특성 최대 · 적 체력 +60%, 피해 +30%, 속도 +12%, 보스 체력 +50% · 아이템 -60%" },
+  { name: "어려움",      hp: 1.15, dmg: 1.05, speed: 1.02, elite: 1, boss: 1.1,  gold: 1.3, tier: 1, theme: "ice",  place: "얼음 동굴",     item: 0.75, warn: 0.95, desc: "적 특성 등장 · 적 체력 +15%, 피해 +5%, 속도 +2%, 보스 체력 +10% · 아이템 -25%" },
+  { name: "매우 어려움", hp: 1.35, dmg: 1.15, speed: 1.08, elite: 1, boss: 1.25, gold: 1.6, tier: 2, theme: "lava", place: "용암 굴",       item: 0.55, warn: 0.9,  desc: "적 특성 강화 · 적 체력 +35%, 피해 +15%, 속도 +8%, 보스 체력 +25% · 아이템 -45%" },
+  { name: "지옥",        hp: 1.8,  dmg: 1.4,  speed: 1.12, elite: 1, boss: 1.5,  gold: 2,   tier: 3, theme: "dark", place: "저주받은 어둠", item: 0.4,  warn: 0.85, desc: "적 특성 최대 · 적 체력 +80%, 피해 +40%, 속도 +12%, 보스 체력 +50% · 아이템 -60%" },
 ];
 
 // --- 상점 (영구 강화): 단계 상한 있음, 언제든 공짜 환불. 값 = base × (지금 단계 + 1) ---
@@ -201,6 +201,10 @@ function upLevel(key) { return meta.upgrades[key] || 0; }
 function upMul(key) { const s = SHOP.find((it) => it.key === key); return 1 + (s?.per ? s.per * upLevel(key) : 0); }
 function charDef() { return CHARACTERS[run ? run.char : meta.char] || CHARACTERS.knight; }
 function diffDef() { return DIFFS[run ? run.diff : meta.diff] || DIFFS[0]; }
+// 경고 시간 배수 (warn): 위 난이도일수록 보스 경고·준비 동작·악몽마 조준·웬디고 도약이 짧아짐 (사용자 10-21)
+function warnMul() { return diffDef().warn || 1; }
+function rushAimTime() { return RUSH_AIM_TIME * warnMul(); }
+function leapTime() { return LEAP_TIME * warnMul(); }
 function charDamageMul() {
   const c = charDef();
   return (c.dmg || 1) * (c.berserk && player && player.hp <= player.maxHp / 2 ? 1.6 : 1);

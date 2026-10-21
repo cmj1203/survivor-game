@@ -124,7 +124,7 @@ const STAGE_ENEMIES = {
     { key: "imp",        name: "임프",       shape: "imp",        color: "#e8604c", r: 11, speed: 80,  hp: 1, damage: 8,  xp: 1, behavior: "chase" },
     { key: "hellhound",  name: "지옥개",     shape: "hellhound",  color: "#e2553d", r: 14, speed: 70,  hp: 2, damage: 10, xp: 2, behavior: "pack" },
     { key: "fireelem",   name: "불 원소",    shape: "fireelem",   color: "#ffb02e", r: 14, speed: 55,  hp: 3, damage: 10, xp: 2, behavior: "chase", firePool: true },
-    { key: "flameskull", name: "불타는 해골", shape: "flameskull", color: "#ff8a2a", r: 14, speed: 105, hp: 3, damage: 12, xp: 3, behavior: "chase", fireTrail: true },
+    { key: "flameskull", name: "불타는 해골", shape: "flameskull", color: "#ff8a2a", r: 14, speed: 95,  hp: 3, damage: 12, xp: 3, behavior: "chase", fireTrail: true },
     { key: "lavagolem",  name: "용암 골렘",  shape: "lavagolem",  color: "#e85c24", r: 20, speed: 40,  hp: 8, damage: 18, xp: 4, behavior: "chase", deathBlast: true },
   ],
   //   behavior "runner": 준비 동작 → 캐릭터 쪽으로 일직선 돌진 → 2초 숨 고르기를 되풀이 (RUSH_* 값)
@@ -160,7 +160,7 @@ const FIRE_TRAIL_INTERVAL = 0.1;     // 불타는 해골: 꼬리 불꽃을 남�
 const FIRE_TRAIL_LIFE = 0.6;         // 불타는 해골: 꼬리 불꽃이 남는 시간
 const FIRE_TRAIL_ARM = 0.2;          // 불타는 해골: 막 생긴 꼬리는 잠깐 안 아픔 (해골 몸과 겹친 자리라서)
 const FIRE_TRAIL_MAX = 80;           // 불타는 해골: 화면 전체 꼬리 불꽃 수 상한 (해골 떼가 몰려와도 너무 많아지지 않게)
-const FIRE_TRAIL_DAMAGE_MUL = 0.35;  // 불타는 해골: 꼬리 피해 = 몸 피해 × 이 값
+const FIRE_TRAIL_DAMAGE_MUL = 0.25;  // 불타는 해골: 꼬리 피해 = 몸 피해 × 이 값
 const GOLEM_BLAST_TIME = 1.0;        // 용암 골렘: 죽은 뒤 터지기까지 (주황 경고 원이 차오름)
 const GOLEM_BLAST_RADIUS = 70;       // 용암 골렘: 폭발 범위
 // 악몽마: 준비(뒤로 젖히며 발 구름) → 캐릭터 쪽으로 일직선 돌진(맞든 안 맞든 끝까지) → 숨 고르기 → 다시 준비 (사용자 요청 10-19)

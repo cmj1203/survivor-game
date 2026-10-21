@@ -102,7 +102,7 @@ function drawFloorZones() {
   // 웬디고가 떨어질 자리: 커지는 픽셀 그림자 (다 커지면 착지) + 가운데 빨간 발톱 자국
   for (const e of enemies) {
     if (!e.leap) continue;
-    const r = LEAP_RADIUS * (e.elite ? 1.4 : 1), p = Math.min(1, e.leap.t / LEAP_TIME);
+    const r = LEAP_RADIUS * (e.elite ? 1.4 : 1), p = Math.min(1, e.leap.t / leapTime());
     drawPixelShadow(e.leap.tx, e.leap.ty, r * p);
     if (SPRITES.fx_leapclaw.ready) {
       const s = (LEAP_CLAW_SIZE * r) / LEAP_RADIUS;
@@ -845,7 +845,7 @@ function enemyAnim(e) {
   e.py = e.y;
   if (e.rush) {
     if (!SPRITES.nightmare_anim.ready || e.rush === "rest") return null;
-    if (e.rush === "aim") return { name: "nightmare_anim", frame: Math.min(2, Math.floor((e.rushT / RUSH_AIM_TIME) * 3)) };
+    if (e.rush === "aim") return { name: "nightmare_anim", frame: Math.min(2, Math.floor((e.rushT / rushAimTime()) * 3)) };
     return { name: "nightmare_anim", frame: 3 + (Math.floor(e.rushT * RUN_FPS) % 4) };
   }
   const name = `${e.baseShape}_walk`;
@@ -862,7 +862,7 @@ function rushPose(e) {
   const t = e.rushT;
   if (SPRITES.nightmare_anim.ready && e.rush !== "rest") return { dx: 0, dy: 0, angle: 0 };   // 준비·달리기 프레임 그림이 있으면 그림이 동작을 보여 줌
   if (e.rush === "aim") {
-    const k = Math.min(1, t / RUSH_AIM_TIME);
+    const k = Math.min(1, t / rushAimTime());
     return { dx: Math.sin(t * (30 + 30 * k)) * 1.5, dy: -Math.min(1, t / 0.2) * e.r * 0.35 + Math.abs(Math.sin(t * 22)) * 2, angle: -0.45 * Math.min(1, t / 0.2) };
   }
   if (e.rush === "run") return { dx: 0, dy: -Math.abs(Math.sin(t * 16)) * e.r * 0.35, angle: 0.22 + Math.sin(t * 16) * 0.08 };
@@ -881,7 +881,7 @@ function drawEnemy(e) {
   // 살아 있는 느낌: 위아래로 살짝 들썩임 (박쥐는 빠르게 파닥파닥)
   const bobSpeed = e.baseShape === "bat" ? 18 : 7;
   const bob = Math.sin(stats.time * bobSpeed + e.id) * e.r * 0.12
-    - (e.leap ? Math.sin(Math.PI * Math.min(1, e.leap.t / LEAP_TIME)) * LEAP_HEIGHT : 0);   // 뛰어오른 웬디고는 포물선으로 떠오름
+    - (e.leap ? Math.sin(Math.PI * Math.min(1, e.leap.t / leapTime())) * LEAP_HEIGHT : 0);   // 뛰어오른 웬디고는 포물선으로 떠오름
 
   // 서리 망령: 발밑의 찬 기운 (이 눈송이 안에 들어가면 느려짐). 몸보다 먼저 그려서 아래에 깔림
   if (e.aura) drawAuraFlakes(e);
