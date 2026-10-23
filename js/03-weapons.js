@@ -10,6 +10,14 @@
 //   icon        : 보유 목록·카드에 표시할 그림 이름 (assets 폴더. 몬스터·무기는 Tiny Dungeon, 나머지는 1-Bit Pack 에 색을 입힘)
 //   w.level     : 이 무기의 현재 레벨 (1~WEAPON_MAX_LEVEL, 원작처럼 8)
 // =====================================================================
+// 운석: 보스 운석과 같은 불타는 운석 그림(fx_meteor). 32px 그림을 72px 로 그려 점 하나가 캐릭터와 같은 2.25px.
+//   튕길 때마다 작은 불꽃 폭발 + 흙먼지 (그림: fx_fireburst, fx_landdust)
+const METEOR_SIZE = 72;
+function meteorImpactFx(b) {
+  effects.push({ x: b.x, y: b.y, r: b.r * 1.4, life: 0.4, maxLife: 0.4, fx: "fx_fireburst" });
+  effects.push({ x: b.x, y: b.y + 6, r: b.r * 1.6, life: 0.45, maxLife: 0.45, fx: "fx_landdust" });
+}
+
 const WEAPONS = {
   // --- 단검: 바라보는 방향으로 빠르게 연사 (원작 Knife). 레벨 = 단검 개수 ---
   bullet: {
@@ -584,7 +592,7 @@ const WEAPONS = {
 
   // --- 운석: 바위가 위에서 떨어져 튕김 (원작 La Robba 의 가구를 던전 분위기에 맞게 운석으로 바꿈). Lv3·5 바위 +1, Lv2·4 튕김 +1 ---
   larobba: {
-    name: "운석", icon: "rock",
+    name: "운석", icon: "w_meteor",
     desc: "적 머리 위로 운석을 떨어뜨림. 튕기며 여러 번 관통",
     interval: 2.5,
     upgradeDesc: "운석 +1 / 튕김 +1 (번갈아), 피해 +20%",
@@ -595,10 +603,11 @@ const WEAPONS = {
       for (let i = 0; i < count; i++) {
         const t = targets[Math.floor(Math.random() * targets.length)];
         bullets.push({
-          kind: "rock", sprite: i % 2 === 0 ? "rock" : "rock2", color: "#ff9a3c", size: 21, spin: 4, margin: 500,
+          kind: "rock", sprite: "fx_meteor", meteor: true, color: "#ff9a3c", size: METEOR_SIZE, margin: 500,
           x: t.x + (Math.random() - 0.5) * 60, y: t.y - 220, vx: (Math.random() - 0.5) * 60, vy: 60,
           gravity: 900, r: 18, damage: weaponDamage(w, 1) * 1.5, pierce: 99, hitIds: new Set(),
           bounces: 2 + Math.floor(w.level / 2), life: 5 * durationMul(),
+          onBounce: meteorImpactFx,
         });
       }
     },

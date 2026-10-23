@@ -528,7 +528,11 @@ function drawProjectiles() {
     }
 
     let drew = false;
-    if (b.sprite) {
+    if (b.meteor) {
+      // 운석: 날아가는 방향으로 기울여서 불꼬리가 뒤로 따라옴. 그림 속 운석은 오른쪽 아래(45도)를 향하고 머리가 (22/32, 24/32)
+      drawFxFrame("fx_meteor", fxLoopFrame("fx_meteor", b.x), b.x, b.y, b.size, b.size, Math.atan2(b.vy, b.vx) - Math.PI / 4, 22 / 32, 24 / 32);
+      drew = true;
+    } else if (b.sprite) {
       // 그림: spin 이 있으면 빙글빙글 (spinOffset 이 있으면 탄마다 시작 각도가 다름), 없으면 날아가는 방향으로
       drew = drawSprite(b.sprite, b.x, b.y, b.size || 16, { angle: b.spin ? stats.time * b.spin + (b.spinOffset || 0) : heading });
     }
