@@ -10,11 +10,11 @@
 //   icon        : 보유 목록·카드에 표시할 그림 이름 (assets 폴더. 몬스터·무기는 Tiny Dungeon, 나머지는 1-Bit Pack 에 색을 입힘)
 //   w.level     : 이 무기의 현재 레벨 (1~WEAPON_MAX_LEVEL, 원작처럼 8)
 // =====================================================================
-// 운석: 보스 운석과 같은 불타는 운석 그림(fx_meteor). 32px 그림을 72px 로 그려 점 하나가 캐릭터와 같은 2.25px.
-//   튕길 때마다 작은 불꽃 폭발 + 흙먼지 (그림: fx_fireburst, fx_landdust)
+// 운석: 불타는 운석 그림. 보스(악마) 운석과 구분되게 파란색(fx_meteor_p = fx_meteor 색만 바꿈). 32px 그림을 72px 로 그려 점 하나가 캐릭터와 같은 2.25px.
+//   튕길 때마다 작은 파란 폭발 + 흙먼지 (그림: fx_fireburst_p, fx_landdust)
 const METEOR_SIZE = 72;
 function meteorImpactFx(b) {
-  effects.push({ x: b.x, y: b.y, r: b.r * 1.4, life: 0.4, maxLife: 0.4, fx: "fx_fireburst" });
+  effects.push({ x: b.x, y: b.y, r: b.r * 1.4, life: 0.4, maxLife: 0.4, fx: "fx_fireburst_p" });
   effects.push({ x: b.x, y: b.y + 6, r: b.r * 1.6, life: 0.45, maxLife: 0.45, fx: "fx_landdust" });
 }
 
@@ -603,7 +603,7 @@ const WEAPONS = {
       for (let i = 0; i < count; i++) {
         const t = targets[Math.floor(Math.random() * targets.length)];
         bullets.push({
-          kind: "rock", sprite: "fx_meteor", meteor: true, color: "#ff9a3c", size: METEOR_SIZE, margin: 500,
+          kind: "rock", sprite: "fx_meteor_p", meteor: true, color: "#7df9ff", size: METEOR_SIZE, margin: 500,
           x: t.x + (Math.random() - 0.5) * 60, y: t.y - 220, vx: (Math.random() - 0.5) * 60, vy: 60,
           gravity: 900, r: 18, damage: weaponDamage(w, 1) * 1.5, pierce: 99, hitIds: new Set(),
           bounces: 2 + Math.floor(w.level / 2), life: 5 * durationMul(),
