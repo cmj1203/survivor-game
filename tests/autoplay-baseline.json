@@ -1,34 +1,34 @@
 {
   "knight-0": {
     "state": "clear",
-    "time": 1312.333,
-    "kills": 21725,
-    "level": 63,
-    "weapons": "wand:8,clock:7,cherry:8,orb:8,sword:7,lightning:8",
+    "time": 1320.7,
+    "kills": 21370,
+    "level": 62,
+    "weapons": "wand:8,clock:8,cherry:7,orb:8,sword:8,lightning:8",
     "errors": []
   },
   "knight-1": {
     "state": "clear",
-    "time": 1240.5,
-    "kills": 31760,
-    "level": 87,
-    "weapons": "wand:8,cherry:8,aura_evo:8,vento:8,pentagram_evo:8,cross:8",
+    "time": 1236.267,
+    "kills": 32293,
+    "level": 78,
+    "weapons": "wand_evo:8,spear_evo:8,bomb:8,orb:8,firewand:8,sword:8",
     "errors": []
   },
   "knight-2": {
     "state": "clear",
-    "time": 1233.933,
-    "kills": 32526,
-    "level": 90,
-    "weapons": "wand:8,spear_evo:8,shield_evo:8,hammer:8,pentagram_evo:8,sword:8",
+    "time": 1220.733,
+    "kills": 17960,
+    "level": 49,
+    "weapons": "wand_evo:8,vento:8,cross:8,rune_evo:8,spear:8,bullet:8",
     "errors": []
   },
   "knight-3": {
     "state": "clear",
-    "time": 1341.233,
-    "kills": 28349,
+    "time": 1340,
+    "kills": 33641,
     "level": 67,
-    "weapons": "wand:8,larobba:8,vento:8,lightning_evo:8,bomb:8,flames:8",
+    "weapons": "wand:8,flames:8,cross:8,rune_evo:8,cherry:8,shadow_evo:8",
     "errors": []
   },
   "hunter-0": {
@@ -41,58 +41,58 @@
   },
   "hunter-1": {
     "state": "clear",
-    "time": 1238.5,
-    "kills": 22564,
-    "level": 58,
-    "weapons": "bullet:8,lightning:8,vento:8,rune:8,spear:8,aura:8",
+    "time": 1241.667,
+    "kills": 32786,
+    "level": 78,
+    "weapons": "bullet_evo:8,lightning:8,flames_evo:8,cherry:8,hammer:8,wand:8",
     "errors": []
   },
   "hunter-2": {
     "state": "clear",
-    "time": 1230.033,
-    "kills": 22699,
-    "level": 71,
-    "weapons": "bullet_evo:8,bomb:8,firewand:8,orb:8,cherry:8,cross:8",
+    "time": 1236.4,
+    "kills": 18899,
+    "level": 72,
+    "weapons": "bullet:8,flames_evo:8,wand_evo:8,rune:8,vento:8,victory:8",
     "errors": []
   },
   "hunter-3": {
     "state": "clear",
-    "time": 1225.333,
-    "kills": 35660,
-    "level": 73,
-    "weapons": "bullet:8,aura_evo:8,cross_evo:8,vento:8,wand_evo:8,pentagram:8",
+    "time": 1253.8,
+    "kills": 30762,
+    "level": 63,
+    "weapons": "bullet_evo:8,orb:8,cherry_evo:8,shadow:8,flames:8,shield:8",
     "errors": []
   },
   "berserker-0": {
     "state": "clear",
-    "time": 1312.4,
-    "kills": 14534,
-    "level": 53,
-    "weapons": "sword:3,clock:8,vento:5,victory:6,hammer:6,wand:4",
+    "time": 1293.833,
+    "kills": 15141,
+    "level": 52,
+    "weapons": "sword:3,clock:6,vento:8,victory:8,hammer:5,wand:2",
     "errors": []
   },
   "berserker-1": {
     "state": "clear",
-    "time": 1237.833,
-    "kills": 20640,
-    "level": 36,
-    "weapons": "sword:8,spear:6,shadow:7,flames_evo:8,hammer:5,pentagram:7",
+    "time": 1282.333,
+    "kills": 35171,
+    "level": 80,
+    "weapons": "sword:8,bomb_evo:8,cross_evo:8,cherry_evo:8,staff_evo:8,flames:8",
     "errors": []
   },
   "berserker-2": {
     "state": "clear",
-    "time": 1370.7,
-    "kills": 38328,
-    "level": 85,
-    "weapons": "sword:8,cherry_evo:8,staff_evo:8,aura_evo:8,dusting:8,orb:8",
+    "time": 1365.167,
+    "kills": 22489,
+    "level": 74,
+    "weapons": "sword:8,dusting:8,lightning_evo:8,spear:8,vento:8,wand:8",
     "errors": []
   },
   "berserker-3": {
     "state": "clear",
-    "time": 1433.8,
-    "kills": 43562,
-    "level": 102,
-    "weapons": "sword:8,dusting:8,wand:8,staff:8,clock:8,firewand:8",
+    "time": 1318.167,
+    "kills": 17386,
+    "level": 20,
+    "weapons": "sword:3,pentagram:4,orb:2,vento:3,larobba:1,clock:1",
     "errors": []
   },
   "saint-0": {
@@ -105,58 +105,58 @@
   },
   "saint-1": {
     "state": "clear",
-    "time": 1230.633,
-    "kills": 22464,
-    "level": 48,
-    "weapons": "aura:8,lightning:7,larobba:7,pentagram:8,dusting:8,cross_evo:8",
+    "time": 1223.533,
+    "kills": 22543,
+    "level": 62,
+    "weapons": "aura:8,victory:8,bullet:8,cherry:8,shield_evo:8,hammer_evo:8",
     "errors": []
   },
   "saint-2": {
     "state": "clear",
-    "time": 1223.8,
-    "kills": 22161,
-    "level": 55,
-    "weapons": "aura:6,pentagram:6,clock:8,bullet:8,wand:8,shield:8",
+    "time": 1364.7,
+    "kills": 32418,
+    "level": 86,
+    "weapons": "aura:8,hammer:8,cross:8,lightning_evo:8,wand:8,shield_evo:8",
     "errors": []
   },
   "saint-3": {
     "state": "clear",
-    "time": 1253.733,
-    "kills": 32451,
-    "level": 65,
-    "weapons": "aura:8,sword:8,firewand_evo:8,rune_evo:8,dusting:8,bomb:8",
+    "time": 1261.5,
+    "kills": 45650,
+    "level": 74,
+    "weapons": "aura:8,staff_evo:8,shadow:8,sword:8,hammer_evo:8,victory:8",
     "errors": []
   },
   "armorer-0": {
     "state": "clear",
-    "time": 1247.3,
-    "kills": 20370,
-    "level": 59,
-    "weapons": "cherry:8,larobba:6,firewand:8,spear:8,cross:7,sword:8",
+    "time": 1227.9,
+    "kills": 20401,
+    "level": 57,
+    "weapons": "cherry:8,larobba:8,firewand:8,spear_evo:8,cross:8,sword:8",
     "errors": []
   },
   "armorer-1": {
     "state": "clear",
-    "time": 1268.167,
-    "kills": 23426,
-    "level": 50,
-    "weapons": "cross:4,clock:8,larobba:8,spear:8,victory:4,pentagram:7",
+    "time": 1489.433,
+    "kills": 30576,
+    "level": 84,
+    "weapons": "cross:8,shadow:8,staff:8,sword_evo:8,lightning:8,larobba_evo:8",
     "errors": []
   },
   "armorer-2": {
     "state": "clear",
-    "time": 1272.467,
-    "kills": 23642,
-    "level": 63,
-    "weapons": "wand:8,rune:8,victory:8,dusting:8,sword:8,larobba:8",
+    "time": 1347.667,
+    "kills": 31991,
+    "level": 84,
+    "weapons": "wand:8,bomb_evo:8,aura:8,rune_evo:8,larobba_evo:8,victory:8",
     "errors": []
   },
   "armorer-3": {
     "state": "clear",
-    "time": 1257,
-    "kills": 35315,
-    "level": 72,
-    "weapons": "larobba_evo:8,victory:8,pentagram:8,flames:8,cherry:8,orb_evo:8",
+    "time": 1305.1,
+    "kills": 40693,
+    "level": 78,
+    "weapons": "larobba:8,aura:8,sword:8,wand_evo:8,vento:8,lightning:8",
     "errors": []
   }
 }

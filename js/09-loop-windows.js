@@ -264,7 +264,7 @@ function formatTime(sec) {
   return m > 0 ? `${m}분 ${s}초` : `${s}초`;
 }
 
-// 클리어: 게임을 멈추고 화면 가운데에 STAGE CLEAR → 잠시 뒤 결과 창
+// 클리어: 게임을 멈추고 화면 가운데에 STAGE CLEAR → 잠시 뒤 결과 창 (지옥에서 그 캐릭터의 엔딩을 아직 안 봤으면 엔딩부터)
 const STAGE_CLEAR_TIME = 1.8;   // STAGE CLEAR 글자만 보여 주는 시간 (초)
 function gameClear() {
   state = "clear";
@@ -273,12 +273,50 @@ function gameClear() {
   endJoystick();
   setMusic("ending");
   clearReward.innerHTML = finishRun(true);
+  const ending = run.diff === 3 && !(meta.stats.mask_ending & charBit()) ? ENDINGS[run.char] : null;
+  if (ending) loadEnding(ending);   // STAGE CLEAR 가 떠 있는 동안 그림을 미리 받아 둠
   stageClear.classList.add("show");
   setTimeout(() => {
     stageClear.classList.remove("show");
-    if (state === "clear") clearBox.style.display = "flex";   // 그 사이 시작 화면으로 나갔으면 창을 안 띄움
+    if (state !== "clear") return;   // 그 사이 시작 화면으로 나갔으면 창을 안 띄움
+    if (ending) showEnding();
+    else clearBox.style.display = "flex";
   }, STAGE_CLEAR_TIME * 1000);
 }
+
+// 지옥 클리어 엔딩: 그 캐릭터로 지옥을 깨면 STAGE CLEAR 다음에 엔딩 그림 + 자막. 캐릭터마다 한 번 (본 엔딩은 meta.stats.mask_ending)
+//   그림 = assets/story/<art>.png (장면 설명은 docs/story/cutscene-storyboard.md). 아무 곳이나 누르거나 Enter·Space·Esc → 클리어 창
+const ENDINGS = {
+  knight:    { art: "mage_end",      text: "졸업장을 되찾았어요. 한 달 뒤, 첫 연금이 들어왔지요.\n이제 가훈대로 400년 놀 거예요.\n졸업장은 금고에 넣었답니다." },
+  hunter:    { art: "hunter_end",    text: "월세를 내고도 몬스터 고기가 잔뜩 남아서 고깃집을 차렸어요.\n한 번 먹은 손님은 끊지를 못해요. 오늘도 오고, 내일도 와요.\n집주인도 고기 먹으러 오늘 또 사흘을 걸어왔답니다." },
+  berserker: { art: "berserker_end", text: "던전을 끝까지 쓸어버리고 돌아왔어요. 친구가 그제야 말을 끝냈지요.\n\"…던전 가서 고기 잔뜩 잡았거든. 같이 먹자고.\"\n반려 검은 조용히 칼집으로 들어갔답니다." },
+  saint:     { art: "saint_end",     text: "협회에서 세 번째 우편이 왔어요. 이번엔 금색 도장이었지요.\n\"던전 정화 공로로 제명 취소.\"\n이제 제명할 가치도 없는 사람이 됐다는 뜻으로 해석했어요.\n빨간 도장 세 개 받던 시절이 좋았답니다." },
+  armorer:   { art: "armorer_end",   text: "시청자가 처음으로 천 명을 넘었어요. 30년 장사 인생 최고의 날이었지요.\n\"자, 바로 이 검으로 보스를—\" 그 순간 방송이 끊겼어요. 사유: 폭력적인 콘텐츠.\n칼 파는 방송에서 칼을 쓰면 안 되는 줄은 몰랐답니다." },
+};
+const ENDING_LOCK = 1.2;   // 엔딩이 뜬 뒤 이 시간(초) 동안은 눌러도 안 넘어감: 보스를 잡던 손가락·키에 바로 넘어가지 않게 (▼ 표시도 이때부터, style.css)
+let endingShownAt = 0;
+
+function loadEnding(ending) {
+  endingImg.classList.remove("loaded");
+  endingImg.src = assetUrl(`story/${ending.art}`);
+  endingText.textContent = ending.text;
+}
+endingImg.addEventListener("load", () => endingImg.classList.add("loaded"));   // 그림이 늦게 받아져도 받아지는 대로 나타남
+
+function showEnding() {
+  meta.stats.mask_ending |= charBit();   // 본 엔딩은 다음에 지옥을 또 깨도 안 나옴
+  saveMeta();
+  endingShownAt = performance.now();
+  endingBox.classList.add("show");
+}
+
+function closeEnding() {
+  if (!endingBox.classList.contains("show") || performance.now() - endingShownAt < ENDING_LOCK * 1000) return;
+  endingBox.classList.remove("show");
+  if (state === "clear") clearBox.style.display = "flex";
+}
+endingBox.addEventListener("pointerup", closeEnding);   // click 대신: 휴대폰에서는 게임 화면이 touchstart 를 막아서 click 이 안 옴
+window.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") closeEnding(); });
 
 // =====================================================================
 // 14-1. ? 도움말: 무기 조합(진화)표, 무기 설명, 아이템 설명. 열려 있는 동안 게임이 멈춤

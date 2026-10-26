@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css" />
   <!-- ?v= : 올릴 때마다 바꾸는 버전 표시. 브라우저가 예전 코드·그림을 쓰지 않고 새로 받게 함 (그림 주소도 js/01-setup.js 가 이 값을 따라 씀) -->
-  <link rel="stylesheet" href="style.css?v=20261024b" />
+  <link rel="stylesheet" href="style.css?v=20261026a" />
 </head>
 <body>
   <!-- 게임이 그려지는 도화지 -->
@@ -31,6 +31,8 @@
     <div id="hudStats"><span><img src="assets/w_clock.png" alt="시간"><span id="hudTime">00:00</span></span><span><img src="assets/item_wipe.png" alt="처치"><span id="hudKills">0</span></span></div>
     <!-- 터치 조이스틱 (휴대폰에서 화면을 누르고 있는 동안만 보임) -->
     <div id="joyBase"></div><div id="joyKnob"></div>
+    <!-- 지옥 클리어 엔딩: STAGE CLEAR 다음에 그 캐릭터의 엔딩 그림 + 자막 (캐릭터마다 한 번). 아무 곳이나 누르면 클리어 창으로 -->
+    <div id="endingBox"><img id="endingImg" alt=""><p id="endingText"></p></div>
 
     <!-- 시작 화면: 게임을 켜면 가장 먼저 보임. 배경(던전·몬스터·기사)은 캔버스가 그리고, 이 글자·버튼은 그 위에 얹힘
          '게임 시작'(또는 Enter) → 게임 시작.  '게임 설명' → 제목·버튼 자리에 설명판이 대신 나옴 (intro 클래스) -->
@@ -163,18 +165,18 @@
     </div>
   </div>
 
-  <script src="js/01-setup.js?v=20261024b"></script>
-  <script src="js/02-rules.js?v=20261024b"></script>
-  <script src="js/03-weapons.js?v=20261024b"></script>
-  <script src="js/04-passives-enemies.js?v=20261024b"></script>
-  <script src="js/05-state-input.js?v=20261024b"></script>
-  <script src="js/06-spawn-combat.js?v=20261024b"></script>
-  <script src="js/07-update.js?v=20261024b"></script>
-  <script src="js/08-draw.js?v=20261024b"></script>
-  <script src="js/09-loop-windows.js?v=20261024b"></script>
-  <script src="js/10-title.js?v=20261024b"></script>
-  <script src="js/11-meta-save.js?v=20261024b"></script>
-  <script src="js/12-sound.js?v=20261024b"></script>
-  <script src="js/13-start.js?v=20261024b"></script>
+  <script src="js/01-setup.js?v=20261026a"></script>
+  <script src="js/02-rules.js?v=20261026a"></script>
+  <script src="js/03-weapons.js?v=20261026a"></script>
+  <script src="js/04-passives-enemies.js?v=20261026a"></script>
+  <script src="js/05-state-input.js?v=20261026a"></script>
+  <script src="js/06-spawn-combat.js?v=20261026a"></script>
+  <script src="js/07-update.js?v=20261026a"></script>
+  <script src="js/08-draw.js?v=20261026a"></script>
+  <script src="js/09-loop-windows.js?v=20261026a"></script>
+  <script src="js/10-title.js?v=20261026a"></script>
+  <script src="js/11-meta-save.js?v=20261026a"></script>
+  <script src="js/12-sound.js?v=20261026a"></script>
+  <script src="js/13-start.js?v=20261026a"></script>
 </body>
 </html>
