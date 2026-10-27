@@ -1,0 +1,14 @@
+{
+	// 브라우저에서 차례로 불러오는 전역 스크립트(js/*.js)와 Bun 테스트를 같은 프로젝트로 묶는다. 모듈 변환·빌드 없음(noEmit)
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"types": ["bun"],
+		"strict": true,
+		"allowJs": true,
+		"noEmit": true
+	},
+	"include": ["js/**/*.js", "tests/**/*.ts"]
+}
