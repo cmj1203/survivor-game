@@ -158,7 +158,7 @@ function defaultMeta() {
                     // 어려운 퀘스트용. best_○○ = 한 판 최고 기록, n_○○ = 해낸 횟수, mask_○○ = 해 본 것들(하나당 비트 하나)
                     best_nohit: 0, best_lowhp: 0, best_solo: 0, best_runkills: 0, best_runevos: 0, best_runelites: 0,
                     n_naked: 0, n_fewhit: 0, n_fastboss: 0, mask_evo: 0, mask_hell: 0,
-                    mask_ending: 0 } };                                                         // mask_ending = 본 지옥 클리어 엔딩 (캐릭터마다 비트 하나)
+                    mask_ending: 0, mask_story: 0 } };                                          // 본 지옥 엔딩 / 시작 스토리 (캐릭터마다 비트 하나)
 }
 // 저장된 값이 이상해도(손으로 고친 파일 등) 게임이 깨지지 않게 하나씩 확인해서 채움
 function normalizeMeta(m) {
@@ -579,7 +579,14 @@ metaBody.addEventListener("click", (e) => {
     for (const s of SHOP) { const lv = upLevel(s.key); meta.gold += (s.base * lv * (lv + 1)) / 2; meta.upgrades[s.key] = 0; }
   } else if (act === "charbuy") {
     const c = CHARACTERS[key];
-    if (isCharUnlocked(key) && !isCharOwned(key) && meta.gold >= c.price) { meta.gold -= c.price; meta.chars.push(key); }
+    if (isCharUnlocked(key) && !isCharOwned(key) && meta.gold >= c.price) {
+      meta.gold -= c.price;
+      meta.chars.push(key);
+      saveMeta();
+      renderPanel();
+      showStory(key);
+      return;
+    }
   } else if (act === "char") { if (isCharOwned(key)) meta.char = key; }
   else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
   else if (act === "export") { exportSave(); return; }

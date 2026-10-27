@@ -24,7 +24,7 @@ let floatTexts;    // 위로 떠오르며 사라지는 글씨 목록 (상자 보
 let effects;       // 폭발·고리 같은 잠깐 보이는 연출 목록
 let particles;     // 작은 파편 목록 (피격 불꽃, 처치 파편)
 let stats;         // 생존 시간, 처치 수
-let state;         // "title", "intro", "playing", "levelup", "chest", "candy", "help", "gameover", "clear"
+let state;         // "title", "intro", "story", "playing", "levelup", "chest", "candy", "help", "gameover", "clear"
 let spawnTimer;    // 다음 적 생성까지 남은 시간
 let lastTime;      // 이전 프레임 시각 (dt 계산용)
 let loopId = 0;    // 예약해 둔 게임 루프 프레임 번호 (재개할 때 옛 예약을 지워 루프가 두 개 돌지 않게)
@@ -125,6 +125,10 @@ function keyName(e) {
 window.addEventListener("keydown", (e) => {
   const name = keyName(e);
   if (name === "m" && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) { toggleSound(); return; }   // M: 소리 켜기/끄기 (어느 화면에서나)
+  if (endingBox.classList.contains("show")) {
+    if (e.key === "Enter" || e.key === " " || e.key === "Escape") e.preventDefault();
+    return;
+  }
   // 시작 화면: Enter 로 시작. 설명 창이 떠 있으면 Enter/Esc 로 닫기. 그 외 키는 무시 (게임이 아직 없음)
   if (state === "title") { if (name === "enter") startGame(); else if (name === "escape") newGameBox.style.display = "none"; return; }   // Esc: 새로 시작 경고 창 닫기
   if (state === "intro") { if (name === "enter" || name === "escape") { e.preventDefault(); closeIntro(); } return; }   // preventDefault: 포커스가 남은 '게임 설명' 버튼이 Enter 로 다시 눌려 창이 또 열리지 않게

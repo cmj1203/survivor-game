@@ -212,6 +212,7 @@ function enterFullscreen() {
 
 // force = true 면 경고 없이 바로 시작 (경고 창에서 '새로 시작'을 눌렀을 때)
 function startGame(force) {
+  if (storyScene) return;
   const saved = force === true ? null : loadRun();
   if (saved) {
     // 하던 판이 있으면 바로 시작하지 않고 먼저 물어봄 (새로 시작하면 그 판이 지워지므로)
@@ -222,7 +223,9 @@ function startGame(force) {
   }
   newGameBox.style.display = "none";
   enterFullscreen();
-  beginRun();    // 안에서 state 를 playing 으로 바꾸고 오버레이를 숨김 → titleLoop 은 다음 프레임에 저절로 종료 (병기공이면 무기 고르기 창부터)
+  const storyBit = 1 << Object.keys(CHARACTERS).indexOf(meta.char);
+  if (!(meta.stats.mask_story & storyBit)) showStory(meta.char, beginRun);
+  else beginRun();   // 이미 본 스토리는 다시 띄우지 않음. 중간에 닫거나 그림을 못 받은 스토리는 다음 시작 때 재생
 }
 
 // 안드로이드는 처음 전체 화면이 될 때 "전체 화면 모드 · 확인" 창을 띄우는데, '확인'을 누를 때까지 게임을 가림
@@ -230,6 +233,11 @@ function startGame(force) {
 const FS_HINT_KEY = "dungeon-survivor-fs-hint";
 let fsHintShownThisPage = false;
 function pauseForFullscreenHint() {
+  if (storyScene) {   // 시작 스토리를 보는 중에 전체 화면이 되면, 안내를 아껴 두었다가 스토리가 끝나고 게임이 시작될 때 보여 줌
+    const begin = storyScene.onEnd;
+    storyScene.onEnd = () => { begin(); pauseForFullscreenHint(); };
+    return;
+  }
   let seen = fsHintShownThisPage;
   try { seen = seen || localStorage.getItem(FS_HINT_KEY) === "1"; localStorage.setItem(FS_HINT_KEY, "1"); } catch {}
   fsHintShownThisPage = true;

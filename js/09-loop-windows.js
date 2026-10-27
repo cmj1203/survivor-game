@@ -294,29 +294,80 @@ const ENDINGS = {
   armorer:   { art: "armorer_end",   text: "시청자가 처음으로 천 명을 넘었어요. 30년 장사 인생 최고의 날이었지요.\n\"자, 바로 이 검으로 보스를—\" 그 순간 방송이 끊겼어요. 사유: 폭력적인 콘텐츠.\n칼 파는 방송에서 칼을 쓰면 안 되는 줄은 몰랐답니다." },
 };
 const ENDING_LOCK = 1.2;   // 엔딩이 뜬 뒤 이 시간(초) 동안은 눌러도 안 넘어감: 보스를 잡던 손가락·키에 바로 넘어가지 않게 (▼ 표시도 이때부터, style.css)
+const CAPTION_LINES = 3;
 let endingShownAt = 0;
+let endingInputLock = ENDING_LOCK;
+let endingWords = [];
+let endingWordStart = 0;
+let endingWordEnd = 0;
 
 function loadEnding(ending) {
   endingImg.classList.remove("loaded");
   endingImg.src = assetUrl(`story/${ending.art}`);
-  endingText.textContent = ending.text;
+  endingWords = ending.text.match(/\S+\s*/gu);
+  endingWordStart = 0;
+  endingWordEnd = 0;
+  endingText.textContent = "";
+  renderEndingText();
 }
 endingImg.addEventListener("load", () => endingImg.classList.add("loaded"));   // 그림이 늦게 받아져도 받아지는 대로 나타남
 
+function renderEndingText() {
+  if (!endingBox.classList.contains("show")) return;
+  const style = getComputedStyle(endingText);
+  const maxHeight = Math.ceil(parseFloat(style.lineHeight) * CAPTION_LINES + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom));
+  let text = "", end = endingWordStart, sentenceEnd = endingWordStart, sentenceText = "";
+  for (; end < endingWords.length; end++) {
+    const candidate = text + endingWords[end];
+    endingText.textContent = candidate.trim();
+    if (endingText.scrollHeight > maxHeight) break;
+    text = candidate;
+    if (/[.!?…]["'”’]?\s*$|\n\s*$/u.test(endingWords[end])) {
+      sentenceEnd = end + 1;
+      sentenceText = text;
+    }
+  }
+  if (end < endingWords.length && sentenceEnd > endingWordStart) {
+    end = sentenceEnd;
+    text = sentenceText;
+  }
+  endingText.textContent = text.trim();
+  endingWordEnd = end;
+}
+const endingTextResize = new ResizeObserver(renderEndingText);
+endingTextResize.observe(endingText.parentElement);
+document.fonts.addEventListener("loadingdone", renderEndingText);
+
 function showEnding() {
-  meta.stats.mask_ending |= charBit();   // 본 엔딩은 다음에 지옥을 또 깨도 안 나옴
-  saveMeta();
   endingShownAt = performance.now();
+  endingInputLock = storyScene ? STORY_LOCK : ENDING_LOCK;
   endingBox.classList.add("show");
+  renderEndingText();
+  endingBox.focus({ preventScroll: true });
 }
 
 function closeEnding() {
-  if (!endingBox.classList.contains("show") || performance.now() - endingShownAt < ENDING_LOCK * 1000) return;
+  if (!endingBox.classList.contains("show") || performance.now() - endingShownAt < endingInputLock * 1000) return;
+  if (endingWordEnd < endingWords.length) {
+    endingWordStart = endingWordEnd;
+    renderEndingText();
+    endingShownAt = performance.now();
+    endingInputLock = STORY_LOCK;
+    return;
+  }
+  if (storyScene) { advanceStory(); return; }
+  if (endingImg.classList.contains("loaded")) {
+    meta.stats.mask_ending |= charBit();   // 그림을 받은 엔딩을 닫았을 때만 본 것으로 저장
+    saveMeta();
+  }
   endingBox.classList.remove("show");
   if (state === "clear") clearBox.style.display = "flex";
 }
 endingBox.addEventListener("pointerup", closeEnding);   // click 대신: 휴대폰에서는 게임 화면이 touchstart 를 막아서 click 이 안 옴
-window.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") closeEnding(); });
+window.addEventListener("keydown", (e) => {
+  if (!endingBox.classList.contains("show") || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "Enter" || e.key === " " || e.key === "Escape") { e.preventDefault(); closeEnding(); }
+});
 
 // =====================================================================
 // 14-1. ? 도움말: 무기 조합(진화)표, 무기 설명, 아이템 설명. 열려 있는 동안 게임이 멈춤

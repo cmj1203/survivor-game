@@ -190,18 +190,19 @@ canvas {
 }
 #stageClear.show { display: block; animation: stage-clear-pop 0.45s steps(6) both; }
 @keyframes stage-clear-pop { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-/* 지옥 클리어 엔딩: 화면 전체를 검게 덮고 위에 엔딩 그림, 아래에 자막 칸 (클리어 창과 같은 노란 픽셀 테두리)
-   그림 칸은 자막 칸이 쓰고 남은 높이를 다 쓰고, 그림은 비율을 지키며 그 안에 들어감. 크기는 게임 화면 너비(cqw) 기준 */
+/* 스토리·엔딩: 그림 크기는 고정하고 대사 창을 그림 안쪽 아래에 겹쳐 놓음 */
 #endingBox {
   position: absolute; inset: 0; z-index: 25; display: none; box-sizing: border-box; cursor: pointer;
-  flex-direction: column; align-items: center; gap: 1.2cqw; padding: 1.6cqw 3cqw 2cqw;
+  align-items: center; justify-content: center;
   background: #000;
 }
 #endingBox.show { display: flex; animation: ending-in 0.6s steps(6) both; }
-#endingImg { flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s steps(8); }
+#endingBox:focus { outline: none; }
+#endingScene { position: relative; flex: none; height: 100%; aspect-ratio: 3 / 2; max-width: 100%; overflow: hidden; }
+#endingImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s steps(8); }
 #endingImg.loaded { opacity: 1; }   /* 그림이 다 받아지면 나타남 */
 #endingText {
-  position: relative; flex: none; width: min(100%, max(64cqw, 560px)); box-sizing: border-box; margin: 0; padding: 1cqw 2.4cqw 1.2cqw 1.6cqw;
+  position: absolute; left: 3%; right: 3%; bottom: 3%; box-sizing: border-box; margin: 0; padding: 1cqw 2.4cqw 1.2cqw 1.6cqw;
   font: max(1.35cqw, 12px)/1.65 "Galmuri11", sans-serif; color: #fff; white-space: pre-line; word-break: keep-all; overflow-wrap: break-word;
   background: #15121f; border: 3px solid #ffd60a; box-shadow: inset 0 0 0 3px #000, 0 0 0 3px #000, 6px 6px 0 3px rgba(0, 0, 0, 0.6);
 }
@@ -211,6 +212,12 @@ canvas {
 }
 @keyframes ending-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ending-next { 0% { opacity: 1; } 50% { opacity: 0; } }
+#endingBox.story #endingText::after { animation-delay: 0.2s; }
+@media (prefers-reduced-motion: reduce) {
+  #endingBox.story.show { animation-duration: 0.1s; }
+  #endingBox.story #endingImg { transition-duration: 0.1s; }
+  #endingBox.story #endingText::after { animation: none; opacity: 1; }
+}
 
 /* 게임 화면 틀: 안에 든 ? 버튼·시작 화면이 "바라우저 창"이 아니라 "게임 화면" 구석을 기준으로 놓이게 함
    - 크기: 1280×720 이 기본. 바라우저 창이 그보다 작으면 16:9 버율을 지키면서 줄어듦 (예전에 canvas 에 있던 max-width/height 역할)
