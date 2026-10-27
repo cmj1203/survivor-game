@@ -190,7 +190,7 @@ canvas {
 }
 #stageClear.show { display: block; animation: stage-clear-pop 0.45s steps(6) both; }
 @keyframes stage-clear-pop { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-/* 지옥 클리어 엔딩: 화면 전체를 검게 덮고 위에 엔딩 그림, 아래에 자막 칸 (클리어 창과 같은 노란 픽셀 테두리)
+/* 매우 어려움 클리어 엔딩: 화면 전체를 검게 덮고 위에 엔딩 그림, 아래에 자막 칸 (클리어 창과 같은 노란 픽셀 테두리)
    그림 칸은 자막 칸이 쓰고 남은 높이를 다 쓰고, 그림은 비율을 지키며 그 안에 들어감. 크기는 게임 화면 너비(cqw) 기준 */
 #endingBox {
   position: absolute; inset: 0; z-index: 25; display: none; box-sizing: border-box; cursor: pointer;

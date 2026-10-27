@@ -111,7 +111,7 @@ function makeEnemy(type, x, y, isChild = false) {
   if (e.behavior === "slide") { e.vx = 0; e.vy = 0; }   // 얼음 원소: 지금 미끄러지는 속도
   if (e.firePool) e.poolTimer = FIRE_POOL_INTERVAL * (0.5 + Math.random());   // 불 원소: 첫 웅덩이 박자를 적마다 다르게
 
-  // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (보통 난이도는 tier 0 이라 그대로)
+  // 난이도 테마: 그림을 테마 색으로 바꾸고, 적 종류마다 특성을 하나씩 붙임 (쉬움 난이도는 tier 0 이라 그대로)
   const tier = enemyTier(), theme = diffDef().theme;
   e.baseShape = type.shape;
   if (theme && THEMED_SPRITES.includes(type.shape)) e.shape = `${type.shape}_${theme}`;

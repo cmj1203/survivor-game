@@ -190,7 +190,7 @@ const LEAP_HEIGHT = 70;              // 웬디고: 뛰어오르는 높이 (그�
 const LEAP_RADIUS = 55;              // 웬디고: 착지할 때 이 안에 있으면 피해, 그 자리에 얼음 장판
 const LEAP_DUST_LIFE = 0.45;         // 웬디고: 착지 흙먼지 그림(Landing Dust)이 재생되는 시간
 
-// --- 난이도 테마의 적 특성 (어려움 = 1단계, 매우 어려움 = 2단계, 지옥 = 3단계. 보통은 0단계라 아무 특성도 없음) ---
+// --- 난이도 테마의 적 특성 (보통 = 1단계, 어려움 = 2단계, 매우 어려움 = 3단계. 쉬움은 0단계라 아무 특성도 없음) ---
 //   배열은 [0단계, 1단계, 2단계, 3단계] 순서. 난이도 표(DIFFS)의 tier 가 단계
 const CRAB_SHELL = [0, 1, 1, 2];             // 붉은 게 '껍질': 공격을 이 횟수만큼 막아 냄
 const SPIDER_SPLIT = [2, 3, 3, 4];           // 거미 '분열': 죽을 때 나오는 새끼 수
@@ -203,7 +203,7 @@ const CYCLOPS_HAZARD_CHANCE = [0, 0.3, 0.35, 0.4];   // 외눈 거인 '자국': 
 const CYCLOPS_HAZARD_MAX = 6;                // 외눈 거인 '자국': 동시에 깔려 있을 수 있는 최대 개수
 const HAZARD_SLOW_MUL = [1, 0.55, 0.5, 0.45]; // 외눈 거인 '자국': 밟고 있을 때 이동 속도 배수 (맞았을 때보다 훨씬 느림)
 const HAZARD_ARM_TIME = 0.7;                 // 자국이 생긴 뒤 이 시간 동안은 아직 안 느려짐 (피할 틈)
-const BOSS_PATTERNS = [null, "fan", "ring", "spiral"];   // 보스 공격: 보통 = 없음(쫓아오기·부하 소환만), 어려움 = 부채꼴 조준, 매우 어려움 = 사방 원형, 지옥 = 회전 나선 + 부채꼴
+const BOSS_PATTERNS = [null, "fan", "ring", "spiral"];   // 보스 공격: 쉬움 = 없음(쫓아오기·부하 소환만), 보통 = 부채꼴 조준, 어려움 = 사방 원형, 매우 어려움 = 회전 나선 + 부채꼴
 const THEME_COLORS = { ice: "125, 249, 255", lava: "255, 123, 46", dark: "181, 101, 245" };   // 테마 색 (자국·껍질·순간이동 효과)
 function enemyTier() { return diffDef().tier || 0; }
 function themeColor(alpha) { return `rgba(${THEME_COLORS[diffDef().theme] || "255, 255, 255"}, ${alpha})`; }
@@ -267,7 +267,7 @@ const DEMON_METEOR_TIME = 1.0;       // 첫 운석이 떨어지기까지
 const DEMON_METEOR_STAGGER = 0.2;    // 운석이 차례로 떨어지는 간격
 const DEMON_METEOR_RADIUS = 55;
 const DEMON_METEOR_DAMAGE = 16;
-// --- 죽음의 기사 (저주받은 어둠 보스) 공격: 보라 경고가 먼저 차오른 뒤 터짐 ---
+// --- 죽음의 기사 (어둠 보스) 공격: 보라 경고가 먼저 차오른 뒤 터짐 ---
 const KNIGHT_RGB = "180, 90, 255";   // 경고 색 (보라)
 const KNIGHT_SLASH_INTERVAL = 3.5;   // 베기 간격
 const KNIGHT_SLASH_WINDUP = 0.9;     // 멈춰서 부채꼴 경고가 차는 시간

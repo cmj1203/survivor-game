@@ -10,7 +10,7 @@ function gameLoop(now) {
   lastTime = now;
   if (dt > 0.1) dt = 0.1;   // 탭 전환 등으로 시간이 크게 뛰면 최대 0.1초로 제한
 
-  // '1.5배속'(매우 어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
+  // '1.5배속'(어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
   //   dt 를 통째로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 한 번에 dt 보다 크게는 안 돌림. 중간에 레벨업·상자 창이 뜨면 거기서 멈춤
   for (let left = gameSpeed(); left > 0 && state === "playing"; left -= 1) update(dt * Math.min(1, left));
   draw();
@@ -264,7 +264,7 @@ function formatTime(sec) {
   return m > 0 ? `${m}분 ${s}초` : `${s}초`;
 }
 
-// 클리어: 게임을 멈추고 화면 가운데에 STAGE CLEAR → 잠시 뒤 결과 창 (지옥에서 그 캐릭터의 엔딩을 아직 안 봤으면 엔딩부터)
+// 클리어: 게임을 멈추고 화면 가운데에 STAGE CLEAR → 잠시 뒤 결과 창 (매우 어려움에서 그 캐릭터의 엔딩을 아직 안 봤으면 엔딩부터)
 const STAGE_CLEAR_TIME = 1.8;   // STAGE CLEAR 글자만 보여 주는 시간 (초)
 function gameClear() {
   state = "clear";
@@ -284,7 +284,7 @@ function gameClear() {
   }, STAGE_CLEAR_TIME * 1000);
 }
 
-// 지옥 클리어 엔딩: 그 캐릭터로 지옥을 깨면 STAGE CLEAR 다음에 엔딩 그림 + 자막. 캐릭터마다 한 번 (본 엔딩은 meta.stats.mask_ending)
+// 매우 어려움 클리어 엔딩: 그 캐릭터로 매우 어려움을 깨면 STAGE CLEAR 다음에 엔딩 그림 + 자막. 캐릭터마다 한 번 (본 엔딩은 meta.stats.mask_ending)
 //   그림 = assets/story/<art>.png (장면 설명은 docs/story/cutscene-storyboard.md). 아무 곳이나 누르거나 Enter·Space·Esc → 클리어 창
 const ENDINGS = {
   knight:    { art: "mage_end",      text: "졸업장을 되찾았어요. 한 달 뒤, 첫 연금이 들어왔지요.\n이제 가훈대로 400년 놀 거예요.\n졸업장은 금고에 넣었답니다." },
@@ -304,7 +304,7 @@ function loadEnding(ending) {
 endingImg.addEventListener("load", () => endingImg.classList.add("loaded"));   // 그림이 늦게 받아져도 받아지는 대로 나타남
 
 function showEnding() {
-  meta.stats.mask_ending |= charBit();   // 본 엔딩은 다음에 지옥을 또 깨도 안 나옴
+  meta.stats.mask_ending |= charBit();   // 본 엔딩은 다음에 매우 어려움을 또 깨도 안 나옴
   saveMeta();
   endingShownAt = performance.now();
   endingBox.classList.add("show");

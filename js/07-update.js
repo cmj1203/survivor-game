@@ -50,7 +50,7 @@ function updatePlayer(dt) {
     const len = Math.hypot(mx, my);
     player.facingX = mx / len;                 // 바라보는 방향 기억
     player.facingY = my / len;
-    // 난이도 테마: 외눈 거인의 자국을 밟고 있으면 느려짐 (맞아서 느려지는 건 없음 — 모든 난이도가 보통과 같음)
+    // 난이도 테마: 외눈 거인의 자국을 밟고 있으면 느려짐 (맞아서 느려지는 건 없음 — 모든 난이도가 쉬움과 같음)
     //   얼음 정령·서리 망령·예티에게 맞으면 잠깐 느려짐 (chillTimer)
     const speed = player.speed * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1) * (player.chillTimer > 0 ? CHILL_SLOW_MUL : 1);
     player.x += (mx / len) * speed * dt;
@@ -234,7 +234,7 @@ function updateBossEnemy(e, dirX, dirY, dt) {
     e.x += dirX * e.speed * dt;
     e.y += dirY * e.speed * dt;
     const pattern = BOSS_PATTERNS[enemyTier()];
-    if (pattern) updateBossShots(e, Math.atan2(dirY, dirX), pattern, dt);   // 보통 난이도는 공격 없음
+    if (pattern) updateBossShots(e, Math.atan2(dirY, dirX), pattern, dt);   // 쉬움 난이도는 공격 없음
   }
   // 주기적으로 부하 소환 (summon 이 있으면 그 종류, 없으면 지금 주력 몬스터)
   e.summonTimer -= dt;
@@ -337,7 +337,7 @@ function updateDemonBoss(e, dirX, dirY, dt) {
   }
 }
 
-// 죽음의 기사(저주받은 어둠 보스): 쫓아오다가 베기(부채꼴) · 순간이동 내리찍기(플레이어 뒤쪽), 체력 절반 이하면 십자 어둠 파동 (4분의 1 이하면 대각선도)
+// 죽음의 기사(어둠 보스): 쫓아오다가 베기(부채꼴) · 순간이동 내리찍기(플레이어 뒤쪽), 체력 절반 이하면 십자 어둠 파동 (4분의 1 이하면 대각선도)
 function updateKnightBoss(e, dirX, dirY, dt) {
   if (e.mode === "windup") {                     // 베기 준비: 제자리에서 번쩍이며 부채꼴이 참
     e.modeTimer -= dt;
