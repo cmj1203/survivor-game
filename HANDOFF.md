@@ -32,7 +32,7 @@
 - 정적 검사: `bunx @biomejs/biome lint js style.css tests` → 오류 0, 경고 2 (`js/07-update.js` 506줄 안 쓰는 매개변수 `len`, 507줄 쉼표 연산자). 동작과 무관, 그대로 둬도 됨.
 - 자동 플레이 시험: `bun test tests/` — **맥에서 돌릴 것.** 기준 기록(`tests/autoplay-baseline.json`)이 맥(Bun.WebView = WebKit)에서 만든 것.
 - 클라우드(리눅스, Chromium)에서 `main` 코드로 돌린 결과 (참고용):
-  - 에러 난 판 0. 16~15/20 통과
+  - 에러 난 판 0. 20판 중 15~16판 통과
   - `hunter-2`, `knight-3`: 클리어는 되지만 처치 수·레벨이 기준과 다름. 두 번 돌려도 같은 값 → 엔진(Chromium vs WebKit) 계산 차이로 추정, 코드 문제 아님. 맥에서 맞으면 OK
   - 몇 판은 60초 제한 초과 (느린 컴퓨터 탓, 판마다 달라짐)
   - 리눅스에서 돌리려면 root 라 `--no-sandbox` 래퍼 필요: `BUN_CHROME_PATH=<chrome 에 --no-sandbox 붙여 실행하는 스크립트>`
