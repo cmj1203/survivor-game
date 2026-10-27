@@ -515,7 +515,6 @@ function refreshTitleMenu() {
   document.getElementById("titleGold").innerHTML = `<img src="assets/coin.png" alt="금화">${meta.gold}`;
   document.getElementById("titleSub").innerHTML = `${CHARACTERS[meta.char].name} · ${DIFFS[meta.diff].name}` +
     (storageOk ? "" : ` · <span class="title-warn">저장 안 됨</span>`);
-  document.getElementById("questBtn").textContent = `퀘스트 ${meta.quests.length}/${QUESTS.length}`;
   continueBtn.style.display = loadRun() ? "block" : "none";
 }
 
