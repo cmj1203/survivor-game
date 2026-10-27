@@ -129,6 +129,17 @@ const QUESTS = [
   { id: "q_clear25",   name: "살아 있는 전설",  desc: "40번 클리어 (누적)",                          stat: "clears",   goal: 40,    gold: 400 },
   { id: "q_evodex20",  name: "진화 박사",       desc: "진화 무기 20종을 전부 만들어 보기 (누적)",    stat: "evodex",   goal: 20,    gold: 500 },
   { id: "q_hellall",   name: "지옥의 지배자",   desc: "서로 다른 캐릭터 4명으로 매우 어려움 클리어",         stat: "hellall",  goal: 4,     gold: 600 },
+  // --- 죽음 퀘스트 (보상은 금화): 부활도 죽음 1번. by = 마지막에 때린 적 종류 (바닥 불·경고 원·탄환은 그걸 만든 적), "boss" = 아무 보스 ---
+  { id: "q_die1",      name: "그럴 수도 있지",   desc: "1번 죽기",                          stat: "deaths",   goal: 1,   gold: 20 },
+  { id: "q_die7",      name: "칠전팔기",         desc: "7번 죽기 (누적)",                   stat: "deaths",   goal: 7,   gold: 50 },
+  { id: "q_die30",     name: "저승 단골",        desc: "30번 죽기 (누적)",                  stat: "deaths",   goal: 30,  gold: 150 },
+  { id: "q_die_bat",   name: "코로나",           desc: "박쥐한테 10번 죽기 (누적)",         stat: "deathby",  goal: 10,  gold: 80,  by: "bat" },
+  { id: "q_die_bear",  name: "죽은 척",          desc: "북극곰한테 10번 죽기 (누적)",       stat: "deathby",  goal: 10,  gold: 120, by: "polarbear" },
+  { id: "q_die_dog",   name: "우리 개는 물어요", desc: "지옥개한테 15번 죽기 (누적)",       stat: "deathby",  goal: 15,  gold: 180, by: "hellhound" },
+  { id: "q_die_mare",  name: "가위눌림",         desc: "악몽마한테 15번 죽기 (누적)",       stat: "deathby",  goal: 15,  gold: 220, by: "nightmare" },
+  { id: "q_die_boss",  name: "보스전 단골",      desc: "보스한테 10번 죽기 (아무 보스나, 누적)", stat: "deathby", goal: 10, gold: 200, by: "boss" },
+  { id: "q_die_knight", name: "기사의 제물",     desc: "죽음의 기사한테 5번 죽기 (누적)",   stat: "deathby",  goal: 5,   gold: 250, by: "deathknight" },
+  { id: "q_revive1",   name: "Jesus",            desc: "1번 부활하기",                      stat: "revives",  goal: 1,   gold: 40 },
 ];
 // 잠긴 무기를 전부 열고 서로 다른 진화 무기를 ARMORY_EVODEX 종 만들어 보면 '시작 무기를 고르는' 캐릭터가 열림
 //   진행 값 = 연 무기 수 + 만들어 본 진화 무기 수(최대 ARMORY_EVODEX) → 목표 = 무기 보상 퀘스트 수 + ARMORY_EVODEX
@@ -158,7 +169,21 @@ function defaultMeta() {
                     // 어려운 퀘스트용. best_○○ = 한 판 최고 기록, n_○○ = 해낸 횟수, mask_○○ = 해 본 것들(하나당 비트 하나)
                     best_nohit: 0, best_lowhp: 0, best_solo: 0, best_runkills: 0, best_runevos: 0, best_runelites: 0,
                     n_naked: 0, n_fewhit: 0, n_fastboss: 0, mask_evo: 0, mask_hell: 0,
-                    mask_ending: 0 } };                                                         // mask_ending = 본 매우 어려움 클리어 엔딩 (캐릭터마다 비트 하나)
+                    mask_ending: 0,                                                             // mask_ending = 본 매우 어려움 클리어 엔딩 (캐릭터마다 비트 하나)
+                    deaths: 0, revives: 0, ...Object.fromEntries(DEATH_STATS.map((k) => [k, 0])) } };                                                  // 죽은 횟수(부활 포함), 부활한 횟수
+}
+// death_○○ = 그 적한테 죽은 횟수 (죽음 퀘스트의 by 마다 하나, 보스는 death_boss 에도 셈)
+const DEATH_STATS = [...new Set(QUESTS.filter((q) => q.by).map((q) => `death_${q.by}`))];
+const BOSS_KEYS = [BOSS_TYPE.key, ...Object.values(STAGE_BOSSES).map((b) => b.key)];
+// 체력이 0 이 됐을 때 (부활 직전·게임오버 직전): 죽은 횟수와 마지막에 때린 적을 판 기록에 더함
+function recordDeath() {
+  if (!run) return;
+  run.deaths += 1;
+  if (player.revivesUsed < passiveLevel("revival") + upLevel("revival")) run.revives += 1;
+  const by = run.lastHitBy;
+  if (!by) return;
+  run.deathBy[by] = (run.deathBy[by] || 0) + 1;
+  if (BOSS_KEYS.includes(by)) run.deathBy.boss = (run.deathBy.boss || 0) + 1;
 }
 // 저장된 값이 이상해도(손으로 고친 파일 등) 게임이 깨지지 않게 하나씩 확인해서 채움
 function normalizeMeta(m) {
@@ -224,6 +249,7 @@ function startRun() {
   run = { char: meta.char, diff: meta.diff, chests: 0, evos: 0, items: 0, shells: 0, puddles: 0, corners: 0, newQuests: [], tick: 0, saveTimer: 0, done: false,
           // 어려운 퀘스트용: 맞은 횟수, 안 맞고 버틴 시간(지금/최고), 체력 낮은 채 버틴 시간(지금/최고), 무기 1개로 버틴 시간, 잡은 정예 수, 진화한 종류, 보스가 나온 시각
           hits: 0, noHit: 0, bestNoHit: 0, lowHp: 0, bestLowHp: 0, solo: 0, soloBroken: false, elites: 0, evoMask: 0, bossAt: null,
+          deaths: 0, revives: 0, deathBy: {}, lastHitBy: null,   // 죽음 퀘스트용: 이번 판에 죽은 횟수·부활 횟수·누구한테 죽었는지(적 종류 → 횟수, 보스는 "boss" 에도), 마지막에 때린 적
           naked: SHOP.every((it) => it.free || it.utility || upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지 (저주처럼 스스로 불리해지는 것은 셈에서 뺌)
   setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
   if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
@@ -269,6 +295,9 @@ function questValue(q, live, cleared) {
     case "fewhit":    return s.n_fewhit + (live && cleared && run.hits <= FEWHIT_MAX ? 1 : 0);
     case "fastboss":  return s.n_fastboss + (live && cleared && isFastBoss() ? 1 : 0);
     case "armory":    return QUESTS.filter((it) => it.weapon && isQuestDone(it.id)).length + Math.min(ARMORY_EVODEX, bitCount(s.mask_evo | (live ? run.evoMask : 0)));   // 연 무기 수 + 만들어 본 진화 무기 수
+    case "deaths":    return s.deaths + (live ? run.deaths : 0);
+    case "revives":   return s.revives + (live ? run.revives : 0);
+    case "deathby":   return (s[`death_${q.by}`] || 0) + (live ? run.deathBy[q.by] || 0 : 0);
     case "hellall":   return bitCount(s.mask_hell | (live && cleared && run.diff === 3 ? charBit() : 0));
   }
   return 0;
@@ -331,6 +360,8 @@ function finishRun(cleared) {
   s.best_solo = Math.max(s.best_solo, Math.floor(run.solo)); s.best_runkills = Math.max(s.best_runkills, stats.kills);
   s.best_runevos = Math.max(s.best_runevos, run.evos); s.best_runelites = Math.max(s.best_runelites, run.elites);
   s.mask_evo |= run.evoMask;
+  s.deaths += run.deaths; s.revives += run.revives;
+  for (const k in run.deathBy) if (`death_${k}` in s) s[`death_${k}`] += run.deathBy[k];   // 퀘스트에 쓰는 적만 저장
   if (cleared) {
     if (run.naked) s.n_naked += 1;
     if (run.hits <= FEWHIT_MAX) s.n_fewhit += 1;

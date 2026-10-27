@@ -587,7 +587,7 @@ function damageEnemy(e, dmg) {
 
     // 용암 골렘: 죽은 자리에 주황 경고 원이 차오른 뒤 폭발 (원 안이면 몸 피해만큼. final = 이미 난이도 배수를 곱한 피해)
     if (e.deathBlast) {
-      bossMarks.push({ x: e.x, y: e.y, r: GOLEM_BLAST_RADIUS * (e.elite ? 1.4 : 1), time: GOLEM_BLAST_TIME, maxTime: GOLEM_BLAST_TIME, damage: e.damage, final: true, rgb: DEMON_RGB, fx: "fx_blast" });
+      bossMarks.push({ x: e.x, y: e.y, r: GOLEM_BLAST_RADIUS * (e.elite ? 1.4 : 1), time: GOLEM_BLAST_TIME, maxTime: GOLEM_BLAST_TIME, damage: e.damage, final: true, rgb: DEMON_RGB, fx: "fx_blast", by: e.type });
     }
 
     // 거미(분열): 죽은 자리 양옆에 작은 적이 갈라져 나옴. splitType 이 있으면(얼음 원소) 그 종류가 제 크기로 나옴
@@ -737,7 +737,8 @@ function knockPlayer(e) {
 }
 
 // 플레이어가 피해를 입을 때 (적에게 닿음, 적 탄환에 맞음). 보호막이 켜져 있으면 대신 막아 줌
-function hurtPlayer(amount) {
+//   by = 때린 적 종류(key). 바닥 불·경고 원·탄환은 그걸 만든 적. 퀘스트 '○○한테 죽기'용으로 마지막에 때린 적을 기억
+function hurtPlayer(amount, by) {
   playSfx("hurt");
   if (run) { run.hits += 1; run.noHit = 0; }   // 퀘스트용: 맞은 횟수, '안 맞고 버틴 시간'은 처음부터 다시
   const shield = player.weapons.find((w) => (w.type === "shield" || w.type === "shield_evo") && w.ready);
@@ -747,6 +748,7 @@ function hurtPlayer(amount) {
     WEAPONS[shield.type].breakShield(shield);
   } else {
     player.hp -= Math.max(1, amount - passiveLevel("armor") - upLevel("armor"));   // 갑옷(게임 중) + 상점 '방어': 단계당 -1, 최소 1
+    if (run && by) run.lastHitBy = by;
   }
   player.invincible = INVINCIBLE_TIME;   // 막았을 때도 잠깐 무적 (연달아 맞지 않게)
 }

@@ -75,7 +75,7 @@ function updatePlayer(dt) {
     player.x += (dx / dist) * overlap;
     player.y += (dy / dist) * overlap;
     const harmless = e.wakeTimer > 0 || freezeTimer > 0 || e.frozenTimer > 0;
-    if (player.invincible <= 0 && !harmless) hurtPlayer(e.damage);
+    if (player.invincible <= 0 && !harmless) hurtPlayer(e.damage, e.type);
   }
   // 맵 밖(돌담)으로 못 나가게 가둠 + 카메라가 따라옴
   player.x = Math.max(WALL_SIZE + player.r, Math.min(WORLD_W - WALL_SIZE - player.r, player.x));
@@ -264,10 +264,10 @@ function updateYetiBoss(e, dirX, dirY, dt) {
     e.slamTimer = YETI_SLAM_INTERVAL;
     e.mode = "windup";
     e.modeTimer = YETI_SLAM_WINDUP * warnMul();
-    bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true, spikes: true, fx: "fx_frostnova" });
+    bossMarks.push({ x: e.x, y: e.y, r: YETI_SLAM_RADIUS, time: YETI_SLAM_WINDUP, maxTime: YETI_SLAM_WINDUP, damage: YETI_SLAM_DAMAGE, chill: true, spikes: true, fx: "fx_frostnova", by: e.type });
   } else if (e.rockTimer <= 0) {
     e.rockTimer = YETI_ROCK_INTERVAL;
-    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT, fx: "fx_iceshatter", fall: "rock" });
+    bossMarks.push({ x: player.x, y: player.y, r: YETI_ROCK_RADIUS, time: YETI_ROCK_FALL, maxTime: YETI_ROCK_FALL, damage: YETI_ROCK_DAMAGE, shards: YETI_SHARD_COUNT, fx: "fx_iceshatter", fall: "rock", by: e.type });
   }
   if (e.hp > e.maxHp / 2) return;
   e.icicleTimer -= dt;
@@ -277,7 +277,7 @@ function updateYetiBoss(e, dirX, dirY, dt) {
       const a = Math.random() * Math.PI * 2;
       const d = i === 0 ? 0 : 60 + Math.random() * (YETI_ICICLE_SPREAD - 60);   // 첫 고드름은 플레이어 자리
       const time = YETI_ICICLE_FALL + i * 0.08;                                  // 차례로 떨어지게 조금씩 어긋나게
-      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE, fx: "fx_icehit", fall: "icicle", warn: "fx_circleice" });
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: YETI_ICICLE_RADIUS, time, maxTime: time, damage: YETI_ICICLE_DAMAGE, fx: "fx_icehit", fall: "icicle", warn: "fx_circleice", by: e.type });
     }
   }
 }
@@ -296,7 +296,7 @@ function updateDemonBoss(e, dirX, dirY, dt) {
     e.trailDist += step;
     if (e.trailDist >= DEMON_TRAIL_GAP) {
       e.trailDist = 0;
-      enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: DEMON_TRAIL_RADIUS, life: DEMON_TRAIL_LIFE, maxLife: DEMON_TRAIL_LIFE, arm: DEMON_TRAIL_ARM, damage: Math.round(DEMON_TRAIL_DAMAGE * DIFFICULTY) });
+      enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: DEMON_TRAIL_RADIUS, life: DEMON_TRAIL_LIFE, maxLife: DEMON_TRAIL_LIFE, arm: DEMON_TRAIL_ARM, damage: Math.round(DEMON_TRAIL_DAMAGE * DIFFICULTY), by: e.type });
     }
     e.modeTimer -= dt;
     if (e.modeTimer <= 0) {
@@ -317,12 +317,12 @@ function updateDemonBoss(e, dirX, dirY, dt) {
     e.dashY = dirY;
     const half = (DEMON_CHARGE_SPEED * DEMON_CHARGE_TIME) / 2;
     bossMarks.push({ shape: "band", x: e.x + dirX * half, y: e.y + dirY * half, angle: Math.atan2(dirY, dirX), len: half + e.r + player.r, half: e.r + player.r,
-                     time: DEMON_CHARGE_WINDUP, maxTime: DEMON_CHARGE_WINDUP, damage: 0, rgb: DEMON_RGB, warn: "arrows" });   // 피해는 돌진하는 몸과 불길이 줌
+                     time: DEMON_CHARGE_WINDUP, maxTime: DEMON_CHARGE_WINDUP, damage: 0, rgb: DEMON_RGB, warn: "arrows", by: e.type });   // 피해는 돌진하는 몸과 불길이 줌
   } else if (e.pillarTimer <= 0) {
     e.pillarTimer = DEMON_PILLAR_INTERVAL;
     for (let i = 0; i < DEMON_PILLAR_COUNT; i++) {
       const a = Math.random() * Math.PI * 2, d = i === 0 ? 0 : 60 + Math.random() * (DEMON_PILLAR_SPREAD - 60);   // 첫 불기둥은 플레이어 자리
-      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: DEMON_PILLAR_RADIUS, time: DEMON_PILLAR_TIME, maxTime: DEMON_PILLAR_TIME, damage: DEMON_PILLAR_DAMAGE, rgb: DEMON_RGB, fx: "fx_pillar", fxLife: DEMON_PILLAR_FX_LIFE, warn: "fx_circlefire" });
+      bossMarks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: DEMON_PILLAR_RADIUS, time: DEMON_PILLAR_TIME, maxTime: DEMON_PILLAR_TIME, damage: DEMON_PILLAR_DAMAGE, rgb: DEMON_RGB, fx: "fx_pillar", fxLife: DEMON_PILLAR_FX_LIFE, warn: "fx_circlefire", by: e.type });
     }
   }
   if (e.hp > e.maxHp / 2) return;
@@ -332,7 +332,7 @@ function updateDemonBoss(e, dirX, dirY, dt) {
     for (let i = 0; i < DEMON_METEOR_COUNT; i++) {
       const time = DEMON_METEOR_TIME + i * DEMON_METEOR_STAGGER;   // 차례로 떨어지게
       const x = i === 0 ? player.x : cam.x + 40 + Math.random() * (VW - 80), y = i === 0 ? player.y : cam.y + 40 + Math.random() * (VH - 80);   // 화면 여기저기 (첫 운석은 플레이어 자리)
-      bossMarks.push({ x, y, r: DEMON_METEOR_RADIUS, time, maxTime: time, damage: DEMON_METEOR_DAMAGE, rgb: DEMON_RGB, fx: "fx_fireburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, fall: "meteor" });
+      bossMarks.push({ x, y, r: DEMON_METEOR_RADIUS, time, maxTime: time, damage: DEMON_METEOR_DAMAGE, rgb: DEMON_RGB, fx: "fx_fireburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, fall: "meteor", by: e.type });
     }
   }
 }
@@ -369,13 +369,13 @@ function updateKnightBoss(e, dirX, dirY, dt) {
     e.teleX = Math.max(WALL_SIZE + e.r, Math.min(WORLD_W - WALL_SIZE - e.r, e.teleX));   // 맵 가장자리에서도 맵 안에 나타나게
     e.teleY = Math.max(WALL_SIZE + e.r, Math.min(WORLD_H - WALL_SIZE - e.r, e.teleY));
     effects.push({ x: e.x, y: e.y + 10, r: KNIGHT_CLOUD_SIZE / FX_BURST_SIZE, life: KNIGHT_CLOUD_LIFE, maxLife: KNIGHT_CLOUD_LIFE, fx: "fx_cursecloud" });   // 떠난 자리에 저주 연기
-    bossMarks.push({ x: e.teleX, y: e.teleY, r: KNIGHT_TELE_RADIUS, time: KNIGHT_TELE_TIME, maxTime: KNIGHT_TELE_TIME, damage: KNIGHT_TELE_DAMAGE, rgb: KNIGHT_RGB, fx: "fx_darkburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, warn: "fx_castcircle" });
+    bossMarks.push({ x: e.teleX, y: e.teleY, r: KNIGHT_TELE_RADIUS, time: KNIGHT_TELE_TIME, maxTime: KNIGHT_TELE_TIME, damage: KNIGHT_TELE_DAMAGE, rgb: KNIGHT_RGB, fx: "fx_darkburst", fxLife: BOSS_BURST_LIFE, fxScale: BOSS_BURST_SCALE, warn: "fx_castcircle", by: e.type });
   } else if (e.slashTimer <= 0) {
     e.slashTimer = KNIGHT_SLASH_INTERVAL;
     e.mode = "windup";
     e.modeTimer = KNIGHT_SLASH_WINDUP * warnMul();
     bossMarks.push({ shape: "cone", x: e.x, y: e.y, angle: Math.atan2(dirY, dirX), spread: KNIGHT_SLASH_SPREAD, r: KNIGHT_SLASH_RANGE,
-                     time: KNIGHT_SLASH_WINDUP, maxTime: KNIGHT_SLASH_WINDUP, damage: KNIGHT_SLASH_DAMAGE, rgb: KNIGHT_RGB, warn: "swords" });
+                     time: KNIGHT_SLASH_WINDUP, maxTime: KNIGHT_SLASH_WINDUP, damage: KNIGHT_SLASH_DAMAGE, rgb: KNIGHT_RGB, warn: "swords", by: e.type });
   }
   if (e.hp > e.maxHp / 2) return;
   e.crossTimer -= dt;
@@ -383,7 +383,7 @@ function updateKnightBoss(e, dirX, dirY, dt) {
     e.crossTimer = KNIGHT_CROSS_INTERVAL;
     const angles = e.hp > e.maxHp / 4 ? [0, Math.PI / 2] : [0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4];
     for (const angle of angles) {
-      bossMarks.push({ shape: "band", x: e.x, y: e.y, angle, len: KNIGHT_CROSS_LEN, half: KNIGHT_CROSS_HALF, time: KNIGHT_CROSS_TIME, maxTime: KNIGHT_CROSS_TIME, damage: KNIGHT_CROSS_DAMAGE, rgb: KNIGHT_RGB, center: true, warn: "arrows" });
+      bossMarks.push({ shape: "band", x: e.x, y: e.y, angle, len: KNIGHT_CROSS_LEN, half: KNIGHT_CROSS_HALF, time: KNIGHT_CROSS_TIME, maxTime: KNIGHT_CROSS_TIME, damage: KNIGHT_CROSS_DAMAGE, rgb: KNIGHT_RGB, center: true, warn: "arrows", by: e.type });
     }
   }
 }
@@ -412,7 +412,7 @@ function updateBossMarks(dt) {
     if (m.time > 0) continue;
     m.done = true;
     if (m.damage > 0 && markHitsPlayer(m) && player.invincible <= 0) {
-      hurtPlayer(m.final ? m.damage : Math.round(m.damage * DIFFICULTY));
+      hurtPlayer(m.final ? m.damage : Math.round(m.damage * DIFFICULTY), m.by);
       if (m.chill) chillPlayer(CHILL_TIME * 2);
     }
     const fxLife = m.fxLife || YETI_FX_LIFE;
@@ -425,7 +425,7 @@ function updateBossMarks(dt) {
     if (m.spikes) effects.push({ kind: "icespikes", x: m.x, y: m.y, r: m.r, life: 0.35, maxLife: 0.35 });   // 둘레 얼음 가시가 옅어지며 사라짐
     for (let i = 0; i < (m.shards || 0); i++) {
       const a = (Math.PI * 2 * i) / m.shards;
-      enemyBullets.push({ x: m.x, y: m.y, vx: Math.cos(a) * YETI_SHARD_SPEED, vy: Math.sin(a) * YETI_SHARD_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(YETI_SHARD_DAMAGE * DIFFICULTY), color: "#bfefff" });
+      enemyBullets.push({ x: m.x, y: m.y, vx: Math.cos(a) * YETI_SHARD_SPEED, vy: Math.sin(a) * YETI_SHARD_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(YETI_SHARD_DAMAGE * DIFFICULTY), color: "#bfefff", by: m.by });
     }
   }
   bossMarks = bossMarks.filter((m) => !m.done);
@@ -467,7 +467,7 @@ function bossFan(e, aim) {
 
 // 보스 탄환(빨간 회전 표창) 한 발을 a 방향으로
 function bossBullet(e, a) {
-  enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY), sprite: "boss_shuriken", spin: 12, size: 14 });
+  enemyBullets.push({ x: e.x, y: e.y, vx: Math.cos(a) * BOSS_BULLET_SPEED, vy: Math.sin(a) * BOSS_BULLET_SPEED, r: ENEMY_BULLET_RADIUS, damage: Math.round(BOSS_BULLET_DAMAGE * DIFFICULTY), sprite: "boss_shuriken", spin: 12, size: 14, by: e.type });
 }
 
 // 돌진하는 적 한 마리: 걷기 → 번쩍 → 돌진
@@ -530,7 +530,7 @@ function updateEnemyTraits(e, dt) {
       e.poolTimer = FIRE_POOL_INTERVAL;
       if (inView(e.x, e.y) && enemyFires.filter((f) => f.kind === "pool").length < FIRE_POOL_MAX) {
         const life = FIRE_POOL_LIFE + FIRE_POOL_ARM;
-        enemyFires.push({ kind: "pool", x: e.x, y: e.y, r: FIRE_POOL_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: FIRE_POOL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_POOL_DAMAGE_MUL)) });
+        enemyFires.push({ kind: "pool", x: e.x, y: e.y, r: FIRE_POOL_RADIUS * (e.elite ? 1.4 : 1), life, maxLife: life, arm: FIRE_POOL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_POOL_DAMAGE_MUL)), by: e.type });
       }
     }
   }
@@ -539,7 +539,7 @@ function updateEnemyTraits(e, dt) {
     if (e.trailTimer <= 0) {
       e.trailTimer = FIRE_TRAIL_INTERVAL;
       if (inView(e.x, e.y, 40) && enemyFires.filter((f) => f.kind === "trail").length < FIRE_TRAIL_MAX) {
-        enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: e.r * 0.6, life: FIRE_TRAIL_LIFE, maxLife: FIRE_TRAIL_LIFE, arm: FIRE_TRAIL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_TRAIL_DAMAGE_MUL)) });
+        enemyFires.push({ kind: "trail", x: e.x, y: e.y, r: e.r * 0.6, life: FIRE_TRAIL_LIFE, maxLife: FIRE_TRAIL_LIFE, arm: FIRE_TRAIL_ARM, damage: Math.max(1, Math.round(e.damage * FIRE_TRAIL_DAMAGE_MUL)), by: e.type });
       }
     }
   }
@@ -584,7 +584,7 @@ function updateLeaperEnemy(e, dirX, dirY, len, dt) {
     if (k < 1) return;
     e.leap = null;
     const r = LEAP_RADIUS * (e.elite ? 1.4 : 1);
-    if (Math.hypot(player.x - e.x, player.y - e.y) < r + player.r && player.invincible <= 0) hurtPlayer(e.damage);
+    if (Math.hypot(player.x - e.x, player.y - e.y) < r + player.r && player.invincible <= 0) hurtPlayer(e.damage, e.type);
     effects.push({ x: e.x, y: e.y, r, life: LEAP_DUST_LIFE, maxLife: LEAP_DUST_LIFE, fx: "fx_landdust" });   // 착지 흙먼지
     spawnParticles(e.x, e.y, "#e0f7ff", 10, 200);
     if (hazards.length < CYCLOPS_HAZARD_MAX) {
@@ -741,7 +741,7 @@ function updatePlayerDamage(dt, frozen) {
       if (e.leap) continue;            // 뛰어오른 웬디고는 착지할 때만 피해 (updateLeaperEnemy)
       if (e.vanished) continue;        // 순간이동으로 사라진 죽음의 기사
       if (circlesTouch(e, player)) {
-        hurtPlayer(e.damage);
+        hurtPlayer(e.damage, e.type);
         if (e.knockback) { knockPlayer(e); e.gallop = 0; }   // 북극곰: 밀려남, 곰은 질주를 멈추고 처음부터
 
         break;               // 한 프레임에 한 번만 맞음
@@ -768,7 +768,7 @@ function updatePlayerDamage(dt, frozen) {
   for (const f of enemyFires) {
     f.life -= dt;
     if (f.arm > 0) { f.arm -= dt; continue; }
-    if (player.invincible <= 0 && circlesTouch(f, player)) hurtPlayer(f.damage);
+    if (player.invincible <= 0 && circlesTouch(f, player)) hurtPlayer(f.damage, f.by);
   }
   enemyFires = enemyFires.filter((f) => f.life > 0);
 
@@ -779,7 +779,7 @@ function updatePlayerDamage(dt, frozen) {
     b.y += b.vy * dt;
     if (circlesTouch(b, player)) {
       b.dead = true;
-      if (player.invincible <= 0) hurtPlayer(b.damage);
+      if (player.invincible <= 0) hurtPlayer(b.damage, b.by);
     }
   }
   enemyBullets = enemyBullets.filter((b) => !b.dead && inView(b.x, b.y, 40));
@@ -854,6 +854,7 @@ function updateChests(dt) {
 function checkGameOver() {
   // --- 게임오버 확인 (부활 패시브가 남아 있으면 대신 부활) ---
   if (player.hp <= 0) {
+    recordDeath();   // 퀘스트용: 부활해도 죽음 1번
     if (player.revivesUsed < passiveLevel("revival") + upLevel("revival")) {   // 부활(게임 중) + 상점 '부활'
       revivePlayer();
     } else {
