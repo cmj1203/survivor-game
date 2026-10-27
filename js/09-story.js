@@ -105,8 +105,10 @@ const STORIES = {
 };
 const STORY_LOCK = 0.2;   // 한 번의 입력으로 두 컷이 넘어가지 않게
 let storyScene = null;
+// 그림을 못 받은 컷이 있으면 본 것으로 치지 않음 (다음 시작 때 다시 보여 줌). 그림을 다 받기 전에 넘긴 것은 본 것으로 침
+endingImg.addEventListener("error", () => { if (storyScene) storyScene.seenAll = false; });
 
-function showStory(char, onEnd = () => { }) {
+function showStory(char, onEnd = () => {}) {
   storyScene = { char, frames: STORIES[char], index: 0, seenAll: true, returnState: state, onEnd };
   state = "story";
   endJoystick();
@@ -117,7 +119,6 @@ function showStory(char, onEnd = () => { }) {
 }
 
 function advanceStory() {
-  storyScene.seenAll = storyScene.seenAll && endingImg.classList.contains("loaded");
   storyScene.index += 1;
   if (storyScene.index < storyScene.frames.length) {
     loadEnding(storyScene.frames[storyScene.index]);

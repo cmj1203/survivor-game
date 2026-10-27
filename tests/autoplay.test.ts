@@ -335,6 +335,23 @@ describe("시작 스토리", () => {
     expect(duringStory).toEqual(["story", null]);
     expect(await page("return [state, pauseBox.style.display, localStorage.getItem(FS_HINT_KEY)]")).toEqual(["paused", "flex", "1"]);
   });
+
+  test("그림을 다 받기 전에 넘겨도 스토리는 본 것으로 저장", async () => {
+    // Given: 새 저장으로 첫 스토리를 연다.
+    await view.navigate(`${server.url.href}?story=fast-skip`);
+    await page(STORY_SETUP);
+    // When: 그림 받기가 끝나기 전에 (한 번의 동기 실행 안에서) 대사와 그림을 끝까지 넘긴다.
+    const result = await page(`
+      startBtn.click();
+      for (let i = 0; i < 100 && storyScene; i++) {
+        endingShownAt = performance.now() - endingInputLock * 1000;
+        closeEnding();
+      }
+      return [state, endingImg.classList.contains("loaded"), loadMeta().stats.mask_story];
+    `);
+    // Then: 그림을 못 받은 것은 아니므로 게임이 시작되고 스토리는 본 것으로 저장된다.
+    expect(result).toEqual(["playing", false, 1]);
+  });
 });
 
 test("스토리와 엔딩 28컷은 고정된 그림 안에 대사 창을 표시", async () => {
