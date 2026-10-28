@@ -115,7 +115,7 @@ function setMusic(name) {
 const THEME_MUSIC = {
   ice:  { stage: "ice",  boss: "boss_ice" },    // 얼음 동굴: Fields of Ice / Boss Battle #3
   lava: { stage: "lava", boss: "boss_lava" },   // 용암 굴: Fire Level (원곡) / Great Boss
-  dark: { stage: "dark", boss: "boss_dark" },   // 저주받은 어둠: Spooky Dungeon / Boss Battle #1
+  dark: { stage: "dark", boss: "boss_dark" },   // 어둠: Spooky Dungeon / Boss Battle #1
 };
 
 // 게임 중 배경 음악: 던전은 0~7분 / 7~14분 / 14분~ 곡이 바뀌고, 다른 장소는 그 장소 곡. 보스가 나오면 보스 곡

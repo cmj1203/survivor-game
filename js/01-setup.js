@@ -24,7 +24,7 @@ const chestOk = document.getElementById("chestOk");
 const clearBox = document.getElementById("clearBox");
 const stageClear = document.getElementById("stageClear");   // 보스를 잡으면 잠깐 뜨는 STAGE CLEAR 글자
 const clearText = document.getElementById("clearText");
-const endingBox = document.getElementById("endingBox");   // 지옥 클리어 엔딩 (그림 + 자막)
+const endingBox = document.getElementById("endingBox");   // 매우 어려움 클리어 엔딩 (그림 + 자막)
 const endingImg = document.getElementById("endingImg");
 const endingText = document.getElementById("endingText");
 const helpBtn = document.getElementById("helpBtn");
@@ -106,7 +106,7 @@ const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "f
                       "passive_might", "passive_armor", "passive_maxhp", "passive_regen", "passive_cooldown", "passive_area",
                       "passive_projspeed", "passive_duration", "passive_amount", "passive_move", "passive_magnet", "passive_luck",
                       "passive_growth", "passive_curse", "passive_revival", "passive_choices"];
-// 난이도 테마 (어려움 = 얼음 동굴, 매우 어려움 = 용암 굴, 지옥 = 저주받은 어둠): 적 그림을 테마 색으로 바꾼 것. 예: bat_ice.png
+// 난이도 테마 (보통 = 얼음 동굴, 어려움 = 용암 굴, 매우 어려움 = 어둠): 적 그림을 테마 색으로 바꾼 것. 예: bat_ice.png
 //   파일이 없거나 아직 못 불러왔으면 원래 그림으로 그림 (drawEnemy 참고)
 const THEME_KEYS = ["ice", "lava", "dark"];
 const THEMED_SPRITES = ["bat", "crab", "spider", "ghost", "cyclops", "flower", "wizard"];
