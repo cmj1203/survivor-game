@@ -423,3 +423,17 @@ describe("엔딩 대사 페이지", () => {
     });
   });
 });
+
+describe("죽음 기록", () => {
+  test("기본 보스(사신 마법사)한테 죽으면 보스한테 죽은 횟수는 한 번만 셈", async () => {
+    // Given: 스토리를 이미 본 새 저장으로 쉬움(기본 보스) 판을 시작한다.
+    await view.navigate(`${server.url.href}?death=boss`);
+    await page(STORY_SETUP);
+    await page("meta.stats.mask_story = 31; saveMeta(); startGame(true);");
+    expect(await page("return state")).toBe("playing");
+    // When: 기본 보스한테 맞아 체력이 0 이 되고 게임이 끝난다.
+    await page("player.invincible = 0; hurtPlayer(player.maxHp * 10, BOSS_TYPE.key); checkGameOver();");
+    // Then: 죽음 1번, 보스한테 죽음도 1번으로 저장된다.
+    expect(await page("const s = loadMeta().stats; return [state, s.deaths, s.death_boss];")).toEqual(["gameover", 1, 1]);
+  });
+});

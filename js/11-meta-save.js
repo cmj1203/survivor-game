@@ -183,7 +183,7 @@ function recordDeath() {
   const by = run.lastHitBy;
   if (!by) return;
   run.deathBy[by] = (run.deathBy[by] || 0) + 1;
-  if (BOSS_KEYS.includes(by)) run.deathBy.boss = (run.deathBy.boss || 0) + 1;
+  if (by !== "boss" && BOSS_KEYS.includes(by)) run.deathBy.boss = (run.deathBy.boss || 0) + 1;   // 기본 보스(사신 마법사)는 key 가 "boss" 라 윗줄에서 이미 셈
 }
 // 저장된 값이 이상해도(손으로 고친 파일 등) 게임이 깨지지 않게 하나씩 확인해서 채움
 function normalizeMeta(m) {
