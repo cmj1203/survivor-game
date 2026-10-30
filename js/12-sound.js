@@ -49,7 +49,7 @@ function loadSound(name) {
 // 첫 클릭·터치·키 입력 때 소리 장치를 켬 (이미 켜져 있으면, 멈춰 있을 때 다시 깨움)
 function unlockAudio() {
   if (!audioCtx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
+    const AC = window.AudioContext || /** @type {any} */ (window).webkitAudioContext;   // 옛 사파리 이름 (타입 정의에 없음)
     if (!AC) return;                      // 소리를 못 내는 브라우저: 조용히 넘어감
     audioCtx = new AC();
     masterGain = audioCtx.createGain(); masterGain.gain.value = soundOn ? 1 : 0; masterGain.connect(audioCtx.destination);
@@ -145,7 +145,7 @@ refreshSoundBtn();
 
 // 버튼 누르는 소리 (스피커·일시정지 버튼은 각자 소리가 따로 있어서 뺌)
 document.addEventListener("click", (e) => {
-  const b = e.target.closest("button");
+  const b = /** @type {HTMLElement} */ (e.target).closest("button");
   if (b && b !== soundBtn && b !== pauseBtn) playSfx("button");
 });
 

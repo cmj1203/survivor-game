@@ -624,6 +624,7 @@ function updateChaseEnemy(e, dirX, dirY, len, dt) {
 function updateBullets(dt) {
   // --- 발사체 이동 (속성에 따라: 중력, 되돌아오기, 튕김, 수명) ---
   for (const b of bullets) {
+    dmgSource = b.src || null;   // 튕길 때·사라질 때 터지는 피해도 쏜 무기로 셈
     // 촛대(공격 범위): 날아가는 투사체도 그만큼 커짐. 맞는 범위(r)와 그림 크기(size)를 처음 한 번만 키움
     if (!b.sized) { b.sized = true; const m = areaMul(); b.r *= m; if (b.sprite) b.size = (b.size || 16) * m; }
     if (b.life !== undefined) { b.life -= dt; if (b.life <= 0) { if (b.onExpire) b.onExpire(b); b.dead = true; continue; } }
@@ -653,12 +654,13 @@ function updateBullets(dt) {
       const rx = b.targetX - b.x, ry = b.targetY - b.y;
       if (Math.hypot(rx, ry) < 8 || rx * b.vx + ry * b.vy <= 0) {
         b.x = b.targetX; b.y = b.targetY;
-        zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow });
+        zones.push({ kind: "fire", x: b.x, y: b.y, r: b.zoneRadius, life: b.zoneLife, maxLife: b.zoneLife, tick: 0, interval: 0.25, damage: b.damage, follow: b.zoneFollow, src: b.src });
         effects.push({ x: b.x, y: b.y, r: b.zoneRadius * 0.8, life: 0.25, maxLife: 0.25, rgb: "255, 140, 40", fx: "fx_fireball" });
         b.dead = true;
       }
     }
   }
+  dmgSource = null;
   // 화면 밖으로 나간 발사체 제거 (여유는 발사체마다 다를 수 있음: 망치는 위로 높이 올라감)
   bullets = bullets.filter((b) => !b.dead && inView(b.x, b.y, b.margin || 40));
 }
@@ -668,6 +670,7 @@ function updateBulletHits() {
   // --- 충돌: 발사체 ↔ 적 ---
   for (const b of bullets) {
     if (b.noHit) continue;                       // 화염병은 닿아도 안 터지고 목표까지 감
+    dmgSource = b.src || null;                   // 무기별 피해 표: 쏜 무기로 셈
     for (const e of enemies) {
       if (e.dead || !circlesTouch(b, e)) continue;
       if (b.hitIds) {
@@ -684,6 +687,7 @@ function updateBulletHits() {
       }
     }
   }
+  dmgSource = null;
   bullets = bullets.filter((b) => !b.dead);
 }
 
@@ -699,11 +703,13 @@ function updateZones(dt) {
     }
     if (z.tick <= 0) {
       z.tick = z.interval;
+      dmgSource = z.src || null;
       for (const e of enemies) {
         if (!e.dead && Math.hypot(e.x - z.x, e.y - z.y) < z.r + e.r) damageEnemy(e, z.damage);
       }
     }
   }
+  dmgSource = null;
   zones = zones.filter((z) => z.life > 0);
 
   enemies = enemies.filter((e) => !e.dead);
@@ -786,11 +792,16 @@ function updatePlayerDamage(dt, frozen) {
 }
 
 // 안내 문구·구슬 줍기·떠오르는 글씨·바닥 아이템
+const GEM_MERGE_MIN = 512;   // 구슬이 많을 때만 1초에 한 번, 화면에서 먼 구슬을 경험치 손실 없이 합침
 function updatePickups(dt) {
   // --- 안내 문구 시간 줄이기 ---
   if (banner) {
     banner.life -= dt;
     if (banner.life <= 0) banner = null;
+  }
+
+  if (gems.length >= GEM_MERGE_MIN && Math.floor(stats.time) > Math.floor(stats.time - dt)) {
+    gems = packGems(gems, false);
   }
 
   // --- 구슬 끌어당기기 + 줍기 ---

@@ -218,9 +218,9 @@ function spawnBoss() {
 
 // 경험치 구슬 떨어뜨리기 (적이 죽은 자리에). value = 이 구슬의 경험치
 function spawnGem(x, y, value = 1) {
-  const r = GEM_RADIUS + (value >= 2 ? 2 : 0) + (value >= 4 ? 1 : 0);   // 값진 구슬은 조금 큼
-  gems.push({ x, y, r, value });
+  gems.push({ x, y, r: gemRadius(value), value });
 }
+function gemRadius(value) { return GEM_RADIUS + (value >= 2 ? 2 : 0) + (value >= 4 ? 1 : 0); }   // 값진 구슬은 조금 큼
 
 // 경험치 구슬 그림: 도트로 찍은 초록 마름모. 네 면의 밝기를 다르게 해서 입체로 보이게 함 (빛은 왼쪽 위에서 옴)
 //   점 하나 = 화면 2px (캐릭터·무기 그림의 도트 크기와 비슷하게). 테두리는 연한 초록 (다른 그림처럼 진한 #3F2631 로 했다가 연하게 바꿈)
@@ -423,7 +423,7 @@ function openChestFx() {
     const total = chestRoll.gold, start = performance.now(), span = (CHEST_ROLL_TIME - CHEST_SHAKE_TIME + CHEST_STOP_GAP * chestRoll.orbs.length) * 1000;
     const count = setInterval(() => {
       const t = Math.min(1, (performance.now() - start) / span);
-      chestGoldNum.textContent = Math.round(total * t);
+      chestGoldNum.textContent = String(Math.round(total * t));
       if (t >= 1) clearInterval(count);
     }, 40);
     chestRoll.timers.push(count);
@@ -534,6 +534,22 @@ function xpNeedFor(level) {
   return XP_BASE + XP_GROWTH * n + XP_CURVE * n * n;
 }
 
+// 데미지 숫자 (기록·저장 창에서 끄고 켬): 같은 적이 짧은 시간 안에 또 맞으면 새로 띄우지 않고 숫자를 더함
+let dmgSource = null;                // 지금 피해를 주는 무기 종류 (무기 발동·발사체·불바다를 처리하는 동안만. 결과 창의 무기별 피해 표용)
+const DMG_TEXT_LIFE = 0.6;           // 데미지 숫자가 떠 있는 시간 (초)
+const DMG_TEXT_MERGE = 0.2;          // 같은 적이 이 시간(초) 안에 또 맞으면 숫자를 더함
+const DMG_TEXT_MAX = 60;             // 떠오르는 글씨가 이만큼 있으면 데미지 숫자는 새로 안 띄움 (적이 많을 때 화면이 숫자로 덮이지 않게)
+const HIT_STOP_BOSS_SHARE = 0.02;    // 보스가 한 번에 최대 체력의 이만큼 이상 맞으면 히트스톱
+const dmgTexts = new WeakMap();      // 적 → 그 적 위에 떠 있는 데미지 숫자
+function showDamageNumber(e, dealt) {
+  const f = dmgTexts.get(e);
+  if (f && f.life > 0 && f.maxLife - f.life < DMG_TEXT_MERGE) { f.value += dealt; f.text = String(Math.round(f.value)); return; }
+  if (floatTexts.length >= DMG_TEXT_MAX) return;
+  const t = { x: e.x, y: e.y - e.r - 4, text: String(Math.round(dealt)), value: dealt, color: "#ffffff", life: DMG_TEXT_LIFE, maxLife: DMG_TEXT_LIFE, small: true };
+  floatTexts.push(t);
+  dmgTexts.set(e, t);
+}
+
 // 적에게 피해 주기. 죽으면 처치 수 +1, 구슬 떨어뜨림 (모든 무기가 이 함수를 씀)
 function damageEnemy(e, dmg) {
   if (e.dead || e.vanished) return;   // 순간이동으로 사라진 죽음의 기사는 맞지 않음
@@ -546,7 +562,11 @@ function damageEnemy(e, dmg) {
     spawnParticles(e.x, e.y, themeColor(1), 6, 160);
     return;
   }
+  const dealt = Math.min(dmg, Math.max(0, e.hp));   // 실제로 깎이는 체력 (넘치는 피해는 빼고)
   e.hp -= dmg;
+  if (run && dmgSource) run.dmgByWeapon[dmgSource] = (run.dmgByWeapon[dmgSource] || 0) + dealt;
+  if (meta.showDamage && dealt >= 1) showDamageNumber(e, dealt);
+  if (e.boss && dealt >= e.maxHp * HIT_STOP_BOSS_SHARE) kickScreen();   // 보스를 크게 때리면 히트스톱 + 화면 흔들림
 
   // 피격 이펙트: 흰색으로 번쩍 + 작은 불꽃
   e.hitFlash = HIT_FLASH_TIME;
@@ -559,6 +579,7 @@ function damageEnemy(e, dmg) {
     playSfx("kill");
     if (run && e.killStat) run[e.killStat] += 1;   // 퀘스트용 (얼음 원소 → '껍질 까기')
     if (charDef().healEvery && stats.kills % charDef().healEvery === 0) player.hp = Math.min(player.maxHp, player.hp + charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복
+    if (e.elite || e.boss) kickScreen();                                  // 정예·보스를 잡으면 히트스톱 + 화면 흔들림
     if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
     spawnGem(e.x, e.y, e.xp);
     if (e.type === "mimic") {
@@ -653,6 +674,8 @@ function findBestLine(half) {
 function updateWeapons(dt) {
   for (const w of player.weapons) {
     const def = WEAPONS[w.type];
+    const b0 = bullets.length, z0 = zones.length;
+    dmgSource = w.type;   // 무기별 피해 표: 이 무기가 바로 주는 피해는 이 무기로 셈
 
     // 매 프레임 실행되는 것 (회전 도끼 움직임, 보호막 재충전 등)
     if (def.update) def.update(w, dt);
@@ -677,7 +700,10 @@ function updateWeapons(dt) {
       w.refire = w.refire.map((t) => t - dt);
       while (w.refire.length && w.refire[0] <= 0) { w.refire.shift(); fireWeapon(w, def); }
     }
+    for (let i = b0; i < bullets.length; i++) bullets[i].src ??= w.type;   // 새로 생긴 발사체·불바다가 나중에 맞힌 피해도 이 무기로 셈
+    for (let i = z0; i < zones.length; i++) zones[i].src ??= w.type;
   }
+  dmgSource = null;
 }
 
 // 무기 한 번 발사 + 이번에 새로 생긴 발사체에 팔보호대(패시브) 속도 배수 적용
@@ -743,9 +769,9 @@ function hurtPlayer(amount, by) {
   if (run) { run.hits += 1; run.noHit = 0; }   // 퀘스트용: 맞은 횟수, '안 맞고 버틴 시간'은 처음부터 다시
   const shield = player.weapons.find((w) => (w.type === "shield" || w.type === "shield_evo") && w.ready);
   const victory = player.weapons.find((w) => w.type === "victory");
-  if (victory) WEAPONS.victory.retaliate(victory);          // 승리의 검: 맞으면 반격
+  if (victory) { dmgSource = victory.type; WEAPONS.victory.retaliate(victory); dmgSource = null; }   // 승리의 검: 맞으면 반격
   if (shield) {
-    WEAPONS[shield.type].breakShield(shield);
+    dmgSource = shield.type; WEAPONS[shield.type].breakShield(shield); dmgSource = null;   // 진화한 방패는 깨질 때 주변 적에게 피해
   } else {
     player.hp -= Math.max(1, amount - passiveLevel("armor") - upLevel("armor"));   // 갑옷(게임 중) + 상점 '방어': 단계당 -1, 최소 1
     if (run && by) run.lastHitBy = by;

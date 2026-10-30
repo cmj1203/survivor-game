@@ -157,6 +157,16 @@ canvas {
   background: #1e1e2e; border: 2px solid #4a4560; box-shadow: 3px 3px 0 #000; font-size: 15px; color: #fff;
 }
 .end-stat img { width: 18px; height: 18px; image-rendering: pixelated; }
+/* 무기별 피해 표 (게임오버·클리어 창): 그림 · 무기 이름 · 피해 · 비율. 피해 기록이 없으면 숨김 */
+.dmg-table { display: grid; grid-template-columns: 18px auto auto auto; gap: 3px 10px; align-items: center; padding: 6px 12px; background: #1e1e2e; border: 2px solid #4a4560; box-shadow: 3px 3px 0 #000; font-size: 13px; color: #fff; text-align: left; }
+.dmg-table:empty { display: none; }
+.dmg-row { display: contents; }
+.dmg-row img { width: 18px; height: 18px; image-rendering: pixelated; }
+.dmg-row b { font-weight: normal; text-align: right; }
+.dmg-row small { color: #b8b4c8; text-align: right; }
+/* 봉인 중: 봉인할 수 있는 카드는 빨간 테두리, 나머지는 흐리게 */
+#levelup.banishing .card.banishable { border-color: #ff4d4d; }
+#levelup.banishing .card:not(.banishable) { opacity: 0.4; cursor: default; }
 /* 보상 (금화·퀘스트·해금): 안쪽 칸. 창이 화면보다 길어지면 이 칸만 줄어들고 칸 안에서 스크롤 */
 #gameover .run-reward, #clearBox .run-reward {
   align-self: stretch; padding: 10px 16px; font-size: 14px; line-height: 1.75;
@@ -480,6 +490,10 @@ canvas {
 .meta-note:empty { display: none; }   /* 설명 글이 없는 창에서는 자리도 차지하지 않게 */
 #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-x pan-y; }   /* pan-x 도 허용: 세로로 들면 화면이 90도 돌아가서, 목록을 미는 손짓이 화면 기준으로는 가로 방향이 됨 */
 #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
+#metaBody { scrollbar-width: thin; scrollbar-color: #ffd60a rgba(255, 255, 255, 0.12); }   /* 목록이 더 있다는 걸 알 수 있게 스크롤 막대를 보이게 */
+#metaBody::-webkit-scrollbar { width: 6px; }
+#metaBody::-webkit-scrollbar-thumb { background: #ffd60a; }
+#metaBody::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.12); }
 .meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: max(1.25cqw, 12px); color: #ddd; text-align: left; }
 .meta-row img { width: 3.2cqw; height: 3.2cqw; flex: none; image-rendering: pixelated; }
 .meta-row .grow { flex: 1; min-width: 0; }
@@ -522,3 +536,28 @@ canvas {
 /* 제목 태그: 기본 여백 없애기 (글자는 캔버스 그림), 화면 읽기 프로그램용 숨김 글자 */
 .title-h1 { margin: 0; line-height: 0; font-size: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* 작은 터치 화면: cqw·팝업 zoom 이후의 실제 터치 영역을 보장 */
+@media (pointer: coarse) and (max-device-width: 599px), (pointer: coarse) and (max-device-height: 599px) {
+  #titleOverlay button { min-width: 44px; min-height: 44px; box-sizing: border-box; }
+  .title-menu { bottom: 3cqw; gap: 8px; }
+  .title-row { gap: 8px; max-width: 96cqw; }
+  .pixel-btn.small { font-size: max(1.3cqw, 12px); }
+  .meta-panel { box-sizing: border-box; max-height: 54cqw; }
+  .meta-panel > h2, .meta-panel > button, .meta-note { flex: none; }
+  .title-intro { box-sizing: border-box; max-height: 54cqw; }
+  .title-intro > h2, .title-intro > button { flex: none; }
+  .intro-grid { min-height: 0; overflow-y: auto; }
+  .popup { z-index: 15; }
+  .popup button {
+    min-width: calc(44px / var(--ui-zoom));
+    min-height: calc(44px / var(--ui-zoom));
+    box-sizing: border-box;
+  }
+  #levelup { padding: 12px 16px; gap: 8px; }
+  #choices { min-height: 0; overflow-y: auto; flex: 1 1 auto; }
+  #choices.wide { grid-auto-rows: max-content; align-content: start; }
+  #choices .card { flex: none; }
+  #levelup h1, .levelup-buttons { flex: none; }
+  #helpBox .help-head { flex: none; }
+}

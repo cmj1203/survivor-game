@@ -1,6 +1,27 @@
 // =====================================================================
 // 12. 게임 루프: 1초에 약 60번 update → draw 반복
 // =====================================================================
+// 히트스톱·화면 흔들림: 정예·보스를 잡거나 보스를 크게 때렸을 때 kickScreen 이 켬
+const HIT_STOP_TIME = 0.04;   // 히트스톱 시간 (초, 실제 시간): 이 동안은 update 를 건너뛰고 그리기만 함
+const SHAKE_TIME = 0.15;      // 화면 흔들림 시간 (초)
+const SHAKE_PX = 3;           // 화면 흔들림 세기 (px, 점점 약해짐)
+const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;   // 기기에서 '동작 줄이기'를 켰으면 흔들지 않음
+let hitStop = 0;              // 남은 히트스톱 시간 (초)
+let shakeUntil = 0;           // 화면 흔들림이 끝나는 시각 (performance.now, ms)
+function kickScreen() {
+  hitStop = HIT_STOP_TIME;
+  if (!REDUCE_MOTION) shakeUntil = performance.now() + SHAKE_TIME * 1000;
+}
+// 지금 화면을 옮길 양 [x, y]. Math.random 대신 sin 을 써서 게임의 무작위 순서를 건드리지 않음 (자동 플레이 시험 기록이 그대로)
+function shakeOffset() {
+  const left = shakeUntil - performance.now();
+  if (left <= 0) return [0, 0];
+  const m = (SHAKE_PX * left) / (SHAKE_TIME * 1000), t = performance.now() / 16;
+  return [Math.round(Math.sin(t * 7.1) * m), Math.round(Math.cos(t * 5.3) * m)];
+}
+
+const LOOP_ERROR_LIMIT = 3;   // 오류로 멈춘 뒤 계속하기를 눌러도 이만큼 연달아 오류가 나면 판을 접고 시작 화면으로
+let loopErrors = 0;           // 연달아 오류가 난 프레임 수 (제대로 돈 프레임이 있으면 0)
 function gameLoop(now) {
   if (state !== "playing") return;   // 게임오버·레벨업 중이면 멈춤
 
@@ -10,10 +31,21 @@ function gameLoop(now) {
   lastTime = now;
   if (dt > 0.1) dt = 0.1;   // 탭 전환 등으로 시간이 크게 뛰면 최대 0.1초로 제한
 
-  // '1.5배속'(어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
-  //   dt 를 통째로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 한 번에 dt 보다 크게는 안 돌림. 중간에 레벨업·상자 창이 뜨면 거기서 멈춤
-  for (let left = gameSpeed(); left > 0 && state === "playing"; left -= 1) update(dt * Math.min(1, left));
-  draw();
+  try {
+    // '1.5배속'(어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
+    //   dt 를 통째로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 한 번에 dt 보다 크게는 안 돌림. 중간에 레벨업·상자 창이 뜨면 거기서 멈춤
+    if (hitStop > 0) hitStop = Math.max(0, hitStop - dt);   // 히트스톱: 큰 타격 직후 아주 잠깐 게임을 멈춤 (그리기는 계속)
+    else for (let left = gameSpeed(); left > 0 && state === "playing"; left -= 1) update(dt * Math.min(1, left));
+    draw();
+    loopErrors = 0;
+  } catch (err) {
+    // 오류가 나도 화면이 말없이 굳지 않게 멈추고 알림. 계속하기를 눌러도 오류가 되풀이되면 판을 접고 깨진 이어 하기 저장도 지움
+    console.error(err);
+    loopErrors += 1;
+    if (loopErrors >= LOOP_ERROR_LIMIT) { loopErrors = 0; toTitle(); clearRun(); return; }
+    if (state === "playing") pauseGame("오류가 나서 멈췄어요");
+    return;   // 멈췄으니 다음 프레임은 예약하지 않음 (계속하기를 누르면 resumeGame 이 다시 예약)
+  }
 
   loopId = requestAnimationFrame(gameLoop);   // 다음 프레임 예약
 }
@@ -73,6 +105,10 @@ function evoPairLine(kind, key) {
   return html;
 }
 
+// 봉인: 한 판에 BANISH_PER_RUN 번. 봉인한 새 무기·새 아이템(키 "w:무기" / "p:아이템")은 그 판에 다시 카드로 안 나옴
+const BANISH_PER_RUN = 2;
+function isBanished(key) { return run.banished.includes(key); }
+
 // 강화 후보 목록 만들기 (레벨업 카드와 보물 상자가 같이 씀)
 //   includeNewWeapons = false 면 '새 무기'·'새 아이템'은 빼고, 이미 가진 무기·패시브 강화만 (보물 상자용)
 function buildUpgradePool(includeNewWeapons) {
@@ -84,11 +120,13 @@ function buildUpgradePool(includeNewWeapons) {
     if (!owned) {
       if (!includeNewWeapons || isPassiveLocked(key)) continue;           // 보물 상자에서는 새 아이템이 나오지 않음. 잠긴 아이템(퀘스트로 해금)도 안 나옴
       if (!def.noSlot && passiveSlotsUsed >= PASSIVE_MAX_SLOTS) continue;  // 패시브 슬롯이 다 찼으면 새 아이템 없음
+      if (isBanished(`p:${key}`)) continue;                                // 이번 판에 봉인한 아이템
       pool.push({
         title: `새 아이템: ${def.name}`,
         iconUrl: passiveIconUrl(key),
         desc: def.desc,
         isNew: true, isPassive: true,
+        banishKey: `p:${key}`,
         evoLine: evoPairLine("passive", key),
         apply: () => gainPassive(key),
       });
@@ -115,11 +153,13 @@ function buildUpgradePool(includeNewWeapons) {
       if (!includeNewWeapons) continue;        // 보물 상자에서는 새 무기가 나오지 않음
       if (player.weapons.length >= MAX_WEAPONS) continue;   // 무기 슬롯이 다 찼으면 새 무기 없음
       if (player.weapons.some((w) => WEAPONS[w.type].evoOf === type)) continue;   // 이미 진화한 무기의 원본은 다시 안 나옴
+      if (isBanished(`w:${type}`)) continue;                               // 이번 판에 봉인한 무기
       pool.push({
         title: `새 무기: ${def.name}`,
         iconUrl: weaponIconUrl(type),
         desc: def.desc,                            // 무기가 어떻게 공격하는지 한 줄 설명
         isNew: true,
+        banishKey: `w:${type}`,
         evoLine: evoPairLine("weapon", type),
         apply: () => player.weapons.push({ type, level: 1, timer: 0 }),
       });
@@ -159,6 +199,31 @@ function showCards(title, text, bannerText, fixedPicks) {
   levelTitle.textContent = title;
   levelText.textContent = text;
 
+  let banishing = false;   // 봉인 버튼을 누른 뒤: 다음에 누르는 카드는 고르지 않고 봉인
+  let current = [];        // 지금 보여 주는 카드
+
+  // 카드 버튼 만들기
+  function render(picks) {
+    current = picks;
+    choicesBox.innerHTML = "";
+    choicesBox.classList.toggle("wide", picks.length >= 5);   // 5장부터는 두 줄로
+    for (const card of picks) {
+      const btn = document.createElement("button");
+      btn.className = `card${card.isNew ? (card.isPassive ? " passive-new" : " weapon-new") : ""}${card.banishKey ? " banishable" : ""}`;   // banishable = 봉인할 수 있는 카드
+      btn.innerHTML = `${card.title}<small>${card.desc}</small>${card.evoLine || ""}`;   // 진화 짝이면 금색 줄이 붙음
+      setIcon(btn, card.iconUrl);           // 무기 카드면 왼쪽에 무기 그림
+      btn.addEventListener("click", () => {
+        if (banishing) { if (card.banishKey) banish(card); return; }   // 봉인 중: 고르지 않고 봉인 (봉인할 수 없는 카드는 그대로)
+        card.apply();
+        levelupBox.style.display = "none";
+        if (SHOW_BANNER && bannerText) banner = { text: bannerText, life: BANNER_TIME };   // 재개 직후 화면 위에 잠깐 안내
+        if (state === "candy") return;                  // 사탕 상자: 무기 고르기 창이 떠 있으므로 아직 재개하지 않음
+        resumeGame();
+      });
+      choicesBox.appendChild(btn);
+    }
+  }
+
   // 카드 나눠 주기. avoid = 방금 보여준 카드들 (다시 뽑을 때 같은 카드가 또 나오지 않게 뒤로 미룸)
   function deal(avoid) {
     const pool = buildUpgradePool(true);
@@ -177,23 +242,7 @@ function showCards(title, text, bannerText, fixedPicks) {
       picks = maxedPicks(MAXED_GOLD);
     }
 
-    // 카드 버튼 만들기
-    choicesBox.innerHTML = "";
-    choicesBox.classList.toggle("wide", picks.length >= 5);   // 5장부터는 두 줄로
-    for (const card of picks) {
-      const btn = document.createElement("button");
-      btn.className = `card${card.isNew ? (card.isPassive ? " passive-new" : " weapon-new") : ""}`;
-      btn.innerHTML = `${card.title}<small>${card.desc}</small>${card.evoLine || ""}`;   // 진화 짝이면 금색 줄이 붙음
-      setIcon(btn, card.iconUrl);           // 무기 카드면 왼쪽에 무기 그림
-      btn.addEventListener("click", () => {
-        card.apply();
-        levelupBox.style.display = "none";
-        if (SHOW_BANNER && bannerText) banner = { text: bannerText, life: BANNER_TIME };   // 재개 직후 화면 위에 잠깐 안내
-        if (state === "candy") return;                  // 사탕 상자: 무기 고르기 창이 떠 있으므로 아직 재개하지 않음
-        resumeGame();
-      });
-      choicesBox.appendChild(btn);
-    }
+    render(picks);
     return { picks, poolSize: pool.length };
   }
 
@@ -223,7 +272,28 @@ function showCards(title, text, bannerText, fixedPicks) {
     rerollsLeft -= 1;
     for (const c of deal(shown).picks) shown.push(c.title);
     refreshReroll();
+    setBanishing(false);
   };
+  // 봉인 버튼: 누른 뒤 고른 카드(새 무기·새 아이템)는 이번 판 후보에서 빠지고, 그 자리만 다른 카드로 바뀜
+  const refreshBanish = () => {
+    const left = BANISH_PER_RUN - run.banished.length;
+    banishBtn.style.display = fixedPicks ? "none" : "";
+    banishBtn.textContent = banishing ? "봉인 취소" : `봉인 (${left}번 남음)`;
+    banishBtn.disabled = !banishing && (left <= 0 || !current.some((c) => c.banishKey));
+  };
+  const setBanishing = (on) => { banishing = on; levelupBox.classList.toggle("banishing", on); refreshBanish(); };
+  function banish(card) {
+    run.banished.push(card.banishKey);
+    const pool = buildUpgradePool(true).filter((c) => !current.some((it) => it.title === c.title));
+    const next = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    let picks = current.flatMap((c) => (c !== card ? [c] : next ? [next] : []));
+    if (picks.length === 0) picks = maxedPicks(MAXED_GOLD);
+    if (next) shown.push(next.title);
+    render(picks);
+    setBanishing(false);
+  }
+  banishBtn.onclick = () => setBanishing(!banishing);
+  setBanishing(false);
   levelupBox.style.display = "flex";
 }
 
@@ -246,6 +316,7 @@ function revivePlayer() {
 function gameOver() {
   state = "gameover";
   resultText.innerHTML = endStat("w_clock", `생존 시간 ${formatTime(stats.time)}`) + endStat("item_wipe", `처치 ${stats.kills}마리`);
+  resultDmg.innerHTML = dmgTableHtml();       // 무기별 피해 표
   endJoystick();                            // 판이 끝나면 누르던 조이스틱도 놓은 것으로
   setMusic(null);
   playSfx("gameover");
@@ -256,6 +327,17 @@ function gameOver() {
 // 게임오버·클리어 창의 기록 한 칸 (HUD 와 같은 아이콘 + 글)
 function endStat(icon, text) {
   return `<span class="end-stat">${icon ? `<img src="assets/${icon}.png" alt="">` : ""}${text}</span>`;
+}
+
+// 게임오버·클리어 창의 무기별 피해 표: 이번 판에 피해를 많이 준 무기부터 DMG_TABLE_ROWS 줄 (그림 · 이름 · 피해 · 비율)
+const DMG_TABLE_ROWS = 6;
+const resultDmg = document.getElementById("resultDmg");
+const clearDmg = document.getElementById("clearDmg");
+function dmgTableHtml() {
+  const rows = Object.entries(run.dmgByWeapon).filter(([type, v]) => WEAPONS[type] && v >= 1).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((sum, [, v]) => sum + v, 0);
+  return rows.slice(0, DMG_TABLE_ROWS).map(([type, v]) =>
+    `<div class="dmg-row"><img src="${weaponIconUrl(type)}" alt=""><span>${WEAPONS[type].name}</span><b>${Math.round(v).toLocaleString("ko-KR")}</b><small>${Math.round((v / total) * 100)}%</small></div>`).join("");
 }
 
 // 초 → "12분 34초"
@@ -270,6 +352,7 @@ function gameClear() {
   state = "clear";
   spawnParticles(player.x, player.y, "#ffd60a", 40, 260);
   clearText.innerHTML = endStat("w_clock", `걸린 시간 ${formatTime(stats.time)}`) + endStat("item_wipe", `처치 ${stats.kills}마리`) + endStat(null, `Lv.${player.level}`);
+  clearDmg.innerHTML = dmgTableHtml();
   endJoystick();
   setMusic("ending");
   clearReward.innerHTML = finishRun(true);
@@ -285,12 +368,12 @@ function gameClear() {
 }
 
 // 매우 어려움 클리어 엔딩: 그 캐릭터로 매우 어려움을 깨면 STAGE CLEAR 다음에 엔딩 그림 + 자막. 캐릭터마다 한 번 (본 엔딩은 meta.stats.mask_ending)
-//   그림 = assets/story/<art>.png (장면 설명은 docs/story/cutscene-storyboard.md). 아무 곳이나 누르거나 Enter·Space·Esc → 클리어 창
+//   그림 = assets/story/<art>.webp (PNG 57MB를 6MB로 줄인 것. 장면 설명은 docs/story/cutscene-storyboard.md). 아무 곳이나 누르거나 Enter·Space·Esc → 클리어 창
 const ENDINGS = {
   knight:    { art: "mage_end",      text: "졸업장을 되찾았어요. 한 달 뒤, 첫 연금이 들어왔지요.\n이제 가훈대로 400년 놀 거예요.\n졸업장은 금고에 넣었답니다." },
-  hunter:    { art: "hunter_end",    text: "월세를 내고도 몬스터 고기가 잔뜩 남아서 고깃집을 차렸어요.\n한 번 먹은 손님은 끊지를 못해요. 오늘도 오고, 내일도 와요.\n집주인도 고기 먹으러 오늘 또 사흘을 걸어왔답니다." },
+  hunter:    { art: "hunter_end",    text: "월세를 내고도 몬스터 고기가 잔뜩 남아서 고깃집을 차렸어요.\n한 번 먹은 손님은 끊지를 못해요. 오늘도 오고, 내일도 와요.\n집주인도 고기 먹으러 오늘도 사흘을 걸어왔답니다." },
   berserker: { art: "berserker_end", text: "던전을 끝까지 쓸어버리고 돌아왔어요. 친구가 그제야 말을 끝냈지요.\n\"…던전 가서 고기 잔뜩 잡았거든. 같이 먹자고.\"\n반려 검은 조용히 칼집으로 들어갔답니다." },
-  saint:     { art: "saint_end",     text: "협회에서 세 번째 우편이 왔어요. 이번엔 금색 도장이었지요.\n\"던전 정화 공로로 제명 취소.\"\n이제 제명할 가치도 없는 사람이 됐다는 뜻으로 해석했어요.\n빨간 도장 세 개 받던 시절이 좋았답니다." },
+  saint:     { art: "saint_end",     text: "협회에서 세 번째 편지가 왔어요. 이번엔 금색 도장이었지요.\n\"던전 정화 공로로 제명 취소.\"\n이제 제명할 가치도 없는 사람이 됐다는 뜻으로 해석했어요.\n빨간 도장 세 개 받던 시절이 좋았답니다." },
   armorer:   { art: "armorer_end",   text: "시청자가 처음으로 천 명을 넘었어요. 30년 장사 인생 최고의 날이었지요.\n\"자, 바로 이 검으로 보스를—\" 그 순간 방송이 끊겼어요. 사유: 폭력적인 콘텐츠.\n칼 파는 방송에서 칼을 쓰면 안 되는 줄은 몰랐답니다." },
 };
 const ENDING_LOCK = 1.2;   // 엔딩이 뜬 뒤 이 시간(초) 동안은 눌러도 안 넘어감: 보스를 잡던 손가락·키에 바로 넘어가지 않게 (▼ 표시도 이때부터, style.css)
@@ -303,7 +386,7 @@ let endingWordEnd = 0;
 
 function loadEnding(ending) {
   endingImg.classList.remove("loaded");
-  endingImg.src = assetUrl(`story/${ending.art}`);
+  endingImg.src = assetUrl(`story/${ending.art}`, "webp");
   endingWords = ending.text.match(/\S+\s*/gu);
   endingWordStart = 0;
   endingWordEnd = 0;
@@ -390,7 +473,7 @@ function toggleHelp() {
 }
 
 function renderHelp() {
-  for (const tab of document.querySelectorAll(".help-tab")) tab.classList.toggle("active", tab.dataset.tab === helpTab);
+  for (const tab of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".help-tab"))) tab.classList.toggle("active", tab.dataset.tab === helpTab);
   helpList.innerHTML = "";
   if (helpTab === "combo") renderComboTab();
   else if (helpTab === "weapons") renderListTab(Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved && !isWeaponLocked(k)), WEAPONS, (k) => weaponIconUrl(k), (k) => player.weapons.find((w) => w.type === k || WEAPONS[w.type].evoOf === k));
@@ -439,7 +522,7 @@ function renderListTab(keys_, defs, iconOf, ownedOf) {
 helpBtn.addEventListener("click", toggleHelp);
 helpClose.addEventListener("click", toggleHelp);
 document.getElementById("candyHelp").addEventListener("click", () => { helpTab = "combo"; toggleHelp(); });   // 사탕 상자 창에서 조합표 바로 열기
-for (const tab of document.querySelectorAll(".help-tab")) tab.addEventListener("click", () => { helpTab = tab.dataset.tab; renderHelp(); });
+for (const tab of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".help-tab"))) tab.addEventListener("click", () => { helpTab = tab.dataset.tab; renderHelp(); });
 
 // =====================================================================
 // 14-2. 사탕 상자: 원하는 무기를 직접 고르는 창 (레벨업 카드 '사탕 상자'를 고르면 뜸)

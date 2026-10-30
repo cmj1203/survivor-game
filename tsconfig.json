@@ -8,6 +8,9 @@
 		"types": ["bun"],
 		"strict": true,
 		"allowJs": true,
+		"checkJs": true,            // js/*.js 도 타입 검사 (bunx tsc -p tsconfig.json). 아래 둘은 주석 없는 JS 라 끔 (켜면 오류 1,700개)
+		"noImplicitAny": false,
+		"strictNullChecks": false,
 		"noEmit": true
 	},
 	"include": ["js/**/*.js", "tests/**/*.ts"]

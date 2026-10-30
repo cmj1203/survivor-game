@@ -129,7 +129,7 @@ const WEAPONS = {
 
   // --- 회전 도끼: 플레이어 주위를 도는 양날 도끼, 레벨 = 도끼 개수 ---
   orb: {
-    name: "회전 도끼",
+    name: "수호 도끼",
     desc: "몸 가까이 도는 도끼가 적을 때리고 살짝 밀어냄",
     icon: "axe",
     interval: 0,
@@ -500,7 +500,7 @@ const WEAPONS = {
 
   // --- 마법 지팡이: 가로줄이나 세로줄 중 적이 가장 많은 줄에 화면을 가로지르는 광선, 레벨↑ = 광선 폭↑ ---
   staff: {
-    name: "마법 지팡이",
+    name: "광선",
     desc: "적이 가장 많은 가로·세로줄에 화면을 가로지르는 광선",
     icon: "staff",
     interval: 2.0,
@@ -674,7 +674,7 @@ const WEAPONS = {
   // --- 뼈: 튕기는 뼈를 던짐, 움직이면 더 자주 (원작 Celestial Dusting). Lv3·5 뼈 +1, Lv2·4 튕김 +1 ---
   //     2026-10-12 에 꽃가루에서 이름·그림만 바꿈. 키 dusting · kind petal 은 예전 이름 그대로 둠
   dusting: {
-    name: "뼈", icon: "w_bone",
+    name: "망자의 뼈", icon: "w_bone",
     desc: "튕겨 다니는 뼈를 던짐. 움직이는 동안은 더 자주 던짐",
     interval: 1.4,
     upgradeDesc: "뼈 +1 / 튕김 +1 (번갈아), 피해 +20%",
@@ -895,7 +895,7 @@ Object.assign(WEAPONS, {
       }
     } }),
   // 바라보는 방향과 상관없이 네 갈래 불길이 회전하며 사방의 적을 훑음.
-  flames_evo: evolvedDef("flames", { name: "회전 화염", desc: "네 갈래 불길이 빙글 돌며 사방의 적을 태움", interval: 0.85, damageMul: 1.4,
+  flames_evo: evolvedDef("flames", { name: "화염 소용돌이", desc: "네 갈래 불길이 빙글 돌며 사방의 적을 태움", interval: 0.85, damageMul: 1.4,
     update(w, dt) { w.angle = (w.angle || 0) + dt * 0.8; },
     fire(w) {
       const range = this.range * 1.2 ** Math.floor(w.level / 2) * areaMul();

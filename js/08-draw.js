@@ -7,10 +7,11 @@ function draw() {
   // --- 여기부터는 월드 좌표: 카메라 위치만큼 옮겨서 그림 ---
   ctx.save();
   ctx.scale(ZOOM, ZOOM);                                   // 휴대폰: 확대 (PC 는 1배라 그대로)
-  ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
+  const [sx, sy] = shakeOffset();                          // 화면 흔들림 (정예·보스를 크게 때린 직후 잠깐)
+  ctx.translate(-Math.round(cam.x) + sx, -Math.round(cam.y) + sy);
   drawBackground();
   drawFloorZones();
-  drawPickups();
+  drawPickups(Math.round(cam.x) - sx, Math.round(cam.y) - sy);
   drawEffects();
   drawProjectiles();
   drawEnemyLayer();
@@ -294,11 +295,14 @@ function puddleImage(n) {
 }
 
 // 바닥에 떨어진 것 그리기 (경험치 구슬, 아이템, 보물 상자)
-function drawPickups() {
+function drawPickups(viewX = Math.round(cam.x), viewY = Math.round(cam.y)) {
   // 경험치 구슬 (도트로 찍은 입체 초록 마름모, 끌려오는 중이면 밝아짐 → gemImage)
   for (const g of gems) {
     const im = gemImage(g.r, g.speed > 0);
-    ctx.drawImage(im, Math.round(g.x - im.width / 2), Math.round(g.y - im.height / 2));
+    const x = Math.round(g.x - im.width / 2), y = Math.round(g.y - im.height / 2);
+    if (x + im.width < viewX || x > viewX + VW ||
+        y + im.height < viewY || y > viewY + VH) continue;
+    ctx.drawImage(im, x, y);
   }
 
   // 바닥 아이템 (어두운 원판 + 그림. 사라지기 직전엔 깜빡임)
@@ -498,7 +502,7 @@ function drawBeamEffect(f, t) {
   // 마법 지팡이 광선: 화면을 가로지르는 하늘색 띠 + 가운데 흰 심. 시간이 지나며 가늘어지고 옅어짐
   const outer = f.half * (0.4 + 0.6 * t);
   const inner = outer * 0.35;
-  for (const [halfWidth, color] of [[outer, `rgba(125, 249, 255, ${0.45 * t})`], [inner, `rgba(240, 254, 255, ${0.9 * t})`]]) {
+  for (const [halfWidth, color] of /** @type {[number, string][]} */ ([[outer, `rgba(125, 249, 255, ${0.45 * t})`], [inner, `rgba(240, 254, 255, ${0.9 * t})`]])) {
     ctx.fillStyle = color;
     if (f.horizontal) ctx.fillRect(cam.x, f.pos - halfWidth, W, halfWidth * 2);
     else ctx.fillRect(f.pos - halfWidth, cam.y, halfWidth * 2, H);
@@ -619,7 +623,7 @@ function drawFloatTexts() {
   // 떠오르는 글씨 (상자 보상 이름)
   for (const f of floatTexts) {
     ctx.globalAlpha = Math.min(f.life / (f.maxLife * 0.5), 1);
-    ctx.font = "bold 16px sans-serif";
+    ctx.font = `bold ${Math.max(f.small ? 13 : 16, Math.ceil(12 * canvasUi.scale / ZOOM))}px sans-serif`;
     ctx.textAlign = "center";
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#000";
@@ -635,9 +639,10 @@ function drawFloatTexts() {
 function drawBossBar() {
   // 보스 체력바 (화면 위 가운데, 보스가 살아 있는 동안)
   if (boss && !boss.dead) {
-    const bw = 520, bh = 16, bx = (W - bw) / 2, by = 48;
+    const bw = 520, bh = 16, bx = (W - bw) / 2, by = ZOOM > 1 ? 100 * canvasUi.scale : 48;
+    const fontSize = Math.max(15, Math.ceil(12 * canvasUi.scale));
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(bx - 4, by - 26, bw + 8, bh + 34);
+    ctx.fillRect(bx - 4, by - fontSize - 11, bw + 8, bh + fontSize + 19);
     ctx.fillStyle = "#222";
     ctx.fillRect(bx, by, bw, bh);
     ctx.fillStyle = "#c77dff";
@@ -646,7 +651,7 @@ function drawBossBar() {
     ctx.lineWidth = 1;
     ctx.strokeRect(bx, by, bw, bh);
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 15px sans-serif";
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText(`${boss.name || BOSS_TYPE.name}  ${Math.ceil(boss.hp)} / ${boss.maxHp}`, W / 2, by - 8);
     ctx.textAlign = "left";
@@ -658,7 +663,7 @@ function drawBanner() {
   // 안내 문구 (화면 위 가운데, 서서히 사라짐)
   if (banner) {
     ctx.fillStyle = `rgba(255, 214, 10, ${Math.min(banner.life, 1)})`;
-    ctx.font = "bold 22px sans-serif";
+    ctx.font = `bold ${Math.max(22, Math.ceil(12 * canvasUi.scale))}px sans-serif`;
     ctx.textAlign = "center";
     ctx.fillText(banner.text, W / 2, 90);
     ctx.textAlign = "left";
@@ -683,7 +688,7 @@ const SPRITE_SCALE = 1.35;   // 그림 크기 = 반지름 × 이 값 × 2 (그�
 // 보유한 무기·방어구를 화면 오른쪽에 아이콘으로 세로 나열 (얻은 순서대로)
 //   칸마다: 어두운 네모 + 무기 그림 + 오른쪽 아래에 레벨. 보호막은 재충전 중일 때 어둡게 덮이며 차오름
 function drawOwnedList() {
-  const size = 40, gap = 6;
+  const size = 40 * canvasUi.scale, gap = 6 * canvasUi.scale;
   const weaponX = W - 16 - size;             // 오른쪽 끝 열: 무기
   const passiveX = weaponX - size - gap;     // 그 왼쪽 열: 패시브 아이템
   drawSlotColumn(player.weapons, WEAPONS, weaponX, size, gap, (w) => w.level >= WEAPON_MAX_LEVEL);
@@ -711,8 +716,8 @@ function drawChestArrows() {
 
     // 오른쪽 위 보유 아이콘 줄과 겹치면 그 왼쪽 옆으로, 왼쪽 위 ? 버튼과 겹치면 그 오른쪽 옆으로 비켜 그림
     const reach = 36;                                  // 원 + 세모가 차지하는 반경
-    const slot = 40 + 6;                               // 보유 아이콘 한 칸 (크기 + 간격. drawOwnedList 와 같은 값)
-    const iconsLeft = W - 16 - 40 - (player.passives.length > 0 ? slot : 0);
+    const slot = (40 + 6) * canvasUi.scale;              // drawOwnedList 와 같은 실제 칸 크기
+    const iconsLeft = W - 16 - 40 * canvasUi.scale - (player.passives.length > 0 ? slot : 0);
     const iconsBottom = 16 + Math.max(player.weapons.length, player.passives.length) * slot;
     if (x > iconsLeft - reach && y < iconsBottom + reach) x = iconsLeft - reach;
     if (x < 64 + reach && y < 60 + reach) x = 64 + reach;
@@ -758,7 +763,7 @@ function drawSlotColumn(list, defs, x, size, gap, isMax) {
 
     // 그림
     const cx = x + size / 2, cy = y + size / 2;
-    drawSprite(def.icon, cx, cy, 17);
+    drawSprite(def.icon, cx, cy, 17 * canvasUi.scale);
 
     // 보호막 재충전 중: 위에서부터 어둡게 덮고, 찰수록 걷힘
     if (def.getRecharge && defs === WEAPONS && item.ready === false) {   // 보호막·푸른 장막
@@ -773,7 +778,7 @@ function drawSlotColumn(list, defs, x, size, gap, isMax) {
     ctx.strokeRect(x, y, size, size);
 
     // 레벨 숫자 (오른쪽 아래)
-    ctx.font = "bold 11px sans-serif";
+    ctx.font = `bold ${ZOOM > 1 ? Math.max(11, Math.ceil(12 * canvasUi.scale)) : 11}px sans-serif`;
     ctx.textAlign = "right";
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#000";
@@ -786,9 +791,10 @@ function drawSlotColumn(list, defs, x, size, gap, isMax) {
 
 // 캐릭터 머리 위 체력바(위) + 경험치바(아래)
 function drawPlayerBars() {
-  const barW = 48;
-  const hpH = 5;
-  const xpH = 3;
+  const barScale = canvasUi.scale / Math.max(ZOOM, 1);
+  const barW = 48 * Math.max(1, barScale);
+  const hpH = 5 * Math.max(1, barScale);
+  const xpH = 3 * Math.max(1, barScale);
   const x = Math.round(player.x - barW / 2);
 
   // 캐릭터(보호막 방울) 바로 위. 화면 맨 위에 붙어서 바가 잘릴 것 같으면 캐릭터 아래로 옮김
@@ -820,7 +826,7 @@ function drawPlayerBars() {
 //   flip  : 좌우 뒤집기      white : 흰색 실루엣으로 그리기 (맞았을 때)
 //   angle : 돌리는 각도 (라디안). 무기 그림을 날아가는 방향으로 돌릴 때 씀
 //   frame : 프레임 띠 그림(정사각 프레임을 가로로 이어 붙인 것)에서 몇 번째 칸을 그릴지 (없으면 그림 전체)
-function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0, frame } = {}) {
+function drawSprite(name, x, y, half, { flip = false, white = false, angle = 0, frame = /** @type {number | undefined} */ (undefined) } = {}) {
   const sprite = SPRITES[name];
   if (!sprite?.ready) return false;
   const img = white ? sprite.white : sprite.normal;

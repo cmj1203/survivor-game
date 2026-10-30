@@ -198,7 +198,7 @@ function touchToStage(t) {
 }
 
 stage.addEventListener("touchstart", (e) => {
-  if (e.target.closest("button, .meta-panel, input, label")) return;      // 판 안은 손가락으로 스크롤되게 + ? 버튼·시작 버튼은 그대로 눌리게
+  if (/** @type {HTMLElement} */ (e.target).closest("button, .meta-panel, .title-intro, input, label")) return;      // 판 안은 손가락으로 스크롤되게 + ? 버튼·시작 버튼은 그대로 눌리게
   e.preventDefault();
   if (state !== "playing" || joystick) return;
   const t = e.changedTouches[0];
@@ -209,7 +209,7 @@ stage.addEventListener("touchstart", (e) => {
 }, { passive: false });
 
 stage.addEventListener("touchmove", (e) => {
-  if (e.target.closest(".meta-panel")) return;       // 시작 화면의 판(상점·퀘스트·캐릭터) 안은 손가락으로 스크롤되게
+  if (/** @type {HTMLElement} */ (e.target).closest(".meta-panel, .title-intro")) return;       // 시작 화면의 판 안은 손가락으로 스크롤되게
   e.preventDefault();
   if (!joystick) return;
   for (const t of e.changedTouches) {
@@ -242,10 +242,11 @@ function isPortraitTouch() { return IS_TOUCH && portraitQuery.matches; }
 
 // 팝업 창 배율: 기본 창 크기(약 800×560)가 안 들어가는 작은 화면이면 그만큼 줄임 (돌아가 있으면 가로·세로를 바꿔서 잼)
 function fitUi() {
-  const w = isPortraitTouch() ? innerHeight : innerWidth;
-  const h = isPortraitTouch() ? innerWidth : innerHeight;
+  const w = IS_TOUCH ? Math.max(innerWidth, innerHeight) : innerWidth;
+  const h = IS_TOUCH ? Math.min(innerWidth, innerHeight) : innerHeight;
   const z = Math.min(1, w / 800, h / 560);
   document.documentElement.style.setProperty("--ui-zoom", z.toFixed(3));
+  canvasUi.scale = ZOOM > 1 ? W / stage.clientWidth : 1;
 }
 fitUi();
 window.addEventListener("resize", () => {

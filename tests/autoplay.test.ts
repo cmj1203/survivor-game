@@ -317,7 +317,7 @@ describe("시작 스토리", () => {
     expect(await page("return [state, storyScene.index]")).toEqual(["story", 0]);
   });
 
-  test("첫 스토리 중에 전체 화면이 되면 게임이 시작될 때 전체 화면 안내", async () => {
+  test("첫 스토리 중에 전체 화면이 되면 안내 창은 스토리 위에서 끝나고, 게임은 멈추지 않고 시작", async () => {
     // Given: 전체 화면 안내를 본 적 없는 새 저장으로 첫 스토리를 연다.
     await view.navigate(`${server.url.href}?story=fullscreen-hint`);
     await page(STORY_SETUP);
@@ -331,9 +331,21 @@ describe("시작 스토리", () => {
       if (i < 4) await storyImage(STORY_NEXT);
       else await page(STORY_NEXT);
     }
-    // Then: 스토리 중에는 안내를 아껴 두고, 게임이 시작되자마자 안내와 함께 멈춘 뒤 본 것으로 저장한다.
-    expect(duringStory).toEqual(["story", null]);
-    expect(await page("return [state, pauseBox.style.display, localStorage.getItem(FS_HINT_KEY)]")).toEqual(["paused", "flex", "1"]);
+    // Then: 안드로이드 안내 창은 스토리를 넘기기 전에 닫히므로 본 것으로 저장하고, 게임은 0초에 멈추지 않고 바로 시작한다.
+    expect(duringStory).toEqual(["story", "1"]);
+    expect(await page("return [state, pauseBox.style.display === \"flex\", localStorage.getItem(FS_HINT_KEY)]")).toEqual(["playing", false, "1"]);
+  });
+
+  test("스토리 없이 바로 시작한 판에서 처음 전체 화면이 되면 멈추고 안내 ('0초 버팀' 없이)", async () => {
+    await view.navigate(`${server.url.href}?story=fullscreen-direct`);
+    await page(STORY_SETUP);
+    const result = await page(`
+      localStorage.removeItem(FS_HINT_KEY); fsHintShownThisPage = false;
+      meta.stats.mask_story = 31; saveMeta(); startGame(true);
+      pauseForFullscreenHint();
+      return [state, pauseText.textContent, localStorage.getItem(FS_HINT_KEY)];
+    `);
+    expect(result).toEqual(["paused", "전체 화면 안내 창이 뜨면 '확인'을 누른 뒤 계속하기를 눌러 주세요", "1"]);
   });
 
   test("그림을 다 받기 전에 넘겨도 스토리는 본 것으로 저장", async () => {
@@ -435,5 +447,314 @@ describe("죽음 기록", () => {
     await page("player.invincible = 0; hurtPlayer(player.maxHp * 10, BOSS_TYPE.key); checkGameOver();");
     // Then: 죽음 1번, 보스한테 죽음도 1번으로 저장된다.
     expect(await page("const s = loadMeta().stats; return [state, s.deaths, s.death_boss];")).toEqual(["gameover", 1, 1]);
+  });
+});
+
+// 스토리를 이미 본 저장으로 판 시작 (소리·화면 루프 끔, 퀘스트 전부 끝낸 상태)
+const RUN_START = `${STORY_SETUP} meta.stats.mask_story = 31; saveMeta(); startGame(true);`;
+// n걸음 진행 (카드 창은 첫 카드, 상자 창은 받기). 오류가 나면 그 메시지를 돌려줌
+const RUN_STEPS = (n: number) => `
+  player.invincible = 1e9;
+  for (let i = 0; i < ${n}; i++) {
+    try {
+      if (state === "playing") { player.hp = player.maxHp; update(1 / 30); }
+      else if (state === "levelup") choicesBox.querySelector("button.card").click();
+      else if (state === "chest") { finishChestRoll(); closeChest(); }
+      else if (state === "candy") candyList.querySelector("button").click();
+      else return state;
+    } catch (err) { return "error: " + err.message; }
+  }
+  return state;
+`;
+
+describe("실시간 구슬 정리", () => {
+  test("먼 구슬을 합쳐도 경험치와 가까운 구슬·끌려오는 구슬은 보존됨", async () => {
+    // Given: 먼 구슬 5,000개와 화면 안 구슬, 자석으로 끌려오는 구슬을 만든다.
+    await view.navigate(`${server.url.href}?gems=compact`);
+    await page(RUN_START);
+    const result = await page(`
+      for (let i = 0; i < 5000; i++) spawnGem(100 + (i % 100) * 12, 100 + Math.floor(i / 100) * 12, 1 + i % 3);
+      spawnGem(cam.x + 30.25, cam.y + 40.75, 2);
+      const nearby = gems.at(-1), position = [nearby.x, nearby.y];
+      spawnGem(450.5, 600.25, 7);
+      const pulled = gems.at(-1); pulled.magnet = true; pulled.speed = 400;
+      const total = gems.reduce((sum, g) => sum + g.value, 0);
+      // When: 실제 갱신 경로로 정리 주기를 지난다.
+      stats.time = 1;
+      updatePickups(1 / 30);
+      return [gems.length < 200, gems.reduce((sum, g) => sum + g.value, 0) + player.xp === total,
+        gems.includes(nearby), nearby.x === position[0] && nearby.y === position[1],
+        gems.includes(pulled), pulled.magnet, pulled.x > 450.5];
+    `);
+    // Then: 개수만 줄고 경험치·화면 안 위치·자석 이동은 유지된다.
+    expect(result).toEqual([true, true, true, true, true, true, true]);
+  });
+
+  test("반복해서 합친 구슬은 저장·이어 하기 뒤 자석으로 경험치를 전부 얻음", async () => {
+    // Given: 새로 떨어지는 구슬을 여러 번 정리할 만큼 쌓는다.
+    await view.navigate(`${server.url.href}?gems=collect`);
+    await page(RUN_START);
+    const expected = await page(`
+      let total = 0;
+      for (let batch = 1; batch <= 3; batch++) {
+        for (let i = 0; i < 1200; i++) {
+          const value = 1 + i % 4; total += value;
+          spawnGem(200 + i % 30, 200 + Math.floor(i / 30), value);
+        }
+        stats.time = batch;
+        updatePickups(1 / 30);
+      }
+      return total;
+    `);
+    const packed = await page("return gems.length < 200");
+    // When: 저장을 불러온 뒤 실제 자석 아이템으로 모든 구슬을 끌어온다.
+    const result = await page(`
+      pauseGame("일시정지"); toTitle(); continueRun(); resumeFromPause();
+      spawnItem(player.x, player.y, "magnet");
+      useItem(items.at(-1));
+      for (let step = 0; step < 1800 && gems.length; step++) {
+        stats.time += 1 / 30;
+        updatePickups(1 / 30);
+      }
+      return [gems.length, player.xp];
+    `);
+    // Then: 합치기·저장·흡수 과정에서 경험치가 사라지거나 중복되지 않는다.
+    expect(packed).toBe(true);
+    expect(result).toEqual([0, expected]);
+  });
+
+  test("화면 밖 구슬만 그리지 않고 가장자리에 걸친 구슬은 그림", async () => {
+    // Given: 화면 안, 왼쪽 가장자리에 한 픽셀 걸친 곳, 먼 곳에 하나씩 둔다.
+    await view.navigate(`${server.url.href}?gems=cull`);
+    await page(RUN_START);
+    const result = await page(`
+      const image = gemImage(gemRadius(1), false);
+      spawnGem(player.x, player.y);
+      spawnGem(cam.x - image.width / 2 + 1, player.y);
+      spawnGem(100, 100);
+      let drawn = 0;
+      const original = ctx.drawImage;
+      ctx.drawImage = function (...args) { if (args[0] === image) drawn++; return original.apply(this, args); };
+      // When: 카메라 변환을 포함한 실제 화면을 그리고 구슬 그림 호출만 센다.
+      try { draw(); } finally { ctx.drawImage = original; }
+      return [drawn, gems.length];
+    `);
+    // Then: 보이는 두 개만 그리고 게임 상태의 구슬 세 개는 모두 남는다.
+    expect(result).toEqual([2, 3]);
+  });
+});
+
+describe("이어 하기·불러오기·퀘스트 창", () => {
+  test("이어 하기 저장은 먼 구슬을 합쳐도 경험치 합이 같고, 불러온 판이 계속 진행됨", async () => {
+    // Given: 판을 시작하고 화면에서 먼 곳에 구슬 5,000개, 플레이어 곁에 10개를 깐다.
+    await view.navigate(`${server.url.href}?save=gems`);
+    await page(RUN_START);
+    const before = await page(`
+      for (let i = 0; i < 5000; i++) spawnGem(200 + (i % 100) * 25, 200 + Math.floor(i / 100) * 50, 1 + (i % 3));
+      for (let i = 0; i < 10; i++) spawnGem(player.x + 60 + i * 6, player.y, 2);
+      return gems.reduce((s, g) => s + g.value, 0);
+    `);
+    // When: 일시정지로 저장하고, 시작 화면으로 나간 뒤 이어 하기를 누른다.
+    const saved = await page('pauseGame("일시정지"); const s = localStorage.getItem(RUN_KEY); return [s.length < 100000, JSON.parse(s).world.gems.length <= 200];');
+    await page("toTitle(); continueRun();");
+    const after = await page("return [state, gems.reduce((s, g) => s + g.value, 0)]");
+    await page("resumeFromPause();");
+    // Then: 저장은 작고, 경험치 합은 그대로이며, 300걸음을 오류 없이 진행한다.
+    expect(saved).toEqual([true, true]);
+    expect(after).toEqual(["paused", before]);
+    expect(await page(RUN_STEPS(300))).toBe("playing");
+  });
+
+  test("이어 하기 저장이 안 되면 예전 저장을 지우고 일시정지 창에 알림", async () => {
+    // Given: 이어 하기 저장이 하나 있는 판에서, 이제부터 이어 하기 저장만 저장 공간 부족으로 실패한다.
+    await view.navigate(`${server.url.href}?save=full`);
+    await page(RUN_START);
+    await page('pauseGame("일시정지"); resumeFromPause();');
+    const hadSave = await page("return localStorage.getItem(RUN_KEY) !== null");
+    // When: 다시 일시정지해서 저장한다.
+    const result = await page(`
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) { if (key === RUN_KEY) throw new DOMException("full", "QuotaExceededError"); return original.call(this, key, value); };
+      try { pauseGame("일시정지"); } finally { Storage.prototype.setItem = original; }
+      return [pauseText.textContent.endsWith(" · 이어 하기 저장 안 됨"), localStorage.getItem(RUN_KEY)];
+    `);
+    // Then: 지난 시점의 저장이 되살아나지 않게 지워지고, 일시정지 창에 알린다.
+    expect(hadSave).toBe(true);
+    expect(result).toEqual([true, null]);
+  });
+
+  test("모양 번호가 다른 이어 하기 저장은 불러오지 않음", async () => {
+    await view.navigate(`${server.url.href}?save=version`);
+    await page(RUN_START);
+    const result = await page(`
+      pauseGame("일시정지");
+      const same = loadRun() !== null;
+      const snap = JSON.parse(localStorage.getItem(RUN_KEY)); snap.v = RUN_SAVE_VERSION + 1;
+      localStorage.setItem(RUN_KEY, JSON.stringify(snap));
+      return [same, loadRun()];
+    `);
+    expect(result).toEqual([true, null]);
+  });
+
+  test("불러오기는 이 게임의 기록 파일만 받음", async () => {
+    await view.navigate(`${server.url.href}?save=import`);
+    await page(RUN_START);
+    const result = await page(`
+      pauseGame("일시정지");
+      const runSave = JSON.parse(localStorage.getItem(RUN_KEY));
+      const exported = JSON.parse(JSON.stringify(meta));
+      return [validImportData({}), validImportData(runSave), validImportData({ ...exported, version: SAVE_VERSION + 1 }), validImportData(exported)];
+    `);
+    expect(result).toEqual([false, false, false, true]);
+  });
+
+  test("데미지 숫자는 처음엔 켜져 있고, 기록·저장 창에서 끄면 저장됨", async () => {
+    await view.navigate(`${server.url.href}?save=damage`);
+    await page(STORY_SETUP);
+    const result = await page(`
+      const first = [defaultMeta().showDamage, normalizeMeta({ quests: [], stats: {} }).showDamage];
+      openPanel("save");
+      metaBody.querySelector('[data-act="damage"]').click();
+      return [...first, meta.showDamage, loadMeta().showDamage, metaBody.querySelector('[data-act="damage"]').textContent];
+    `);
+    expect(result).toEqual([true, true, false, false, "꺼짐"]);
+  });
+
+  test("퀘스트 창은 해금 보상·금화 보상·완료로 나누고, 거의 다 된 것을 위에 보여 줌", async () => {
+    await view.navigate(`${server.url.href}?save=quests`);
+    await page(STORY_SETUP);
+    const result = await page(`
+      meta = defaultMeta(); meta.quests = [QUESTS[0].id]; meta.stats.kills = 3000; meta.stats.runs = 7; meta.stats.chests = 30; saveMeta();
+      openPanel("quests");
+      const heads = [...metaBody.querySelectorAll(".meta-head")];
+      const ratio = (name) => { const q = QUESTS.find((it) => it.name === name); return Math.min(q.goal, Math.max(0, questValue(q, false))) / q.goal; };
+      const sorted = heads.slice(0, 2).every((h) => {
+        const names = [];
+        for (let el = h.nextElementSibling; el && !el.classList.contains("meta-head"); el = el.nextElementSibling) names.push(el.querySelector("b").textContent);
+        return names.length > 1 && names.every((n, i) => i === 0 || ratio(names[i - 1]) >= ratio(n));
+      });
+      return [heads.map((h) => h.textContent), sorted, metaBody.querySelectorAll(".meta-row.done").length];
+    `);
+    expect(result).toEqual([["해금 보상", "금화 보상", "완료"], true, 1]);
+  });
+});
+
+describe("게임 루프 오류", () => {
+  test("한 프레임에서 오류가 나면 멈추고 알린 뒤, 계속하기로 이어 감", async () => {
+    await view.navigate(`${server.url.href}?loop=once`);
+    await page(RUN_START);
+    const result = await page(`
+      const original = update, quiet = console.error;
+      let once = true;
+      update = (dt) => { if (once) { once = false; throw new Error("시험용 오류"); } return original(dt); };
+      console.error = () => {};
+      try {
+        gameLoop(1000);
+        const paused = [state, pauseText.textContent];
+        resumeFromPause(); gameLoop(2000); gameLoop(2033);
+        return [...paused, state, stats.time > 0];
+      } finally { update = original; console.error = quiet; }
+    `);
+    expect(result).toEqual(["paused", "오류가 나서 멈췄어요", "playing", true]);
+  });
+
+  test("계속하기를 눌러도 오류가 되풀이되면 판을 접고 시작 화면으로, 깨진 이어 하기 저장은 지움", async () => {
+    await view.navigate(`${server.url.href}?loop=always`);
+    await page(RUN_START);
+    const result = await page(`
+      const original = update, quiet = console.error;
+      update = () => { throw new Error("시험용 오류"); };
+      console.error = () => {};
+      try {
+        for (let i = 0; i < 3; i++) { if (state === "paused") resumeFromPause(); gameLoop(1000 + i * 16); }
+        return [state, localStorage.getItem(RUN_KEY)];
+      } finally { update = original; console.error = quiet; }
+    `);
+    expect(result).toEqual(["title", null]);
+  });
+});
+
+describe("손맛: 무기별 피해·데미지 숫자·히트스톱", () => {
+  test("무기가 준 피해는 그 무기로 쌓이고, 데미지 숫자는 설정을 끄면 안 뜸", async () => {
+    await view.navigate(`${server.url.href}?feel=tally`);
+    await page(RUN_START);
+    await page("const e = makeEnemy(ENEMY_TYPES[0], player.x + 40, player.y); e.hp = e.maxHp = 1e7; e.speed = 0; enemies.push(e);");
+    await page(RUN_STEPS(120));
+    const on = await page("return [run.dmgByWeapon[player.weapons[0].type] > 0, floatTexts.filter((f) => f.small).length > 0]");
+    await page("meta.showDamage = false; floatTexts = [];");
+    await page(RUN_STEPS(60));
+    const off = await page("return floatTexts.filter((f) => f.small).length");
+    expect(on).toEqual([true, true]);
+    expect(off).toBe(0);
+  });
+
+  test("같은 적이 연달아 맞으면 숫자를 더하고, 한꺼번에 많이 떠도 DMG_TEXT_MAX 개까지만", async () => {
+    await view.navigate(`${server.url.href}?feel=numbers`);
+    await page(RUN_START);
+    const result = await page(`
+      floatTexts = [];
+      const one = makeEnemy(ENEMY_TYPES[0], player.x + 50, player.y); one.hp = one.maxHp = 1e6; enemies.push(one);
+      damageEnemy(one, 5); damageEnemy(one, 7);
+      const merged = floatTexts.filter((f) => f.small).map((f) => f.text);
+      for (let i = 0; i < 200; i++) { const e = makeEnemy(ENEMY_TYPES[0], player.x + 60 + i, player.y); e.hp = e.maxHp = 1e6; enemies.push(e); damageEnemy(e, 5); }
+      return [merged, floatTexts.filter((f) => f.small).length === DMG_TEXT_MAX];
+    `);
+    expect(result).toEqual([["12"], true]);
+  });
+
+  test("보스가 크게 맞으면 아주 잠깐 멈췄다가(히트스톱) 다시 움직이고, 작은 타격에는 안 멈춤", async () => {
+    await view.navigate(`${server.url.href}?feel=hitstop`);
+    await page(RUN_START);
+    const result = await page(`
+      const b = spawnBoss();
+      damageEnemy(b, 1);
+      const small = hitStop;
+      damageEnemy(b, b.maxHp * 0.05);
+      const big = hitStop > 0, t0 = stats.time;
+      lastTime = 1000; gameLoop(1016);
+      const frozen = stats.time === t0;
+      gameLoop(1100); gameLoop(1133);
+      return [small, big, frozen, stats.time > t0];
+    `);
+    expect(result).toEqual([0, true, true, true]);
+  });
+});
+
+describe("레벨업 봉인·결과 창 피해 표", () => {
+  test("봉인한 새 무기·아이템은 그 판에 다시 안 나오고, 한 판에 두 번까지", async () => {
+    await view.navigate(`${server.url.href}?banish=1`);
+    await page(RUN_START);
+    const result = await page(`
+      levelUp();
+      const titles = () => [...choicesBox.querySelectorAll("button.card")].map((b) => b.firstChild.textContent);
+      const before = titles(), label0 = banishBtn.textContent;
+      banishBtn.click();
+      const label1 = banishBtn.textContent;
+      const target = choicesBox.querySelector("button.card.banishable"), name = target.firstChild.textContent;
+      target.click();
+      const after = titles(), stillOpen = state === "levelup";
+      const gone = !buildUpgradePool(true).some((c) => c.title === name);
+      banishBtn.click(); choicesBox.querySelector("button.card.banishable").click();
+      const label2 = banishBtn.textContent, disabled = banishBtn.disabled;
+      [...choicesBox.querySelectorAll("button.card")].find((b) => !b.textContent.includes("무기 상자")).click();
+      return [label0, label1, before.includes(name), after.includes(name), after.length === before.length, stillOpen, gone, run.banished.length, label2, disabled, state];
+    `);
+    expect(result).toEqual(["봉인 (2번 남음)", "봉인 취소", true, false, true, true, true, 2, "봉인 (0번 남음)", true, "playing"]);
+  });
+
+  test("게임오버 창에 무기별 피해를 많이 준 순서로 비율과 함께 보여 줌", async () => {
+    await view.navigate(`${server.url.href}?dmgtable=1`);
+    await page(RUN_START);
+    const result = await page(`
+      const [a, b] = Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved);
+      run.dmgByWeapon = { [b]: 500, [a]: 1500, other: 99 };
+      player.invincible = 0; player.hp = 0; checkGameOver();
+      const rows = [...resultDmg.querySelectorAll(".dmg-row")].map((r) => [r.querySelector("span").textContent, r.querySelector("b").textContent, r.querySelector("small").textContent]);
+      return [state, rows, [WEAPONS[a].name, WEAPONS[b].name]];
+    `);
+    if (!Array.isArray(result)) throw new TypeError("결과가 배열이 아님");
+    const [state, rows, names] = result;
+    expect(state).toBe("gameover");
+    expect(rows).toEqual([[names[0], "1,500", "75%"], [names[1], "500", "25%"]]);
   });
 });

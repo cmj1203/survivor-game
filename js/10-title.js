@@ -229,15 +229,12 @@ function startGame(force) {
 }
 
 // 안드로이드는 처음 전체 화면이 될 때 "전체 화면 모드 · 확인" 창을 띄우는데, '확인'을 누를 때까지 게임을 가림
-//   → 이 기기에서 처음 전체 화면이 된 때만 게임을 멈추고 안내 (한 번 본 뒤로는 멈추지 않음. 저장이 막힌 브라우저는 페이지마다 한 번)
+//   → 이 기기에서 처음 전체 화면이 될 때 게임이 돌고 있으면 멈추고 안내 (한 번 본 뒤로는 멈추지 않음. 저장이 막힌 브라우저는 페이지마다 한 번)
+//   시작 스토리를 보는 중이면 그 창은 스토리 위에 뜨고, 스토리를 넘기려면 먼저 '확인'을 눌러야 하므로 게임이 시작될 때 다시 멈추지 않음
+//   (첫 판이 0초에 안내로 멈추지 않게. 이어 하기는 원래 멈춘 채로 시작함)
 const FS_HINT_KEY = "dungeon-survivor-fs-hint";
 let fsHintShownThisPage = false;
 function pauseForFullscreenHint() {
-  if (storyScene) {   // 시작 스토리를 보는 중에 전체 화면이 되면, 안내를 아껴 두었다가 스토리가 끝나고 게임이 시작될 때 보여 줌
-    const begin = storyScene.onEnd;
-    storyScene.onEnd = () => { begin(); pauseForFullscreenHint(); };
-    return;
-  }
   let seen = fsHintShownThisPage;
   try { seen = seen || localStorage.getItem(FS_HINT_KEY) === "1"; localStorage.setItem(FS_HINT_KEY, "1"); } catch {}
   fsHintShownThisPage = true;

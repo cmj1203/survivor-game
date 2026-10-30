@@ -8,12 +8,14 @@ const SAVE_KEY = "dungeon-survivor-meta";
 const RUN_KEY = "dungeon-survivor-run";
 const SAVE_VERSION = 1;
 const RUN_SAVE_INTERVAL = 15;      // 하던 판 저장 간격 (초)
+const RUN_SAVE_VERSION = 1;        // 이어 하기 저장의 모양 번호. 적·구슬처럼 통째로 저장하는 것의 모양을 바꾸면 올릴 것 (번호가 다른 저장은 불러오지 않음)
+const RUN_SAVE_GEM_CELL = 1000;    // 이어 하기 저장 때 화면에서 먼 구슬은 이 크기(px) 칸마다 하나로 합침 (경험치는 더해서 그대로)
 
 // --- 캐릭터: 규칙이 하나씩 다름. unlock = 해금해 주는 퀘스트 id (없으면 처음부터), price = 해금 뒤 캐릭터 창에서 사는 값 (금화) ---
 const CHARACTERS = {
   knight:    { name: "견습 마법사", sprite: "hero_mage",      weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
   hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10", price: 300 },
-  berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 검으로 시작", unlock: "q_evo3", price: 400 },
+  berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 장검으로 시작", unlock: "q_evo3", price: 400 },
   saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1", price: 600 },
   // pick: true = 판을 시작할 때 무기 고르기 창이 떠서, 이미 연 무기 중 하나를 골라 시작함 (weapon 은 창이 뜨기 전 잠깐 쓰는 기본값)
   armorer:   { name: "무기상", sprite: "hero_armorer",   weapon: "wand",   hp: 1,    speed: 1,    pick: true, candyBonus: 0.15, rule: "시작 무기를 직접 고름", unlock: "q_armory", price: 800 },   // candyBonus: 레벨업 때 무기 상자 카드가 안 뽑혔으면 이 확률로 마지막 카드를 무기 상자로 바꿈
@@ -77,7 +79,7 @@ const QUESTS = [
   { id: "q_chest3",   name: "보물 사냥",     desc: "보물 상자 5개 열기 (누적)",                 stat: "chests", goal: 5,    weapon: "cherry" },
   { id: "q_kill500",  name: "몬스터 사냥꾼", desc: "1000마리 처치 (누적)",                       stat: "kills",  goal: 1000,  weapon: "hammer" },
   { id: "q_time10",   name: "12분 버티기",   desc: "한 판에 12분 버티기",                       stat: "time",   goal: 720,  char: "hunter" },
-  { id: "q_evo1",     name: "첫 진화",       desc: "무기 2번 진화시키기 (누적, ? 버튼 조합표 참고)", stat: "evos",   goal: 2,    weapon: "shadow" },
+  { id: "q_evo1",     name: "진화 입문",     desc: "무기 2번 진화시키기 (누적, ? 버튼 조합표 참고)", stat: "evos",   goal: 2,    weapon: "shadow" },
   { id: "q_time15",   name: "17분 버티기",   desc: "한 판에 17분 버티기",                       stat: "time",   goal: 1020,  weapon: "pentagram" },
   { id: "q_kill3000", name: "학살자",        desc: "6000마리 처치 (누적)",                      stat: "kills",  goal: 6000, weapon: "larobba" },
   { id: "q_level30",  name: "강자",          desc: "한 판에 레벨 40 도달",                      stat: "level",  goal: 40,   weapon: "flames" },
@@ -90,7 +92,7 @@ const QUESTS = [
   { id: "q_kill50k",   name: "군단 파괴자",     desc: "10만 마리 처치 (누적)",           stat: "kills",     goal: 100000,  passive: "curse" },
   { id: "q_chest30",   name: "보물 수집가",     desc: "보물 상자 50개 열기 (누적)",     stat: "chests",    goal: 50,     shop: "skip" },
   { id: "q_evo10",     name: "진화 전문가",     desc: "무기 20번 진화시키기 (누적)",    stat: "evos",      goal: 20,     gold: 60 },
-  { id: "q_c_hunter",  name: "명사수",          desc: "사냥꾼으로 클리어",              stat: "charclear", goal: 1,      gold: 100, who: "hunter" },
+  { id: "q_c_hunter",  name: "완납",            desc: "사냥꾼으로 클리어",              stat: "charclear", goal: 1,      gold: 100, who: "hunter" },
   { id: "q_c_berserk", name: "피의 맹세",       desc: "광전사로 클리어",                stat: "charclear", goal: 1,      gold: 100, who: "berserker" },
   { id: "q_c_saint",   name: "기적",            desc: "성녀로 클리어",                  stat: "charclear", goal: 1,      gold: 100, who: "saint" },
   { id: "q_diff2",     name: "칠흑 속으로",     desc: "'어려움' 난이도 클리어",    stat: "diff",      goal: 2,      gold: 200 },
@@ -133,7 +135,7 @@ const QUESTS = [
   { id: "q_die1",      name: "그럴 수도 있지",   desc: "1번 죽기",                          stat: "deaths",   goal: 1,   gold: 20 },
   { id: "q_die7",      name: "칠전팔기",         desc: "7번 죽기 (누적)",                   stat: "deaths",   goal: 7,   gold: 50 },
   { id: "q_die30",     name: "저승 단골",        desc: "30번 죽기 (누적)",                  stat: "deaths",   goal: 30,  gold: 150 },
-  { id: "q_die_bat",   name: "코로나",           desc: "박쥐한테 10번 죽기 (누적)",         stat: "deathby",  goal: 10,  gold: 80,  by: "bat" },
+  { id: "q_die_bat",   name: "Covid",            desc: "박쥐한테 10번 죽기 (누적)",         stat: "deathby",  goal: 10,  gold: 80,  by: "bat" },
   { id: "q_die_bear",  name: "죽은 척",          desc: "북극곰한테 10번 죽기 (누적)",       stat: "deathby",  goal: 10,  gold: 120, by: "polarbear" },
   { id: "q_die_dog",   name: "우리 개는 물어요", desc: "지옥개한테 15번 죽기 (누적)",       stat: "deathby",  goal: 15,  gold: 180, by: "hellhound" },
   { id: "q_die_mare",  name: "가위눌림",         desc: "악몽마한테 15번 죽기 (누적)",       stat: "deathby",  goal: 15,  gold: 220, by: "nightmare" },
@@ -161,7 +163,7 @@ function shopLocked(key) {
 
 // --- 저장 / 불러오기 ---
 function defaultMeta() {
-  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], chars: [], char: "knight", diff: 0, fast: false,   // chars = 금화로 산 캐릭터, fast = 1.5배속 켬
+  return { version: SAVE_VERSION, gold: 0, upgrades: {}, quests: [], chars: [], char: "knight", diff: 0, fast: false, showDamage: true,   // chars = 금화로 산 캐릭터, fast = 1.5배속 켬, showDamage = 데미지 숫자 보이기
            stats: { runs: 0, clears: 0, kills: 0, chests: 0, evos: 0, bestTime: 0, bestLevel: 0, maxClearDiff: -1,
                     clear_knight: 0, clear_hunter: 0, clear_berserker: 0, clear_saint: 0, clear_armorer: 0,       // clear_○○ = 그 캐릭터로 클리어한 횟수
                     time_d1: 0, time_d2: 0, time_d3: 0,                                         // time_d○ = 그 난이도에서 가장 오래 버틴 시간(초)
@@ -202,6 +204,7 @@ function normalizeMeta(m) {
   if (CHARACTERS[m.char]) d.char = m.char;
   d.diff = Math.min(num(m.diff), DIFFS.length - 1);
   d.fast = m.fast === true;
+  d.showDamage = m.showDamage !== false;   // 예전 저장(값 없음)은 켬
   return d;
 }
 let storageOk = true;
@@ -250,6 +253,7 @@ function startRun() {
           // 어려운 퀘스트용: 맞은 횟수, 안 맞고 버틴 시간(지금/최고), 체력 낮은 채 버틴 시간(지금/최고), 무기 1개로 버틴 시간, 잡은 정예 수, 진화한 종류, 보스가 나온 시각
           hits: 0, noHit: 0, bestNoHit: 0, lowHp: 0, bestLowHp: 0, solo: 0, soloBroken: false, elites: 0, evoMask: 0, bossAt: null,
           deaths: 0, revives: 0, deathBy: {}, lastHitBy: null,   // 죽음 퀘스트용: 이번 판에 죽은 횟수·부활 횟수·누구한테 죽었는지(적 종류 → 횟수, 보스는 "boss" 에도), 마지막에 때린 적
+          banished: [], dmgByWeapon: {},                       // 봉인한 카드 키(새 무기·새 아이템), 무기별로 준 피해 (결과 창 표)
           naked: SHOP.every((it) => it.free || it.utility || upLevel(it.key) === 0) };   // 상점 강화 없이 시작했는지 (저주처럼 스스로 불리해지는 것은 셈에서 뺌)
   setBackgroundTheme(diffDef().theme);                                           // 난이도 테마: 배경 바꾸기
   if (diffDef().theme) banner = { text: diffDef().place, life: BANNER_TIME };    // 시작할 때 장소 이름을 잠깐 보여 줌
@@ -388,11 +392,12 @@ function finishRun(cleared) {
 //   돌아오면 일시정지 상태로 띄움 (바로 싸우지 않게). 적·보스·적 탄환·구슬·상자·아이템·자국·진행 중인 이벤트도 그대로 되살림
 //   (내 무기 탄·불바다·연출은 저장 안 함: 무기가 곧 다시 쏘고, 몇 초면 사라지는 것들이라서)
 // =====================================================================
+let runSaveOk = true;                  // 이어 하기 저장이 마지막에 됐는지 (안 됐으면 일시정지 창에 알림)
 function saveRun() {
   if (!run || run.done || (state !== "playing" && state !== "paused")) return;   // 카드·상자 창이 떠 있는 동안은 저장 안 함
   const p = player;
   const snap = {
-    v: SAVE_VERSION, char: run.char, diff: run.diff,
+    v: RUN_SAVE_VERSION, char: run.char, diff: run.diff,
     player: { x: p.x, y: p.y, hp: p.hp, level: p.level, xp: p.xp, xpNeed: p.xpNeed, revivesUsed: p.revivesUsed,
               stageChangedAt: p.stageChangedAt, enemyStage: p.enemyStage, passives: p.passives,
               weapons: p.weapons.map((w) => ({ type: w.type, level: w.level })) },
@@ -400,17 +405,37 @@ function saveRun() {
     eventIndex, spawnTimer, eliteTimer,
     world: {
       enemies: enemies.concat(pendingSpawns), enemyBullets, chests, hazards, enemyFires,
-      gems: gems.map((g) => ({ ...g, x: Math.round(g.x), y: Math.round(g.y) })),   // 구슬은 수천 개라 좌표를 정수로 줄여 저장
+      gems: packGems(gems),                                                       // 구슬은 수천 개라 좌표를 정수로 줄이고, 화면에서 먼 구슬은 칸마다 하나로 합쳐 저장
       items: items.map((it) => ({ ...it, type: it.type.key })),                     // 아이템 종류는 이름(key)으로
       events: eventQueue.map((q) => ({ ...q, ev: EVENT_SCHEDULE.indexOf(q.ev) })),   // 시간표 칸은 번호로
       freezeTimer, nextEnemyId,
     },
     run: { ...run, tick: 0, saveTimer: 0, done: false },   // 퀘스트용 판 기록을 통째로 (이어 하기 때 그대로 되살림)
   };
-  try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); } catch {}
+  try { localStorage.setItem(RUN_KEY, JSON.stringify(snap)); runSaveOk = true; }
+  catch { runSaveOk = false; clearRun(); }   // 저장 공간이 꽉 차는 등으로 못 쓰면 예전 저장을 지움 (이어 하기로 지난 시점이 되살아나지 않게)
+  return runSaveOk;
+}
+// 화면 가까이 있거나 끌려오는 구슬은 그대로, 먼 구슬은 칸마다 경험치를 더해 합침. 저장할 때만 가까운 구슬도 복사하고 좌표를 반올림
+function packGems(list, forSave = true) {
+  const out = [], cells = new Map();
+  const pickupArea = { x: player.x, y: player.y, r: player.pickupRadius };
+  for (const g of list) {
+    if (g.dead) continue;
+    if (g.magnet || g.speed || inView(g.x, g.y, VW / 2) || circlesTouch(pickupArea, g)) {
+      out.push(forSave ? { ...g, x: Math.round(g.x), y: Math.round(g.y) } : g);
+      continue;
+    }
+    const key = `${Math.floor(g.x / RUN_SAVE_GEM_CELL)},${Math.floor(g.y / RUN_SAVE_GEM_CELL)}`;
+    const c = cells.get(key) || { x: 0, y: 0, n: 0, value: 0 };
+    c.x += g.x; c.y += g.y; c.n += 1; c.value += g.value;
+    cells.set(key, c);
+  }
+  for (const c of cells.values()) out.push({ x: Math.round(c.x / c.n), y: Math.round(c.y / c.n), r: gemRadius(c.value), value: c.value });
+  return out;
 }
 function loadRun() {
-  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === SAVE_VERSION && s.player && s.stats && [s.player.x, s.player.y, s.player.hp, s.player.level, s.stats.time].every(Number.isFinite) ? s : null; }   // 시간 정보가 없는 망가진 저장은 없는 것으로 (시작 버튼이 멈추지 않게)
+  try { const s = JSON.parse(localStorage.getItem(RUN_KEY)); return s && s.v === RUN_SAVE_VERSION && s.player && s.stats && [s.player.x, s.player.y, s.player.hp, s.player.level, s.stats.time].every(Number.isFinite) ? s : null; }   // 시간 정보가 없는 망가진 저장은 없는 것으로 (시작 버튼이 멈추지 않게)
   catch { return null; }
 }
 function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch {} }
@@ -455,9 +480,9 @@ function pauseGame(msg) {
   state = "paused";
   playSfx("pause_in");
   endJoystick();
-  pauseText.textContent = `${msg} · ${formatTime(stats.time)} 버팀`;
+  pauseText.textContent = stats.time >= 1 ? `${msg} · ${formatTime(stats.time)} 버팀` : msg;   // 막 시작한 판은 '0초 버팀'을 붙이지 않음
   pauseBox.style.display = "flex";
-  saveRun();
+  if (saveRun() === false) pauseText.textContent += " · 이어 하기 저장 안 됨";
 }
 // 1.5배속 단추 (게임 화면 왼쪽 위, 소리 단추 옆): 상점에서 산 사람에게만 보이고, 누를 때마다 켜고 끔. 켜져 있으면 주황 그림
 function refreshSpeedBtn(inGame) {
@@ -508,7 +533,7 @@ const continueBtn = document.getElementById("continueBtn");
 const metaTitle = document.getElementById("metaTitle");
 const metaNote = document.getElementById("metaNote");
 const metaBody = document.getElementById("metaBody");
-const importFile = document.getElementById("importFile");
+const importFile = /** @type {HTMLInputElement} */ (document.getElementById("importFile"));
 let panelKind = "shop";
 
 function refreshTitleMenu() {
@@ -556,12 +581,19 @@ function renderPanel() {
   } else if (panelKind === "quests") {
     metaTitle.textContent = "퀘스트";
     metaNote.textContent = "";
-    // 아직 못 끝낸 퀘스트를 위에 보여 줌 (끝낸 것은 아래로)
-    for (const q of [...QUESTS].sort((a, b) => isQuestDone(a.id) - isQuestDone(b.id))) {
-      const done = isQuestDone(q.id), v = Math.min(q.goal, Math.max(0, questValue(q, false)));
-      const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : q.shop ? `assets/${SHOP.find((it) => it.key === q.shop).icon}.png` : q.passive ? passiveIconUrl(q.passive) : "assets/coin.png";
-      const prog = TIME_STATS.includes(q.stat) ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
-      html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
+    // 못 끝낸 퀘스트는 보상 종류(해금·금화)로 나눠 거의 다 된 것부터 위에, 끝낸 퀘스트는 맨 아래 '완료'에 모음
+    const unlocks = (q) => !!(q.weapon || q.char || q.shop || q.passive);
+    const progress = (q) => Math.min(q.goal, Math.max(0, questValue(q, false)));
+    const open = QUESTS.filter((q) => !isQuestDone(q.id)).sort((a, b) => progress(b) / b.goal - progress(a) / a.goal);
+    const groups = /** @type {[string, typeof QUESTS][]} */ ([["해금 보상", open.filter(unlocks)], ["금화 보상", open.filter((q) => !unlocks(q))], ["완료", QUESTS.filter((q) => isQuestDone(q.id))]]);
+    for (const [head, list] of groups) {
+      if (list.length) html += `<p class="meta-head">${head}</p>`;
+      for (const q of list) {
+        const done = isQuestDone(q.id), v = progress(q);
+        const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : q.shop ? `assets/${SHOP.find((it) => it.key === q.shop).icon}.png` : q.passive ? passiveIconUrl(q.passive) : "assets/coin.png";
+        const prog = TIME_STATS.includes(q.stat) ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
+        html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
+      }
     }
   } else if (panelKind === "select") {
     metaTitle.textContent = "캐릭터·난이도";
@@ -591,13 +623,14 @@ function renderPanel() {
     html += row("", "", "누적", `처치 ${s.kills}마리 · 상자 ${s.chests}개 · 진화 ${s.evos}번`);
     html += row("", "", "최고 기록", `${formatTime(s.bestTime)} 버팀 · 레벨 ${s.bestLevel}`);
     if (!storageOk) html += row("locked", "", "저장 안 됨", "이 브라우저에서는 저장이 막혀 있어요 (사생활 보호 모드 등)");
+    html += row("", "", "데미지 숫자", "", `<button class="meta-btn ${meta.showDamage ? "buy" : ""}" data-act="damage">${meta.showDamage ? "켜짐" : "꺼짐"}</button>`);
     html += `<div class="meta-actions"><button class="meta-btn buy" data-act="export">내보내기</button><button class="meta-btn buy" data-act="import">불러오기</button><button class="meta-btn" data-act="wipe">기록 지우기</button></div>`;
   }
   metaBody.innerHTML = html;
 }
 
 metaBody.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-act]");
+  const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (e.target).closest("[data-act]"));
   if (!b || b.disabled) return;
   const act = b.dataset.act, key = b.dataset.key;
   if (act === "buy") {
@@ -619,6 +652,7 @@ metaBody.addEventListener("click", (e) => {
     }
   } else if (act === "char") { if (isCharOwned(key)) meta.char = key; }
   else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
+  else if (act === "damage") meta.showDamage = !meta.showDamage;
   else if (act === "export") { exportSave(); return; }
   else if (act === "import") { importFile.click(); return; }
   else if (act === "wipe") {
@@ -637,6 +671,11 @@ function exportSave() {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+// 불러올 파일이 이 게임의 기록(내보내기 파일)인지: 빈 {} 나 이어 하기 저장 같은 다른 JSON 으로 기록이 통째로 0 이 되지 않게
+function validImportData(data) {
+  return !!data && typeof data === "object" && Array.isArray(data.quests) && !!data.stats && typeof data.stats === "object" && !Array.isArray(data.stats)
+    && (data.version === undefined || (Number.isFinite(data.version) && data.version <= SAVE_VERSION));
+}
 importFile.addEventListener("change", async () => {
   const file = importFile.files[0];
   importFile.value = "";
@@ -644,16 +683,17 @@ importFile.addEventListener("change", async () => {
   try {
     if (file.size > 64 * 1024) throw new Error("파일이 너무 커요");
     const data = JSON.parse(await file.text());
-    if (!data || typeof data !== "object" || (data.version | 0) > SAVE_VERSION) throw new Error("이 게임의 저장 파일이 아니에요");
-    if (!confirm("지금 기록을 불러온 파일로 바꿀까요?")) return;
-    meta = normalizeMeta(data);
+    if (!validImportData(data)) throw new Error("이 게임의 저장 파일이 아니에요");
+    const next = normalizeMeta(data);
+    if (!confirm(`금화 ${meta.gold} → ${next.gold} · 퀘스트 ${meta.quests.length} → ${next.quests.length} · 판 수 ${meta.stats.runs} → ${next.stats.runs}\n지금 기록을 불러온 파일로 바꿀까요?`)) return;
+    meta = next;
     saveMeta();
     renderPanel();
     alert("불러왔어요");
-  } catch (e) { alert(`불러오기 실패: ${e.message}`); }
+  } catch (e) { alert(`불러오기 실패: ${e instanceof Error ? e.message : e}`); }
 });
 
-for (const b of document.querySelectorAll("[data-panel]")) b.addEventListener("click", () => openPanel(b.dataset.panel));
+for (const b of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-panel]"))) b.addEventListener("click", () => openPanel(b.dataset.panel));
 document.getElementById("metaClose").addEventListener("click", closeIntro);
 continueBtn.addEventListener("click", continueRun);
 pauseBtn.addEventListener("click", () => pauseGame("일시정지"));

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css" />
   <!-- ?v= : 올릴 때마다 바꾸는 버전 표시. 브라우저가 예전 코드·그림을 쓰지 않고 새로 받게 함 (그림 주소도 js/01-setup.js 가 이 값을 따라 씀) -->
-  <link rel="stylesheet" href="style.css?v=20261029a" />
+  <link rel="stylesheet" href="style.css?v=20261030a" />
 </head>
 <body>
   <!-- 게임이 그려지는 도화지 -->
@@ -105,6 +105,7 @@
   <div id="gameover" class="popup">
     <h1>게임 오버</h1>
     <p id="result"></p>
+    <div class="dmg-table" id="resultDmg"></div>
     <p class="run-reward" id="runReward"></p>
     <button type="button" id="restart">다시 시작</button>
     <button type="button" class="reroll-button to-title">시작 화면</button>
@@ -134,6 +135,7 @@
   <div id="clearBox" class="popup">
     <h1>클리어!</h1>
     <p id="clearText"></p>
+    <div class="dmg-table" id="clearDmg"></div>
     <p class="run-reward" id="clearReward"></p>
     <button type="button" class="ok-button to-title">시작 화면</button>
   </div>
@@ -162,22 +164,24 @@
       <button type="button" id="reroll" class="reroll-button">다시 뽑기</button>
       <!-- 건너뛰기: 상점에서 '건너뛰기'를 샀을 때만 보임. 카드를 고르지 않고 넘기는 대신 체력을 조금 회복 -->
       <button type="button" id="skipBtn" class="reroll-button">건너뛰기</button>
+      <!-- 봉인: 한 판에 2번. 누른 뒤 고른 새 무기·새 아이템은 이번 판에 다시 안 나옴 -->
+      <button type="button" id="banishBtn" class="reroll-button">봉인</button>
     </div>
   </div>
 
-  <script src="js/01-setup.js?v=20261029a"></script>
-  <script src="js/02-rules.js?v=20261029a"></script>
-  <script src="js/03-weapons.js?v=20261029a"></script>
-  <script src="js/04-passives-enemies.js?v=20261029a"></script>
-  <script src="js/05-state-input.js?v=20261029a"></script>
-  <script src="js/06-spawn-combat.js?v=20261029a"></script>
-  <script src="js/07-update.js?v=20261029a"></script>
-  <script src="js/08-draw.js?v=20261029a"></script>
-  <script src="js/09-loop-windows.js?v=20261029a"></script>
-  <script src="js/09-story.js?v=20261029a"></script>
-  <script src="js/10-title.js?v=20261029a"></script>
-  <script src="js/11-meta-save.js?v=20261029a"></script>
-  <script src="js/12-sound.js?v=20261029a"></script>
-  <script src="js/13-start.js?v=20261029a"></script>
+  <script src="js/01-setup.js?v=20261030a"></script>
+  <script src="js/02-rules.js?v=20261030a"></script>
+  <script src="js/03-weapons.js?v=20261030a"></script>
+  <script src="js/04-passives-enemies.js?v=20261030a"></script>
+  <script src="js/05-state-input.js?v=20261030a"></script>
+  <script src="js/06-spawn-combat.js?v=20261030a"></script>
+  <script src="js/07-update.js?v=20261030a"></script>
+  <script src="js/08-draw.js?v=20261030a"></script>
+  <script src="js/09-loop-windows.js?v=20261030a"></script>
+  <script src="js/09-story.js?v=20261030a"></script>
+  <script src="js/10-title.js?v=20261030a"></script>
+  <script src="js/11-meta-save.js?v=20261030a"></script>
+  <script src="js/12-sound.js?v=20261030a"></script>
+  <script src="js/13-start.js?v=20261030a"></script>
 </body>
 </html>

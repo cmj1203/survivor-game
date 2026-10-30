@@ -17,17 +17,17 @@
   },
   "knight-2": {
     "state": "clear",
-    "time": 1220.733,
-    "kills": 17960,
+    "time": 1232,
+    "kills": 18257,
     "level": 49,
     "weapons": "wand_evo:8,vento:8,cross:8,rune_evo:8,spear:8,bullet:8",
     "errors": []
   },
   "knight-3": {
     "state": "clear",
-    "time": 1340,
-    "kills": 33641,
-    "level": 67,
+    "time": 1394.867,
+    "kills": 34930,
+    "level": 69,
     "weapons": "wand:8,flames:8,cross:8,rune_evo:8,cherry:8,shadow_evo:8",
     "errors": []
   },
@@ -49,17 +49,17 @@
   },
   "hunter-2": {
     "state": "clear",
-    "time": 1236.4,
-    "kills": 18899,
-    "level": 72,
+    "time": 1252.067,
+    "kills": 19364,
+    "level": 69,
     "weapons": "bullet:8,flames_evo:8,wand_evo:8,rune:8,vento:8,victory:8",
     "errors": []
   },
   "hunter-3": {
     "state": "clear",
-    "time": 1253.8,
-    "kills": 30762,
-    "level": 63,
+    "time": 1268.6,
+    "kills": 31515,
+    "level": 64,
     "weapons": "bullet_evo:8,orb:8,cherry_evo:8,shadow:8,flames:8,shield:8",
     "errors": []
   },
@@ -81,16 +81,16 @@
   },
   "berserker-2": {
     "state": "clear",
-    "time": 1365.167,
-    "kills": 22489,
-    "level": 74,
+    "time": 1456.767,
+    "kills": 25265,
+    "level": 75,
     "weapons": "sword:8,dusting:8,lightning_evo:8,spear:8,vento:8,wand:8",
     "errors": []
   },
   "berserker-3": {
     "state": "clear",
-    "time": 1318.167,
-    "kills": 17386,
+    "time": 1331.067,
+    "kills": 17752,
     "level": 20,
     "weapons": "sword:3,pentagram:4,orb:2,vento:3,larobba:1,clock:1",
     "errors": []
@@ -113,17 +113,17 @@
   },
   "saint-2": {
     "state": "clear",
-    "time": 1364.7,
-    "kills": 32418,
-    "level": 86,
+    "time": 1413.933,
+    "kills": 35495,
+    "level": 89,
     "weapons": "aura:8,hammer:8,cross:8,lightning_evo:8,wand:8,shield_evo:8",
     "errors": []
   },
   "saint-3": {
     "state": "clear",
-    "time": 1261.5,
-    "kills": 45650,
-    "level": 74,
+    "time": 1289.267,
+    "kills": 46955,
+    "level": 75,
     "weapons": "aura:8,staff_evo:8,shadow:8,sword:8,hammer_evo:8,victory:8",
     "errors": []
   },
@@ -145,17 +145,17 @@
   },
   "armorer-2": {
     "state": "clear",
-    "time": 1347.667,
-    "kills": 31991,
-    "level": 84,
+    "time": 1398.667,
+    "kills": 33205,
+    "level": 86,
     "weapons": "wand:8,bomb_evo:8,aura:8,rune_evo:8,larobba_evo:8,victory:8",
     "errors": []
   },
   "armorer-3": {
     "state": "clear",
-    "time": 1305.1,
-    "kills": 40693,
-    "level": 78,
+    "time": 1353.1,
+    "kills": 42844,
+    "level": 81,
     "weapons": "larobba:8,aura:8,sword:8,wand_evo:8,vento:8,lightning:8",
     "errors": []
   }

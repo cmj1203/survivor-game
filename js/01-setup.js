@@ -1,7 +1,8 @@
 // =====================================================================
 // 1. 준비물: 도화지, 붓, 화면 요소 가져오기
 // =====================================================================
-const canvas = document.getElementById("game");
+// 타입 검사(checkJs)용: getElementById 는 일반 HTMLElement 로 보기 때문에, 캤버스·그림·버튼처럼 고유 속성(getContext·src·disabled)을 쓰는 것만 정확한 종류를 적음
+const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById("game"));
 const ctx = canvas.getContext("2d");          // ctx = 도형을 그리는 붓
 const gameoverBox = document.getElementById("gameover");
 const resultText = document.getElementById("result");
@@ -10,22 +11,23 @@ const levelupBox = document.getElementById("levelup");
 const levelTitle = document.getElementById("levelTitle");
 const levelText = document.getElementById("levelText");
 const choicesBox = document.getElementById("choices");
-const rerollBtn = document.getElementById("reroll");
-const skipBtn = document.getElementById("skipBtn");
+const rerollBtn = /** @type {HTMLButtonElement} */ (document.getElementById("reroll"));
+const skipBtn = /** @type {HTMLButtonElement} */ (document.getElementById("skipBtn"));
+const banishBtn = /** @type {HTMLButtonElement} */ (document.getElementById("banishBtn"));
 const chestBox = document.getElementById("chestBox");
 const chestStage = document.getElementById("chestStage");   // 상자 연출 무대 (빛기둥·금화·보상 구슬·큰 상자)
 const chestOrbs = document.getElementById("chestOrbs");
 const chestCoins = document.getElementById("chestCoins");
-const chestImg = document.getElementById("chestImg");
+const chestImg = /** @type {HTMLImageElement} */ (document.getElementById("chestImg"));
 const chestGold = document.getElementById("chestGold");     // 위쪽 금화 숫자 (금화가 섞였을 때만)
 const chestGoldNum = document.getElementById("chestGoldNum");
 const chestInfo = document.getElementById("chestInfo");     // 아래 칸: 고른 보상의 이름·설명
-const chestOk = document.getElementById("chestOk");
+const chestOk = /** @type {HTMLButtonElement} */ (document.getElementById("chestOk"));
 const clearBox = document.getElementById("clearBox");
 const stageClear = document.getElementById("stageClear");   // 보스를 잡으면 잠깐 뜨는 STAGE CLEAR 글자
 const clearText = document.getElementById("clearText");
 const endingBox = document.getElementById("endingBox");   // 매우 어려움 클리어 엔딩 (그림 + 자막)
-const endingImg = document.getElementById("endingImg");
+const endingImg = /** @type {HTMLImageElement} */ (document.getElementById("endingImg"));
 const endingText = document.getElementById("endingText");
 const helpBtn = document.getElementById("helpBtn");
 const helpBox = document.getElementById("helpBox");
@@ -35,7 +37,7 @@ const candyBox = document.getElementById("candyBox");
 const candyList = document.getElementById("candyList");
 const candyTitle = document.getElementById("candyTitle");
 const titleOverlay = document.getElementById("titleOverlay");
-const titleText = document.getElementById("titleText");
+const titleText = /** @type {HTMLCanvasElement} */ (document.getElementById("titleText"));
 const startBtn = document.getElementById("startBtn");
 const introBtn = document.getElementById("introBtn");
 const introClose = document.getElementById("introClose");
@@ -50,6 +52,7 @@ const PHONE_ZOOM = 1.4;    // 휴대폰 확대 배수 (올리면 더 크게 보�
 const ZOOM = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600 ? PHONE_ZOOM : 1;
 const VW = W / ZOOM;       // 화면에 보이는 맵 가로 (PC 1280, 휴대폰 약 914)
 const VH = H / ZOOM;       // 화면에 보이는 맵 세로 (PC 720, 휴대폰 약 514)
+const canvasUi = { scale: 1 }; // 휴대폰 캔버스가 CSS로 줄어드는 배율의 역수 (카메라 확대와 별개)
 
 // =====================================================================
 // 1-0. 큰 맵과 카메라
@@ -96,8 +99,8 @@ function randomEdgePosition(margin) {
 //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
 // =====================================================================
 // 그림 주소에 붙일 버전: index.html 이 이 파일을 부를 때 붙인 ?v= 값을 그대로 씀 (올릴 때 index.html 의 ?v= 만 바꾸면 됨)
-const ASSET_VERSION = new URL(document.currentScript.src).searchParams.get("v") || "";
-const assetUrl = (name) => `assets/${name}.png${ASSET_VERSION ? `?v=${ASSET_VERSION}` : ""}`;
+const ASSET_VERSION = new URL(/** @type {HTMLScriptElement} */ (document.currentScript).src).searchParams.get("v") || "";
+const assetUrl = (name, ext = "png") => `assets/${name}.${ext}${ASSET_VERSION ? `?v=${ASSET_VERSION}` : ""}`;
 const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "fx_frostnova", "fx_iceshatter", "fx_icehit", "fx_landdust", "fx_icespikes", "fx_leapclaw", "fx_flameloop", "fx_pillar", "fx_fireburst", "fx_meteor", "fx_meteor_p", "fx_fireburst_p", "fx_darkslash", "fx_cursecloud", "fx_darkburst", "fx_icerock", "fx_icicle", "fx_circlefire", "fx_castcircle", "fx_arrow", "fx_arrowdark", "fx_ghostsword", "fx_circleice", "fx_snowflake", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "imp", "hellhound", "fireelem", "flameskull", "lavagolem", "demon", "crow", "nightmare", "muck", "wraith", "mummy", "deathknight", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",
                       "dagger", "axe", "spear", "firebomb", "staff", "shield",
                       "hammer", "shield_throw", "wand", "sword", "rock", "rock2", "bigsword",

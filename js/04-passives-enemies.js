@@ -15,7 +15,7 @@ const PASSIVES = {
   area:      { name: "촛대",      icon: "passive_area",      maxLevel: 5, desc: "공격 범위 +10%" },
   projspeed: { name: "팔보호대",  icon: "passive_projspeed", maxLevel: 5, desc: "발사체 속도 +10%" },
   duration:  { name: "주문서",    icon: "passive_duration",  maxLevel: 5, desc: "효과 지속 시간 +15%" },
-  amount:    { name: "복제기",    icon: "passive_amount",    maxLevel: 2, desc: "도끼 +1개. 발사 무기는 3회마다 추가 발사 (Lv2: 2회마다)" },
+  amount:    { name: "분열석",    icon: "passive_amount",    maxLevel: 2, desc: "도끼 +1개. 발사 무기는 3회마다 추가 발사 (Lv2: 2회마다)" },
   move:      { name: "날개",      icon: "passive_move",      maxLevel: 5, desc: "이동 속도 +10%" },
   magnet:    { name: "자석",      icon: "passive_magnet",    maxLevel: MAGNET_MAX, desc: "경험치 구슬을 끌어당기는 범위 +30" },
   luck:      { name: "클로버",    icon: "passive_luck",      maxLevel: 5, desc: "행운 +15% (물약 드랍, 상자 대박 확률)" },
@@ -221,8 +221,8 @@ const BOSS_TYPE = { key: "boss", name: "사신 마법사", shape: "wizard", colo
 //   pattern: 공격 방식 (updateBossEnemy 참고)   summon: 부르는 부하 종류   ring: 발밑 고리 색 (r, g, b)
 const STAGE_BOSSES = {
   ice: { key: "yeti", name: "예티", shape: "yeti", color: "#cfefff", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "yeti", summon: "icewisp", ring: "125, 249, 255" },
-  lava: { key: "demon", name: "악마", shape: "demon", color: "#e2442f", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "demon", summon: "imp", ring: "255, 123, 46" },
-  dark: { key: "deathknight", name: "죽음의 기사", shape: "deathknight", color: "#7a6aa8", r: 40, speed: 95, hp: 2500, damage: 30, xp: 0, behavior: "boss", pattern: "deathknight", summon: "crow", ring: "181, 101, 245" },
+  lava: { key: "demon", name: "악마", shape: "demon", color: "#e2442f", r: 40, speed: 95, hp: 6500, damage: 30, xp: 0, behavior: "boss", pattern: "demon", summon: "imp", ring: "255, 123, 46" },
+  dark: { key: "deathknight", name: "죽음의 기사", shape: "deathknight", color: "#7a6aa8", r: 40, speed: 95, hp: 8000, damage: 30, xp: 0, behavior: "boss", pattern: "deathknight", summon: "crow", ring: "181, 101, 245" },
 };
 function bossType() { return STAGE_BOSSES[diffDef().theme] || BOSS_TYPE; }
 // --- 예티 (얼음 동굴 보스) 공격: 모두 바닥에 얼음색 경고 원을 먼저 띄우고, 안쪽 원이 다 차면 그 자리에서 터짐 ---
