@@ -255,3 +255,6 @@ Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0
 글꼴 (2026-11-02, 외부 서버 대신 직접 제공):
   fonts/Galmuri11.woff2, fonts/Galmuri11-Bold.woff2 = Galmuri 2.40.3, Lee Minseo (quiple), SIL Open Font License 1.1 (fonts/OFL-Galmuri.txt)
   fonts/Tiny5-Regular.ttf = Tiny5, The Tiny5 Project Authors (Google Fonts), SIL Open Font License 1.1 (fonts/OFL-Tiny5.txt)
+
+스토리 다시보기 버튼 그림 (2026-11-02):
+  book.png = 직접 찍음 (외부 출처 없음)

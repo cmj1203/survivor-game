@@ -605,8 +605,10 @@ function renderPanel() {
       const right = !open ? `<button class="meta-btn" disabled>잠김</button>`
         : !owned ? `<button class="meta-btn buy" data-act="charbuy" data-key="${k}" ${meta.gold < c.price ? "disabled" : ""}>${c.price} 금화</button>`
         : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="char" data-key="${k}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
+      const seenStory = owned && (meta.stats.mask_story & (1 << Object.keys(CHARACTERS).indexOf(k)));
+      const replay = seenStory ? `<button class="meta-btn story" data-act="story" data-key="${k}" aria-label="스토리"><img src="${assetUrl("book")}" alt=""></button>` : "";
       const sub = open ? c.rule : `잠김: 퀘스트 '${QUESTS.find((q) => q.id === c.unlock).name}' (${QUESTS.find((q) => q.id === c.unlock).desc})`;
-      html += row(sel ? "sel" : open ? "" : "locked", assetUrl(c.sprite), c.name, sub, right);
+      html += row(sel ? "sel" : open ? "" : "locked", assetUrl(c.sprite), c.name, sub, replay ? `<div class="meta-pair">${right}${replay}</div>` : right);
     }
     html += `<p class="meta-head">난이도</p>`;
     DIFFS.forEach((d, i) => {
@@ -650,6 +652,9 @@ metaBody.addEventListener("click", (e) => {
       showStory(key);
       return;
     }
+  } else if (act === "story") {
+    showStory(key);
+    return;
   } else if (act === "char") { if (isCharOwned(key)) meta.char = key; }
   else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
   else if (act === "export") { exportSave(); return; }
