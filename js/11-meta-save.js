@@ -56,7 +56,7 @@ const SHOP = [
   // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
   { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
     note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${Math.round(lv * SHOP_CURSE_GOLD * 100)}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
-  // 1.5배속: '쉬움'을 클리어하면 상점에 열리고, 사면 게임 화면 왼쪽 위(소리 단추 옆)에 켜고 끄는 단추가 생김
+  // 1.5배속: '쉬움'을 클리어하면 상점에 열리고, 사면 게임 화면 왼쪽 위(설정 단추 옆)에 켜고 끄는 단추가 생김
   //   (해금 난이도는 SPEED_UNLOCK_DIFF) 능력치 강화가 아니라서(utility) '맨몸' 퀘스트 셈에서 뺌. key 가 예전 무료 '2배속'(speed)과 달라서 예전 저장의 그것은 이어지지 않음
   { key: "speed15", name: "1.5배속",   icon: "speed_off",       max: 1, base: 500, utility: true,
     note: (lv) => (lv ? "게임 화면 왼쪽 위 단추로 켜고 끔 · 게임 진행 속도 1.5배" : "게임 진행 속도 1.5배 · 사면 게임 화면 왼쪽 위에 단추가 생김") },
@@ -485,7 +485,7 @@ function pauseGame(msg) {
   pauseBox.style.display = "flex";
   if (saveRun() === false) pauseText.textContent += " · 이어 하기 저장 안 됨";
 }
-// 1.5배속 단추 (게임 화면 왼쪽 위, 소리 단추 옆): 상점에서 산 사람에게만 보이고, 누를 때마다 켜고 끔. 켜져 있으면 주황 그림
+// 1.5배속 단추 (게임 화면 왼쪽 위, 설정 단추 옆): 상점에서 산 사람에게만 보이고, 누를 때마다 켜고 끔. 켜져 있으면 주황 그림
 function refreshSpeedBtn(inGame) {
   speedBtn.style.display = inGame && hasFast() ? "block" : "none";
   speedBtn.querySelector("img").src = assetUrl(meta.fast ? "speed_on" : "speed_off");
@@ -624,7 +624,6 @@ function renderPanel() {
     html += row("", "", "누적", `처치 ${s.kills}마리 · 상자 ${s.chests}개 · 진화 ${s.evos}번`);
     html += row("", "", "최고 기록", `${formatTime(s.bestTime)} 버팀 · 레벨 ${s.bestLevel}`);
     if (!storageOk) html += row("locked", "", "저장 안 됨", "이 브라우저에서는 저장이 막혀 있어요 (사생활 보호 모드 등)");
-    html += row("", "", "데미지 숫자", "", `<button class="meta-btn ${meta.showDamage ? "buy" : ""}" data-act="damage">${meta.showDamage ? "켜짐" : "꺼짐"}</button>`);
     html += `<div class="meta-actions"><button class="meta-btn buy" data-act="export">내보내기</button><button class="meta-btn buy" data-act="import">불러오기</button><button class="meta-btn" data-act="wipe">기록 지우기</button></div>`;
   }
   metaBody.innerHTML = html;
@@ -653,7 +652,6 @@ metaBody.addEventListener("click", (e) => {
     }
   } else if (act === "char") { if (isCharOwned(key)) meta.char = key; }
   else if (act === "diff") { if (isDiffUnlocked(+key)) { meta.diff = +key; setBackgroundTheme(DIFFS[meta.diff].theme); } }   // 고른 난이도의 장소가 시작 화면 배경에 바로 보임
-  else if (act === "damage") meta.showDamage = !meta.showDamage;
   else if (act === "export") { exportSave(); return; }
   else if (act === "import") { importFile.click(); return; }
   else if (act === "wipe") {

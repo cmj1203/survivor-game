@@ -1,7 +1,7 @@
 // =====================================================================
 // 15-4. 소리: 배경 음악(작게)과 효과음. Web Audio 로 재생 (효과음이 많이 겹쳐도 가볍게)
 //   - 휴대폰·브라우저는 화면을 한 번 누르거나 키를 누르기 전에는 소리를 못 냄 → 첫 입력 때 소리 장치를 켬
-//   - 소리 켜기/끄기: 왼쪽 위 스피커 버튼 또는 M 키. 설정은 저장됨
+//   - 소리 켜기/끄기: M 키. 배경음·효과음 크기: 왼쪽 위 설정 창. 설정은 저장됨
 //   - 음악·효과음: Juhani Junkala (CC0, OpenGameArt). 출처는 assets/LICENSE.txt
 // =====================================================================
 const MUSIC_VOLUME = 0.18;   // 배경 음악 크기 (사용자 요청: 작게). 효과음보다 확실히 작게
@@ -24,21 +24,41 @@ const SFX = {
   pause_in:  { gap: 0.1,  vol: 0.6 },
   pause_out: { gap: 0.1,  vol: 0.6 },
   quest:     { gap: 0.5,  vol: 0.8 },
-  // 무기 발사음: 자주 나므로 타격·처치보다 작게
-  w_slash:   { gap: 0.1,  vol: 0.25 },
-  w_shoot:   { gap: 0.1,  vol: 0.2 },
-  w_explode: { gap: 0.1,  vol: 0.3 },
-  w_zap:     { gap: 0.1,  vol: 0.25 },
-  w_magic:   { gap: 0.1,  vol: 0.25 },
+  // 무기 발사음 (w_<진화 전 무기 이름>): 자주 나므로 타격·처치보다 작게. vol 은 파일마다 다른 크기를 맞춘 값
+  w_aura: { gap: 0.1, vol: 0.6 },
+  w_bomb: { gap: 0.1, vol: 0.6 },
+  w_bullet: { gap: 0.1, vol: 0.33 },
+  w_cherry: { gap: 0.1, vol: 0.41 },
+  w_clock: { gap: 0.1, vol: 0.6 },
+  w_cross: { gap: 0.1, vol: 0.6 },
+  w_dusting: { gap: 0.1, vol: 0.5 },
+  w_firewand: { gap: 0.1, vol: 0.52 },
+  w_flames: { gap: 0.1, vol: 0.6 },
+  w_hammer: { gap: 0.1, vol: 0.48 },
+  w_larobba: { gap: 0.1, vol: 0.38 },
+  w_lightning: { gap: 0.1, vol: 0.6 },
+  w_pentagram: { gap: 0.1, vol: 0.53 },
+  w_rune: { gap: 0.1, vol: 0.44 },
+  w_spear: { gap: 0.1, vol: 0.46 },
+  w_staff: { gap: 0.1, vol: 0.42 },
+  w_sword: { gap: 0.1, vol: 0.6 },
+  w_vento: { gap: 0.1, vol: 0.6 },
+  w_victory: { gap: 0.1, vol: 0.36 },
+  w_wand: { gap: 0.1, vol: 0.47 },
 };
-// 무기(진화 전 이름) → 발사음. 진화한 무기는 playWeaponSfx 가 원본 이름으로 바꿔 찾음
-const WEAPON_SFX = {
-  sword: "w_slash", vento: "w_slash", victory: "w_slash", hammer: "w_slash",
-  bullet: "w_shoot", spear: "w_shoot", cross: "w_shoot", dusting: "w_shoot",
-  bomb: "w_explode", cherry: "w_explode", larobba: "w_explode", firewand: "w_explode", flames: "w_explode",
-  aura: "w_zap", lightning: "w_zap", staff: "w_zap",
-  wand: "w_magic", rune: "w_magic", clock: "w_magic", pentagram: "w_magic",
-};
+// 설정 창의 음량 단계: 0(소리 없음)~VOL_MAX. VOL_DEFAULT 가 MUSIC_VOLUME·SFX_VOLUME 그대로의 크기, 최대는 그 두 배
+const VOL_MAX = 10, VOL_DEFAULT = 5;
+const VOL_KEYS = { music: "dungeon-survivor-music-level", sfx: "dungeon-survivor-sfx-level" };
+function readVolLevel(which) {
+  try {
+    const v = localStorage.getItem(VOL_KEYS[which]);
+    if (v !== null && Number.isInteger(+v) && +v >= 0 && +v <= VOL_MAX) return +v;
+  } catch {}
+  return VOL_DEFAULT;
+}
+const volLevel = { music: readVolLevel("music"), sfx: readVolLevel("sfx") };
+function musicVolume() { return MUSIC_VOLUME * volLevel.music / VOL_DEFAULT; }
+function sfxVolume() { return SFX_VOLUME * volLevel.sfx / VOL_DEFAULT; }
 let soundOn = true;
 try { soundOn = localStorage.getItem(SOUND_KEY) !== "0"; } catch {}
 let audioCtx = null, masterGain = null, musicGain = null, sfxGain = null;
@@ -67,8 +87,8 @@ function unlockAudio() {
     if (!AC) return;                      // 소리를 못 내는 브라우저: 조용히 넘어감
     audioCtx = new AC();
     masterGain = audioCtx.createGain(); masterGain.gain.value = soundOn ? 1 : 0; masterGain.connect(audioCtx.destination);
-    musicGain = audioCtx.createGain(); musicGain.gain.value = MUSIC_VOLUME; musicGain.connect(masterGain);
-    sfxGain = audioCtx.createGain(); sfxGain.gain.value = SFX_VOLUME; sfxGain.connect(masterGain);
+    musicGain = audioCtx.createGain(); musicGain.gain.value = musicVolume(); musicGain.connect(masterGain);
+    sfxGain = audioCtx.createGain(); sfxGain.gain.value = sfxVolume(); sfxGain.connect(masterGain);
     for (const k in SFX) loadSound(`sfx_${k}`);
     const want = musicWant; musicNow = null;
     if (want) setMusic(want);
@@ -94,8 +114,7 @@ function playSfx(key) {
 // 무기 발사음 (진화한 무기는 원본 무기의 소리를 씀)
 function playWeaponSfx(type) {
   const def = WEAPONS[type];
-  const key = WEAPON_SFX[def && def.evoOf ? def.evoOf : type];
-  if (key) playSfx(key);
+  playSfx(`w_${def && def.evoOf ? def.evoOf : type}`);
 }
 
 // 같은 효과음을 음 높이만 바꿔 냄 (semitones: 반음 단위, 12 = 한 옥타브 위). 간격 제한 없음 → 상자 구슬처럼 차례로 올라가는 음에 씀
@@ -148,26 +167,60 @@ function updateRunMusic() {
   if (want !== musicWant) setMusic(want);
 }
 
-// 소리 켜기/끄기 버튼 (왼쪽 위, 일시정지 버튼 옆. 시작 화면에서는 왼쪽 위 구석)
-const soundBtn = document.getElementById("soundBtn");
-function refreshSoundBtn() {
-  soundBtn.querySelector("img").src = assetUrl(soundOn ? "sound_on" : "sound_off");
-  soundBtn.title = soundOn ? "소리 끄기 (M)" : "소리 켜기 (M)";
-}
+// 소리 켜기/끄기 (M 키)
 function toggleSound() {
   soundOn = !soundOn;
   try { localStorage.setItem(SOUND_KEY, soundOn ? "1" : "0"); } catch {}
   unlockAudio();
   if (masterGain) masterGain.gain.value = soundOn ? 1 : 0;
-  refreshSoundBtn();
 }
-soundBtn.addEventListener("click", toggleSound);
-refreshSoundBtn();
 
-// 버튼 누르는 소리 (스피커·일시정지 버튼은 각자 소리가 따로 있어서 뺌)
+// 설정 창 (왼쪽 위 버튼). 게임 중에 열면 멈췄다가, 닫으면 바로 이어짐
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsBox = document.getElementById("settingsBox");
+const damageToggle = document.getElementById("damageToggle");
+let settingsResume = false;              // 게임 중에 열었으면 닫을 때 다시 돌림
+function refreshSettings() {
+  for (const which of ["music", "sfx"]) {
+    const level = volLevel[which];
+    document.getElementById(`${which}Pips`).innerHTML = Array.from({ length: VOL_MAX }, (_, i) => `<i class="${i < level ? "on" : ""}"></i>`).join("");
+    for (const b of /** @type {NodeListOf<HTMLButtonElement>} */ (settingsBox.querySelectorAll(`[data-vol="${which}"]`))) b.disabled = +b.dataset.step < 0 ? level <= 0 : level >= VOL_MAX;
+  }
+  damageToggle.textContent = meta.showDamage ? "켜짐" : "꺼짐";
+  damageToggle.classList.toggle("on", meta.showDamage);
+}
+function openSettings() {
+  settingsResume = state === "playing";
+  if (settingsResume) { pauseGame("일시정지"); pauseBox.style.display = "none"; }
+  refreshSettings();
+  settingsBox.style.display = "flex";
+}
+function closeSettings() {
+  settingsBox.style.display = "none";
+  if (settingsResume) resumeFromPause();
+}
+function changeVolume(which, step) {
+  volLevel[which] = Math.max(0, Math.min(VOL_MAX, volLevel[which] + step));
+  try { localStorage.setItem(VOL_KEYS[which], String(volLevel[which])); } catch {}
+  if (!soundOn) toggleSound();           // 꺼 둔 채 음량을 바꾸면 안 들리므로 소리를 켬
+  unlockAudio();
+  if (which === "music" && musicGain) musicGain.gain.value = musicVolume();
+  if (which === "sfx" && sfxGain) sfxGain.gain.value = sfxVolume();
+  refreshSettings();
+}
+settingsBtn.addEventListener("click", openSettings);
+document.getElementById("settingsClose").addEventListener("click", closeSettings);
+for (const b of /** @type {NodeListOf<HTMLButtonElement>} */ (settingsBox.querySelectorAll("[data-vol]"))) b.addEventListener("click", () => changeVolume(b.dataset.vol, +b.dataset.step));
+damageToggle.addEventListener("click", () => {
+  meta.showDamage = !meta.showDamage;
+  saveMeta();
+  refreshSettings();
+});
+
+// 버튼 누르는 소리 (일시정지 버튼은 소리가 따로 있어서 뺌)
 document.addEventListener("click", (e) => {
   const b = /** @type {HTMLElement} */ (e.target).closest("button");
-  if (b && b !== soundBtn && b !== pauseBtn) playSfx("button");
+  if (b && b !== pauseBtn) playSfx("button");
 });
 
 // 앱을 내리거나 다른 탭으로 가면 소리를 멈춤 (돌아와서 화면을 누르면 다시 남)

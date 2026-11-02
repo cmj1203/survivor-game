@@ -608,14 +608,14 @@ describe("이어 하기·불러오기·퀘스트 창", () => {
     expect(result).toEqual([false, false, false, true]);
   });
 
-  test("데미지 숫자는 처음엔 켜져 있고, 기록·저장 창에서 끄면 저장됨", async () => {
+  test("데미지 숫자는 처음엔 켜져 있고, 설정 창에서 끄면 저장됨", async () => {
     await view.navigate(`${server.url.href}?save=damage`);
     await page(STORY_SETUP);
     const result = await page(`
       const first = [defaultMeta().showDamage, normalizeMeta({ quests: [], stats: {} }).showDamage];
-      openPanel("save");
-      metaBody.querySelector('[data-act="damage"]').click();
-      return [...first, meta.showDamage, loadMeta().showDamage, metaBody.querySelector('[data-act="damage"]').textContent];
+      openSettings();
+      damageToggle.click();
+      return [...first, meta.showDamage, loadMeta().showDamage, damageToggle.textContent];
     `);
     expect(result).toEqual([true, true, false, false, "꺼짐"]);
   });
@@ -742,20 +742,49 @@ describe("레벨업 봉인·결과 창 피해 표", () => {
     expect(result).toEqual(["봉인 (2번 남음)", "봉인 취소", true, false, true, true, true, 2, "봉인 (0번 남음)", true, "playing"]);
   });
 
-  test("게임오버 창에 무기별 피해를 많이 준 순서로 비율과 함께 보여 줌", async () => {
+  test("게임오버 창에 무기별 피해를 많이 준 순서로 진화 전·후·총합·비율을 한 줄씩 보여 줌", async () => {
     await view.navigate(`${server.url.href}?dmgtable=1`);
     await page(RUN_START);
     const result = await page(`
-      const [a, b] = Object.keys(WEAPONS).filter((k) => !WEAPONS[k].evolved);
-      run.dmgByWeapon = { [b]: 500, [a]: 1500, other: 99 };
+      const a = Object.keys(WEAPONS).find((k) => WEAPONS[k].evolvesTo);
+      const b = Object.keys(WEAPONS).find((k) => k !== a && !WEAPONS[k].evoOf);
+      const evoA = WEAPONS[a].evolvesTo;
+      run.dmgByWeapon = { [b]: 500, [a]: 1000, [evoA]: 500, other: 99 };
       player.invincible = 0; player.hp = 0; checkGameOver();
-      const rows = [...resultDmg.querySelectorAll(".dmg-row")].map((r) => [r.querySelector("span").textContent, r.querySelector("b").textContent, r.querySelector("small").textContent]);
-      return [state, rows, [WEAPONS[a].name, WEAPONS[b].name]];
+      const rows = [...resultDmg.querySelectorAll(".dmg-row")].map((r) => [r.querySelector("span").textContent, ...[...r.querySelectorAll("b")].map((c) => c.textContent), r.querySelector("small").textContent]);
+      return [state, rows, [WEAPONS[evoA].name, WEAPONS[b].name]];
     `);
     if (!Array.isArray(result)) throw new TypeError("결과가 배열이 아님");
     const [state, rows, names] = result;
     expect(state).toBe("gameover");
-    expect(rows).toEqual([[names[0], "1,500", "75%"], [names[1], "500", "25%"]]);
+    expect(rows).toEqual([[names[0], "1,000", "500", "1,500", "75%"], [names[1], "500", "-", "500", "25%"]]);
+  });
+});
+
+describe("설정 창", () => {
+  test("게임 중에 열면 멈추고 닫으면 이어지며, 음량·데미지 표시가 바로 적용되고 저장됨", async () => {
+    await view.navigate(`${server.url.href}?settings=1`);
+    await page(RUN_START);
+    const result = await page(`
+      unlockAudio();
+      const down = () => settingsBox.querySelector('[data-vol="music"][data-step="-1"]');
+      settingsBtn.click();
+      const opened = [state, settingsBox.style.display, pauseBox.style.display];
+      const defaultGain = [musicGain.gain.value / MUSIC_VOLUME, sfxGain.gain.value / SFX_VOLUME];
+      down().click();
+      settingsBox.querySelector('[data-vol="sfx"][data-step="1"]').click();
+      const gain = [musicGain.gain.value / MUSIC_VOLUME, sfxGain.gain.value / SFX_VOLUME];
+      const saved = [localStorage.getItem(VOL_KEYS.music), localStorage.getItem(VOL_KEYS.sfx)];
+      const pips = document.querySelectorAll("#musicPips i.on").length;
+      while (!down().disabled) down().click();
+      const floor = [volLevel.music, musicGain.gain.value];
+      const damageChanged = (() => { const before = meta.showDamage; damageToggle.click(); return meta.showDamage === !before; })();
+      document.getElementById("settingsClose").click();
+      const closed = [state, settingsBox.style.display];
+      localStorage.removeItem(VOL_KEYS.music); localStorage.removeItem(VOL_KEYS.sfx);
+      return [opened, defaultGain.map((v) => Math.round(v * 100)), gain.map((v) => Math.round(v * 100)), saved, pips, floor, damageChanged, closed];
+    `);
+    expect(result).toEqual([["paused", "flex", "none"], [100, 100], [80, 120], ["4", "6"], 4, [0, 0], true, ["playing", "none"]]);
   });
 });
 

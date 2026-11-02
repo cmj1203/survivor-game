@@ -555,7 +555,7 @@ function xpNeedFor(level) {
   return XP_BASE + XP_GROWTH * n + XP_CURVE * n * n;
 }
 
-// 데미지 숫자 (기록·저장 창에서 끄고 켬): 같은 적이 짧은 시간 안에 또 맞으면 새로 띄우지 않고 숫자를 더함
+// 데미지 숫자 (설정 창에서 끄고 켬): 같은 적이 짧은 시간 안에 또 맞으면 새로 띄우지 않고 숫자를 더함
 let dmgSource = null;                // 지금 피해를 주는 무기 종류 (무기 발동·발사체·불바다를 처리하는 동안만. 결과 창의 무기별 피해 표용)
 const DMG_TEXT_LIFE = 0.6;           // 데미지 숫자가 떠 있는 시간 (초)
 const DMG_TEXT_MERGE = 0.2;          // 같은 적이 이 시간(초) 안에 또 맞으면 숫자를 더함

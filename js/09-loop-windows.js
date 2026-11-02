@@ -329,15 +329,23 @@ function endStat(icon, text) {
   return `<span class="end-stat">${icon ? `<img src="${assetUrl(icon)}" alt="">` : ""}${text}</span>`;
 }
 
-// 게임오버·클리어 창의 무기별 피해 표: 이번 판에 피해를 많이 준 무기부터 DMG_TABLE_ROWS 줄 (그림 · 이름 · 피해 · 비율)
+// 게임오버·클리어 창의 무기별 피해 표: 이번 판에 피해를 많이 준 무기부터 DMG_TABLE_ROWS 줄 (그림 · 이름 · 진화 전 · 진화 후 · 총합 · 비율)
 const DMG_TABLE_ROWS = 6;
 const resultDmg = document.getElementById("resultDmg");
 const clearDmg = document.getElementById("clearDmg");
 function dmgTableHtml() {
-  const rows = Object.entries(run.dmgByWeapon).filter(([type, v]) => WEAPONS[type] && v >= 1).sort((a, b) => b[1] - a[1]);
-  const total = rows.reduce((sum, [, v]) => sum + v, 0);
-  return rows.slice(0, DMG_TABLE_ROWS).map(([type, v]) =>
-    `<div class="dmg-row"><img src="${weaponIconUrl(type)}" alt=""><span>${WEAPONS[type].name}</span><b>${Math.round(v).toLocaleString("ko-KR")}</b><small>${Math.round((v / total) * 100)}%</small></div>`).join("");
+  const num = (v) => Math.round(v).toLocaleString("ko-KR");
+  const rows = [];
+  for (const [type, def] of Object.entries(WEAPONS)) {
+    if (def.evoOf) continue;                          // 진화한 무기는 원본 무기 줄에 합침
+    const before = run.dmgByWeapon[type] || 0, after = (def.evolvesTo && run.dmgByWeapon[def.evolvesTo]) || 0;
+    if (before + after >= 1) rows.push({ shown: after >= 1 ? def.evolvesTo : type, before, after, sum: before + after });
+  }
+  if (rows.length === 0) return "";
+  rows.sort((a, b) => b.sum - a.sum);
+  const total = rows.reduce((sum, r) => sum + r.sum, 0);
+  return `<div class="dmg-head"><i></i><span>무기</span><b>진화 전</b><b>진화 후</b><b>총합</b><small>비율</small></div>` + rows.slice(0, DMG_TABLE_ROWS).map((r) =>
+    `<div class="dmg-row"><img src="${weaponIconUrl(r.shown)}" alt=""><span>${WEAPONS[r.shown].name}</span><b>${num(r.before)}</b><b>${r.after >= 1 ? num(r.after) : "-"}</b><b class="dmg-total">${num(r.sum)}</b><small>${Math.round((r.sum / total) * 100)}%</small></div>`).join("");
 }
 
 // 초 → "12분 34초"

@@ -131,9 +131,6 @@ License: Creative Commons Zero (CC0)
       sfx_hurt = Negative Sounds/sfx_sounds_damage1, sfx_gameover = Death Screams/Human/sfx_deathscream_human1,
       sfx_explode = Explosions/Short/sfx_exp_short_hard1, sfx_button = Menu Sounds/sfx_menu_select1,
       sfx_pause_in / sfx_pause_out = Pause Sounds/sfx_sounds_pause1_in / _out,
-      sfx_w_slash = Weapons/Melee/sfx_wpn_sword2, sfx_w_shoot = Weapons/Single Shot Sounds/sfx_weapon_singleshot12,
-      sfx_w_explode = Explosions/Shortest/sfx_exp_shortest_hard4, sfx_w_zap = Weapons/Lasers/sfx_wpn_laser9,
-      sfx_w_magic = General Sounds/High Pitched Sounds/sfx_sounds_high4 (무기 발사음, 2026-11-02)
 
 장소별 배경 음악 (2026-10-16, 모두 CC0, OpenGameArt. 모노 mp3 64kbps 로 줄이고 위 곡들과 음량을 맞춤):
   music_ice.mp3       = "Fields of Ice" — Jonathan So
@@ -150,7 +147,6 @@ License: Creative Commons Zero (CC0)
     https://opengameart.org/content/boss-battle-1-8-bit-re-upload
 
 소리 켜기/끄기 버튼 그림 (2026-10-07):
-  sound_on.png / sound_off.png = pause.png 의 말풍선 윤곽을 그대로 쓰고, 안을 노랑으로 칠한 뒤 스피커(+물결 / +X)를 진한 갈색으로 찍음 (외부 출처 없음)
 
 
 난이도 테마 그림 (2026-10-09, 새 외부 그림 없이 기존 파일의 색을 바꿈):
@@ -258,3 +254,46 @@ Tilemap/tilemap_packed.png 의 칸 번호(16px, 가로 10칸, 왼쪽 위부터 0
 글꼴 (2026-11-02, 외부 서버 대신 직접 제공):
   fonts/Galmuri11.woff2, fonts/Galmuri11-Bold.woff2 = Galmuri 2.40.3, Lee Minseo (quiple), SIL Open Font License 1.1 (fonts/OFL-Galmuri.txt)
   fonts/Tiny5-Regular.ttf = Tiny5, The Tiny5 Project Authors (Google Fonts), SIL Open Font License 1.1 (fonts/OFL-Tiny5.txt)
+
+배경 음악·효과음에 이어서 — 무기 발사음 (원본을 mp3로 바꾸고 앞뒤 무음을 잘라 음량을 맞춤. 모두 CC0):
+  Juhani Junkala (SubspaceAudio), "The Essential Retro Video Game Sound Effects Collection [512 sounds]"
+  https://opengameart.org/content/512-sound-effects-8-bit-style
+  License: Creative Commons Zero (CC0)
+      sfx_w_wand = Weapons/Lasers/sfx_wpn_laser10.wav
+      sfx_w_sword = Weapons/Melee/sfx_wpn_sword1.wav
+      sfx_w_spear = Weapons/Single Shot Sounds/sfx_weapon_singleshot13.wav
+      sfx_w_bomb = Explosions/Short/sfx_exp_short_soft6.wav
+      sfx_w_hammer = Weapons/Melee/sfx_wpn_punch4.wav
+      sfx_w_firewand = Explosions/Shortest/sfx_exp_shortest_soft3.wav
+      sfx_w_lightning = Explosions/Shortest/sfx_exp_shortest_hard8.wav
+      sfx_w_staff = Weapons/Lasers/sfx_wpn_laser4.wav
+      sfx_w_cherry = Explosions/Shortest/sfx_exp_shortest_hard5.wav
+      sfx_w_larobba = Explosions/Short/sfx_exp_short_hard12.wav
+      sfx_w_vento = Weapons/Melee/sfx_wpn_sword2.wav
+      sfx_w_victory = Weapons/Melee/sfx_wpn_sword3.wav
+      sfx_w_flames = Explosions/Short/sfx_exp_short_soft11.wav
+  artisticdude, "RPG Sound Pack"
+  https://opengameart.org/content/rpg-sound-pack
+  License: Creative Commons Zero (CC0)
+      sfx_w_pentagram = battle/magic1.wav
+  bart, "Ice spells"
+  https://opengameart.org/content/ice-spells
+  License: Creative Commons Zero (CC0)
+      sfx_w_clock = coldsnap.wav
+  Kenney, "63 Digital sound effects"
+  https://opengameart.org/content/63-digital-sound-effects-lasers-phasers-space-etc
+  License: Creative Commons Zero (CC0)
+      sfx_w_rune = phaserUp2.mp3
+  qubodup, "Swish - bamboo stick weapon swhoshes"
+  https://opengameart.org/content/swish-bamboo-stick-weapon-swhoshes
+  License: Creative Commons Zero (CC0)
+      sfx_w_bullet = swosh-09.flac
+  BMacZero (Brian MacIntosh), "Electricity Sound Effects"
+  https://opengameart.org/content/electricity-sound-effects-0
+  License: Creative Commons Zero (CC0)
+      sfx_w_aura = spark.wav
+  Kenney, "Impact Sounds"
+  https://kenney.nl/assets/impact-sounds
+  License: Creative Commons Zero (CC0)
+      sfx_w_cross = impactPlate_medium_000.ogg
+      sfx_w_dusting = impactWood_light_000.ogg

@@ -96,8 +96,8 @@ function resetGame() {
   pauseBox.style.display = "none";
   pauseBtn.style.display = "";
   hudStats.style.display = "flex";
-  soundBtn.style.left = "128px";
-  refreshSpeedBtn(true);                   // 1.5배속을 샀으면 소리 버튼 옆에 배속 버튼   // 팝업 창 숨기기
+  settingsBtn.style.left = "128px";
+  refreshSpeedBtn(true);                   // 1.5배속을 샀으면 설정 버튼 옆에 배속 버튼   // 팝업 창 숨기기
   levelupBox.style.display = "none";
   chestBox.style.display = "none";
   clearBox.style.display = "none";
@@ -125,6 +125,7 @@ function keyName(e) {
 window.addEventListener("keydown", (e) => {
   const name = keyName(e);
   if (name === "m" && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) { toggleSound(); return; }   // M: 소리 켜기/끄기 (어느 화면에서나)
+  if (settingsBox.style.display === "flex") { if (name === "escape" && !e.repeat) closeSettings(); return; }   // 설정 창: Esc 로 닫기. 다른 키는 게임에 안 넘김
   if (endingBox.classList.contains("show")) {
     if (e.key === "Enter" || e.key === " " || e.key === "Escape") e.preventDefault();
     return;
