@@ -96,7 +96,6 @@ function resetGame() {
   pauseBox.style.display = "none";
   pauseBtn.style.display = "";
   hudStats.style.display = "flex";
-  settingsBtn.style.left = "128px";
   refreshSpeedBtn(true);                   // 1.5배속을 샀으면 설정 버튼 옆에 배속 버튼   // 팝업 창 숨기기
   levelupBox.style.display = "none";
   chestBox.style.display = "none";

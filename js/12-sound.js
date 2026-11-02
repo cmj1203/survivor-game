@@ -24,27 +24,20 @@ const SFX = {
   pause_in:  { gap: 0.1,  vol: 0.6 },
   pause_out: { gap: 0.1,  vol: 0.6 },
   quest:     { gap: 0.5,  vol: 0.8 },
-  // 무기 발사음 (w_<진화 전 무기 이름>): 자주 나므로 타격·처치보다 작게. vol 은 파일마다 다른 크기를 맞춘 값
-  w_aura: { gap: 0.1, vol: 0.6 },
-  w_bomb: { gap: 0.1, vol: 0.6 },
-  w_bullet: { gap: 0.1, vol: 0.33 },
-  w_cherry: { gap: 0.1, vol: 0.41 },
-  w_clock: { gap: 0.1, vol: 0.6 },
-  w_cross: { gap: 0.1, vol: 0.6 },
-  w_dusting: { gap: 0.1, vol: 0.5 },
-  w_firewand: { gap: 0.1, vol: 0.52 },
-  w_flames: { gap: 0.1, vol: 0.6 },
-  w_hammer: { gap: 0.1, vol: 0.48 },
-  w_larobba: { gap: 0.1, vol: 0.38 },
-  w_lightning: { gap: 0.1, vol: 0.6 },
-  w_pentagram: { gap: 0.1, vol: 0.53 },
-  w_rune: { gap: 0.1, vol: 0.44 },
-  w_spear: { gap: 0.1, vol: 0.46 },
-  w_staff: { gap: 0.1, vol: 0.42 },
-  w_sword: { gap: 0.1, vol: 0.6 },
-  w_vento: { gap: 0.1, vol: 0.6 },
-  w_victory: { gap: 0.1, vol: 0.36 },
-  w_wand: { gap: 0.1, vol: 0.47 },
+  // 무기 발사음: 자주 나므로 타격·처치보다 작게
+  w_slash:   { gap: 0.1,  vol: 0.25 },
+  w_shoot:   { gap: 0.1,  vol: 0.2 },
+  w_explode: { gap: 0.1,  vol: 0.3 },
+  w_zap:     { gap: 0.1,  vol: 0.25 },
+  w_magic:   { gap: 0.1,  vol: 0.25 },
+};
+// 무기(진화 전 이름) → 발사음. 진화한 무기는 playWeaponSfx 가 원본 이름으로 바꿔 찾음
+const WEAPON_SFX = {
+  sword: "w_slash", vento: "w_slash", victory: "w_slash", hammer: "w_slash",
+  bullet: "w_shoot", spear: "w_shoot", cross: "w_shoot", dusting: "w_shoot",
+  bomb: "w_explode", cherry: "w_explode", larobba: "w_explode", firewand: "w_explode", flames: "w_explode",
+  aura: "w_zap", lightning: "w_zap", staff: "w_zap",
+  wand: "w_magic", rune: "w_magic", clock: "w_magic", pentagram: "w_magic",
 };
 // 설정 창의 음량 단계: 0(소리 없음)~VOL_MAX. VOL_DEFAULT 가 MUSIC_VOLUME·SFX_VOLUME 그대로의 크기, 최대는 그 두 배
 const VOL_MAX = 10, VOL_DEFAULT = 5;
@@ -114,7 +107,8 @@ function playSfx(key) {
 // 무기 발사음 (진화한 무기는 원본 무기의 소리를 씀)
 function playWeaponSfx(type) {
   const def = WEAPONS[type];
-  playSfx(`w_${def && def.evoOf ? def.evoOf : type}`);
+  const key = WEAPON_SFX[def && def.evoOf ? def.evoOf : type];
+  if (key) playSfx(key);
 }
 
 // 같은 효과음을 음 높이만 바꿔 냄 (semitones: 반음 단위, 12 = 한 옥타브 위). 간격 제한 없음 → 상자 구슬처럼 차례로 올라가는 음에 씀
