@@ -98,7 +98,7 @@ function randomEdgePosition(margin) {
 //   SPRITES.ghost.normal = 원래 그림,  SPRITES.ghost.white = 흰색 실루엣 (맞았을 때 번쩍임용)
 //   그림이 아직 안 불러와졌거나 파일이 없으면 ready 가 false → 대신 단색 원으로 그림
 // =====================================================================
-// 그림 주소에 붙일 버전: index.html 이 이 파일을 부를 때 붙인 ?v= 값을 그대로 씀 (올릴 때 index.html 의 ?v= 만 바꾸면 됨)
+// 그림 주소에 붙일 버전: index.html 이 이 파일을 부를 때 붙인 ?v= 값을 그대로 씀 (올릴 때 index.html·style.css 의 ?v= 를 함께 바꾸면 됨)
 const ASSET_VERSION = new URL(/** @type {HTMLScriptElement} */ (document.currentScript).src).searchParams.get("v") || "";
 const assetUrl = (name, ext = "png") => `assets/${name}.${ext}${ASSET_VERSION ? `?v=${ASSET_VERSION}` : ""}`;
 const SPRITE_NAMES = ["fx_slash", "fx_bolt", "fx_star", "fx_ray", "fx_flame", "fx_blast", "fx_fireball", "fx_claw", "fx_zap", "fx_parry", "fx_shock", "fx_firering", "fx_burn", "fx_frostnova", "fx_iceshatter", "fx_icehit", "fx_landdust", "fx_icespikes", "fx_leapclaw", "fx_flameloop", "fx_pillar", "fx_fireburst", "fx_meteor", "fx_meteor_p", "fx_fireburst_p", "fx_darkslash", "fx_cursecloud", "fx_darkburst", "fx_icerock", "fx_icicle", "fx_circlefire", "fx_castcircle", "fx_arrow", "fx_arrowdark", "fx_ghostsword", "fx_circleice", "fx_snowflake", "hazard_puddle1", "hazard_puddle2", "hazard_puddle3", "hero_mage", "hero_hunter", "hero_berserker", "hero_saint", "hero_armorer", "ghost", "bat", "cyclops", "spider", "wizard", "crab", "flower", "icewisp", "polarbear", "iceelem", "frostwight", "wendigo", "yeti", "imp", "hellhound", "fireelem", "flameskull", "lavagolem", "demon", "crow", "nightmare", "muck", "wraith", "mummy", "deathknight", "chest", "chest_open", "mimic", "potion_green", "item_magnet", "item_wipe", "item_freeze",

@@ -1,3 +1,8 @@
+/* 픽셀 글꼴 (SIL Open Font License, assets/fonts/OFL-*.txt). font-display: swap = 글꼴을 받는 동안 기본 글꼴로 먼저 보여 줌 */
+@font-face { font-family: "Galmuri11"; font-weight: 400; font-display: swap; src: url("assets/fonts/Galmuri11.woff2?v=20261102a") format("woff2"); }
+@font-face { font-family: "Galmuri11"; font-weight: 700; font-display: swap; src: url("assets/fonts/Galmuri11-Bold.woff2?v=20261102a") format("woff2"); }
+@font-face { font-family: "Tiny5"; font-weight: 400; font-display: swap; src: url("assets/fonts/Tiny5-Regular.ttf?v=20261102a") format("truetype"); }
+
 /* ===== 꾸미기 (화면 배경, 게임오버 창, 레벨업 창) ===== */
 body {
   margin: 0;
@@ -14,6 +19,8 @@ body {
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;
 }
+/* 키보드 포커스: Tab 으로 옮겨 다닐 때만 보이는 각진 노란 외곽선. :focus-visible 은 마우스·터치로 누를 때는 켜지지 않음 */
+:focus-visible { outline: 3px solid #ffd60a; outline-offset: 2px; }
 /* 팝업 창 크기 배율: 화면이 작은 휴대폰이면 창 전체를 줄여서 화면 안에 들어가게 (자바스크립트 fitUi 가 정함) */
 :root { --ui-zoom: 1; --app-w: 100vw; --app-h: 100dvh; }   /* --app-h: 실제 보이는 높이 (휴대폰은 주소창을 뺀 높이) */
 .popup { zoom: var(--ui-zoom); }
@@ -127,8 +134,30 @@ canvas {
 #levelup .levelup-buttons button:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 #000; }
 #levelup .levelup-buttons button:disabled { opacity: 0.35; transform: none; box-shadow: 5px 5px 0 #000; cursor: default; background: #1e1e2e; }
 
+/* 보물 상자·도움말·무기 상자·일시정지·새로 시작 창: 레벨업·게임오버 창과 같은 픽셀풍 (각진 두꺼운 테두리, 딱딱한 그림자, Galmuri11 글꼴, 제목 밑 점선)
+   테두리 색은 원래 뜻 그대로: 보물 상자 = 금색, 나머지 = 흰색. 새로 시작 창의 더 진한 배경은 아래 #newGameBox 규칙에 있음 */
+#chestBox, #helpBox, #candyBox, #pauseBox, #newGameBox {
+  --win-color: #fff; --win-dark: #3a3350;
+  font-family: "Galmuri11", sans-serif;
+  background: rgba(21, 18, 31, 0.96); border: 4px solid var(--win-color); border-radius: 0;
+  box-shadow: inset 0 0 0 4px #000, 0 0 0 4px #000, 10px 10px 0 4px rgba(0, 0, 0, 0.6), 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+  animation: end-pop 0.2s steps(3) both;
+}
+#chestBox h1, #helpBox h1, #candyBox h1, #pauseBox h1, #newGameBox h1 {
+  flex: none; font-weight: normal; letter-spacing: 2px;
+  text-shadow: 4px 4px 0 var(--win-dark), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+}
+#chestBox h1::after, #candyBox h1::after, #pauseBox h1::after, #newGameBox h1::after {   /* 제목 밑 픽셀 점선 */
+  content: ""; display: block; height: 4px; margin: 10px auto 0; width: 80%;
+  background: repeating-linear-gradient(90deg, var(--win-color) 0 8px, transparent 8px 14px);
+}
 /* 보물 상자 창 */
-#chestBox { border-color: #ffd60a; min-width: 320px; }
+#chestBox { --win-color: #ffd60a; --win-dark: #6b3a00; min-width: 320px; gap: 8px; padding: 16px 40px 20px; }   /* 간격·여백: 창 높이가 fitUi 기준(560px) 안에 들어가게 */
+#chestBox h1 { color: #ffd60a; }
+/* 일시정지·새로 시작 창: 게임오버 창처럼 글은 가운데, 버튼은 같은 너비로 세로로 쌓음 */
+#pauseBox, #newGameBox { box-sizing: border-box; min-width: 420px; max-width: 560px; gap: 14px; padding: 26px 40px 30px; }
+#pauseText, #newGameText { margin: 0; font-size: 15px; line-height: 1.6; }
+#pauseBox button, #newGameBox button { width: 240px; padding: 10px 0 12px; font-size: 18px; }
 /* 게임오버·클리어 창: 시작 화면과 같은 픽셀풍 (각진 두꺼운 테두리, 딱딱한 그림자, Galmuri11 글꼴, 노란 픽셀 버튼)
    게임오버 = 어두운 빨강 테두리·빨간 제목, 클리어 = 노란 테두리·노란 제목. 뒤 게임 화면은 살짝 어둡게 (맨 마지막 그림자) */
 #gameover, #clearBox {
@@ -176,7 +205,7 @@ canvas {
 #gameover .run-reward:empty, #clearBox .run-reward:empty { display: none; }
 #gameover .run-reward::before, #clearBox .run-reward::before {   /* 첫 줄(금화) 앞 금화 그림 */
   content: ""; display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px;
-  background: url("assets/coin.png") center / contain no-repeat; image-rendering: pixelated;
+  background: url("assets/coin.png?v=20261102a") center / contain no-repeat; image-rendering: pixelated;
 }
 /* 버튼: 시작 화면의 픽셀 버튼과 같은 모양 (주요 버튼은 노랑) */
 #gameover button, #clearBox button {
@@ -261,39 +290,51 @@ canvas {
   box-sizing: border-box;                         /* 테두리·안쪽 여백까지 합쳐서 위 크기 안에 들어오게 */
   padding: 12px 16px; gap: 8px; z-index: 20;      /* z-index: 레벨업·상자 창보다 위에 뜨게 */
 }
-#helpBox h1 { font-size: 22px; }
-#newGameBox { z-index: 30; background: rgba(0, 0, 0, 0.95); }   /* 시작 화면(제목·버튼) 위에 뜨게. 뒤의 제목이 비치지 않게 더 진하게 */
-.help-head { display: flex; align-items: center; gap: 12px; width: 100%; }
+#helpBox h1 { font-size: 22px; letter-spacing: 1px; text-shadow: 3px 3px 0 var(--win-dark), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+#newGameBox { z-index: 30; background: #000; }   /* 시작 화면(제목·버튼) 위에 뜨게. 뒤의 제목이 비치지 않게 불투명한 검정 */
+.help-head {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding-bottom: 10px;
+  background: repeating-linear-gradient(90deg, var(--win-color) 0 8px, transparent 8px 14px) left bottom / 100% 4px no-repeat;   /* 제목 줄 밑 픽셀 점선 */
+}
 .help-tabs { display: flex; gap: 8px; flex: 1; }
-.help-tab { padding: 6px 14px; border: 2px solid #4a90e2; border-radius: 6px; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; }
+.help-tab { padding: 6px 14px; font-family: inherit; border: 2px solid #4a90e2; border-radius: 0; background: #1e1e2e; color: #fff; cursor: pointer; font-size: 15px; box-shadow: 3px 3px 0 #000; }
+.help-tab:hover { background: #2e3a55; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000; }
+.help-tab:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #000; }
 .help-tab.active { background: #4a90e2; }
 #helpList {
   width: 100%; overflow-y: auto; flex: 1 1 auto; min-height: 0; text-align: left;
   display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; align-content: start;
+  box-sizing: border-box; padding: 0 6px 6px 0;   /* 스크롤 칸에 잘리지 않게 딱딱한 그림자 자리를 비움 */
 }
+@media (max-width: 1150px) { #helpList { grid-template-columns: 1fr; } }   /* 화면이 좁으면(휴대폰, 작은 PC 창) 두 줄로는 글자가 넘치므로 한 줄(1열)로 */
 #helpList p { grid-column: 1 / -1; }             /* 맨 아래 안내 글은 두 열을 다 씀 */
 .combo {                                          /* 조합표 한 줄: [무기] + [패시브] → [진화] */
   display: flex; align-items: center; gap: 6px; min-width: 0;
-  padding: 4px 8px; border: 2px solid rgba(255,255,255,0.25); border-radius: 6px; background: #1e1e2e; font-size: 13px;
+  padding: 4px 8px; border: 2px solid #4a4560; border-radius: 0; background: #1e1e2e; box-shadow: 3px 3px 0 #000; font-size: 13px;
 }
 .combo .piece { display: flex; align-items: center; gap: 5px; min-width: 122px; }
 .combo .piece.dim { opacity: 0.35; }             /* 아직 없는 것은 흐리게 */
 .combo .piece img { width: 26px; height: 26px; flex: none; image-rendering: pixelated; }
 .combo .arrow { color: #aaa; }
 .combo .result { flex: 1; min-width: 0; }
-.combo .result small { display: block; color: #aaa; font-size: 11px; }
+.combo .result small { display: block; color: #aaa; font-size: 12px; }
 .combo.ready { border-color: #ffd60a; }           /* 조건이 갖춰짐: 다음 상자에서 진화 */
 .combo.done { border-color: #ff8c42; }            /* 이미 진화함 */
-.combo .tag { font-size: 11px; padding: 2px 6px; border-radius: 10px; background: #ffd60a; color: #111; font-weight: bold; flex: none; }
+.combo .tag { font-size: 12px; padding: 2px 6px; border-radius: 0; background: #ffd60a; color: #111; font-weight: bold; flex: none; box-shadow: 2px 2px 0 #000; }
 .combo.done .tag { background: #ff8c42; }
-#helpBox .help-close { flex: none; padding: 6px 18px; font-size: 15px; margin: 0; }
+#helpBox .help-close { flex: none; padding: 5px 16px 7px; font-size: 15px; margin: 0; box-shadow: inset 0 3px 0 #fff1a0, inset 0 -4px 0 #c98f00, 3px 3px 0 #000; }
+#helpBox .help-close:hover { box-shadow: inset 0 3px 0 #fff6c4, inset 0 -4px 0 #d9a000, 4px 4px 0 #000; transform: translate(-1px, -1px); }
+#helpBox .help-close:active { box-shadow: inset 0 4px 0 #c98f00, 1px 1px 0 #000; transform: translate(2px, 2px); }
 
 /* 사탕 상자: 무기 고르기 창 */
 #candyBox { width: 720px; max-height: calc(var(--app-h) * 0.88); padding: 20px 28px; }
 /* 작은 창에서도 카드 높이는 내용만큼 유지하고, 넘치는 목록만 스크롤 (진화 줄이 잘리지 않게) */
-#candyList { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: max-content; gap: 8px; width: 100%; overflow-y: auto; max-height: calc(var(--app-h) * 0.6); }
-#candyList .card { padding: 8px 10px 8px 52px; min-height: 48px; font-size: 14px; background-position: 8px center; background-size: 36px 36px; }
-#candyList .card small { font-size: 11px; }
+#candyList { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: max-content; gap: 8px; width: 100%; overflow-y: auto; max-height: calc(var(--app-h) * 0.6);
+  box-sizing: border-box; padding: 8px; }   /* padding: 스크롤 칸에 잘리지 않게 그림자·포커스 외곽선 자리를 비움 */
+#candyList .card { font-family: inherit; border-width: 3px; border-radius: 0; box-shadow: 4px 4px 0 #000; padding: 8px 10px 8px 52px; min-height: 48px; font-size: 14px; background-position: 8px center; background-size: 36px 36px; }
+#candyList .card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
+#candyList .card:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+#candyList .card small { font-size: 12px; }
 /* 카드 아래 진화 조합 한 줄: [아이템 그림] 아이템 → 진화 무기. 그 아이템을 이미 갖고 있으면 금색 */
 #candyList .card small.evo { color: #8fb8ff; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 #candyList .card small.evo.have { color: #ffd60a; }
@@ -313,7 +354,7 @@ canvas {
 #chestFx { position: absolute; left: 50%; top: 78%; width: 96px; height: 96px; margin: -48px 0 0 -48px; }
 #chestImg { position: relative; display: block; width: 96px; height: 96px; image-rendering: pixelated; }
 #chestFx .burst, #chestFx .glow { position: absolute; left: 50%; top: 50%; pointer-events: none; opacity: 0; }
-#chestFx .burst { width: 224px; height: 224px; margin: -112px 0 0 -112px; background: url("assets/fx_star.png") 0 0 / 1568px 224px no-repeat; image-rendering: pixelated; }
+#chestFx .burst { width: 224px; height: 224px; margin: -112px 0 0 -112px; background: url("assets/fx_star.png?v=20261102a") 0 0 / 1568px 224px no-repeat; image-rendering: pixelated; }
 #chestFx .glow { width: 200px; height: 200px; margin: -100px 0 0 -100px; border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 214, 10, 0.9) 0%, rgba(255, 214, 10, 0.35) 40%, rgba(255, 214, 10, 0) 70%); }
 #chestStage.shaking #chestImg { animation: chestShake 0.16s linear infinite; }
@@ -322,7 +363,7 @@ canvas {
 #chestStage.open .glow { animation: chestGlow 0.7s ease-out forwards; }
 /* 상자에서 튀는 금화(금화가 섞였을 때) 또는 반짝이 */
 #chestCoins i { position: absolute; left: 50%; top: 74%; opacity: 0; pointer-events: none; animation: coinFly 1.1s cubic-bezier(0.2, 0.7, 0.4, 1) forwards; }
-#chestCoins i.coin { width: 20px; height: 20px; background: url("assets/coin.png") center / contain no-repeat; image-rendering: pixelated; }
+#chestCoins i.coin { width: 20px; height: 20px; background: url("assets/coin.png?v=20261102a") center / contain no-repeat; image-rendering: pixelated; }
 #chestCoins i.spark { width: 7px; height: 7px; background: #fff3a0; box-shadow: 0 0 6px 2px rgba(255, 214, 10, 0.8); }
 /* 보상 구슬: 주황 구슬 뒤로 빛살이 돌고, 안의 그림이 슬롯처럼 돌다가 멈춤(landed). 진화는 보라, 금화는 금색 */
 .chest-orb { position: absolute; width: 58px; height: 58px; margin: 0; padding: 0; border: 3px solid #ffd9a8; border-radius: 50%; opacity: 0; cursor: pointer;
@@ -337,9 +378,12 @@ canvas {
 .chest-orb.evolved { border-color: #f0c8ff; background: radial-gradient(circle at 40% 35%, #e3a3ff 0%, #a64dff 55%, #5a1a99 100%); box-shadow: 0 0 18px 6px rgba(190, 110, 255, 0.75); }
 .chest-orb.gold { border-color: #fff3a0; background: radial-gradient(circle at 40% 35%, #fff3a0 0%, #ffd60a 55%, #b88a00 100%); box-shadow: 0 0 16px 5px rgba(255, 214, 10, 0.7); }
 .chest-orb.sel { outline: 3px solid #fff; outline-offset: 3px; }
+/* 키보드 포커스: 외곽선은 둥근 구슬을 따라 둥글어지므로 각진 외곽선은 ::after 로 그림 (.sel 의 흰 테두리 바깥쪽) */
+.chest-orb:focus-visible:not(.sel) { outline: none; }
+.chest-orb:focus-visible::after { content: ""; position: absolute; inset: -9px; outline: 3px solid #ffd60a; pointer-events: none; }
 /* 아래 정보 칸: 고른 보상 한 줄 + 몇 번째인지 */
-#chestInfo { display: flex; align-items: center; gap: 10px; min-height: 68px; }   /* 설명이 두 줄인 보상(장검 등)도 들어가는 높이. 칸이 늘어 창 제목이 움직이지 않게 */
-#chestInfo .gain { width: 300px; box-sizing: border-box; }
+#chestInfo { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 361px; min-height: 77px; }   /* 설명이 두 줄인 보상(장검 등)도 들어가는 크기. 칸이 늘어 창 제목·테두리가 움직이지 않게 (Galmuri11 글꼴 기준) */
+#chestInfo .gain { width: 320px; box-sizing: border-box; }
 #chestInfo .pager { color: #ffd60a; font-weight: bold; font-size: 16px; }
 @keyframes beamUp { from { transform: scaleY(0); opacity: 1; } to { transform: scaleY(1); opacity: 1; } }
 @keyframes beamPulse { from { opacity: 1; } to { opacity: 0.55; } }
@@ -360,31 +404,37 @@ canvas {
   background-position: 12px center;
   background-size: 30px 30px;
   image-rendering: pixelated;
-  border: 2px solid #ffd60a;
-  border-radius: 6px;
+  border: 3px solid #ffd60a;
+  border-radius: 0;
   background-color: #1e1e2e;
+  box-shadow: 4px 4px 0 #000;
   text-align: left;
   font-size: 15px;
 }
 .gain small { display: block; color: #aaa; margin-top: 2px; font-size: 12px; }
 .gain.evolved { border-color: #ff8c42; background-color: #2a1a10; }   /* 진화 결과 줄은 주황 테두리 */
+/* 창 버튼: 시작 화면·게임오버 창의 픽셀 버튼과 같은 모양 (주요 버튼은 노랑). 게임오버·클리어·레벨업 창은 자기 규칙이 이 값을 전부 덮음 */
 .ok-button {
   padding: 10px 28px;
-  font-size: 18px;
+  font-family: inherit; font-size: 18px; font-weight: bold; letter-spacing: 1px;
   cursor: pointer;
-  border: none;
-  border-radius: 6px;
+  border: 4px solid #2a1606;
+  border-radius: 0;
   background: #ffd60a;
-  color: #111;
-  font-weight: bold;
+  color: #3a2400;
+  text-shadow: 1px 1px 0 #fff1a0;
+  box-shadow: inset 0 4px 0 #fff1a0, inset 0 -6px 0 #c98f00, 5px 5px 0 #000;
 }
-.ok-button:disabled { opacity: 0.35; cursor: default; }
+.ok-button:hover { background: #ffe14d; transform: translate(-2px, -2px); box-shadow: inset 0 4px 0 #fff6c4, inset 0 -6px 0 #d9a000, 7px 7px 0 #000; }
+.ok-button:active { transform: translate(3px, 3px); box-shadow: inset 0 6px 0 #c98f00, 2px 2px 0 #000; }
+.ok-button:disabled { opacity: 0.35; cursor: default; background: #ffd60a; transform: none; box-shadow: inset 0 4px 0 #fff1a0, inset 0 -6px 0 #c98f00, 5px 5px 0 #000; }
 .reroll-button {
-  padding: 8px 20px; font-size: 15px; cursor: pointer;
-  border: 2px solid #aaa; border-radius: 6px; background: #1e1e2e; color: #fff;
+  padding: 8px 20px; font-family: inherit; font-size: 15px; letter-spacing: 1px; cursor: pointer;
+  border: 4px solid #fff; border-radius: 0; background: #1e1e2e; color: #fff; box-shadow: 5px 5px 0 #000;
 }
-.reroll-button:hover { background: #2e3a55; }
-.reroll-button:disabled { opacity: 0.35; cursor: default; background: #1e1e2e; }
+.reroll-button:hover { background: #2e3a55; transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #000; }
+.reroll-button:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 #000; }
+.reroll-button:disabled { opacity: 0.35; cursor: default; background: #1e1e2e; transform: none; box-shadow: 5px 5px 0 #000; }
 
 /* =====================================================================
    시작 화면: 창(팝업)이 아니라 게임 화면 전체를 덮는 한 장의 화면
@@ -392,7 +442,7 @@ canvas {
      - 제목·버튼·설명은 HTML 로 캤버스 위에 얹음 (#titleOverlay)
      - 크기 단위가 cqw 인 것은 바로 아래 #stage 설명 참고: 창이 작아지면 글자·버튼도 같은 배율로 작아짐
    ===================================================================== */
-/* 픽셀 글꼴: 제목 = Tiny5 (Google Fonts), 한글 = Galmuri11 (jsDelivr). 둘 다 무료·오프라인이면 sans-serif 로 대체됨 */
+/* 픽셀 글꼴: 제목 = Tiny5, 한글 = Galmuri11 (맨 위 @font-face, assets/fonts). 받기 전에는 sans-serif 로 보임 */
 /* (글꼴 불러오기는 <head> 의 <link> 로 옮김: @import 는 style 맨 앞에만 쓸 수 있어서 여기서는 무시되고 있었음) */
 
 #titleOverlay {
@@ -490,10 +540,10 @@ canvas {
 .meta-note:empty { display: none; }   /* 설명 글이 없는 창에서는 자리도 차지하지 않게 */
 #metaBody { width: 100%; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6cqw; touch-action: pan-x pan-y; }   /* pan-x 도 허용: 세로로 들면 화면이 90도 돌아가서, 목록을 미는 손짓이 화면 기준으로는 가로 방향이 됨 */
 #metaBody > * { flex: none; }   /* 줄이 찌그러지지 않고 스크롤되게 */
-#metaBody { scrollbar-width: thin; scrollbar-color: #ffd60a rgba(255, 255, 255, 0.12); }   /* 목록이 더 있다는 걸 알 수 있게 스크롤 막대를 보이게 */
-#metaBody::-webkit-scrollbar { width: 6px; }
-#metaBody::-webkit-scrollbar-thumb { background: #ffd60a; }
-#metaBody::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.12); }
+#metaBody, #helpList, #candyList { scrollbar-width: thin; scrollbar-color: #ffd60a rgba(255, 255, 255, 0.12); }   /* 목록이 더 있다는 걸 알 수 있게 스크롤 막대를 보이게 */
+#metaBody::-webkit-scrollbar, #helpList::-webkit-scrollbar, #candyList::-webkit-scrollbar { width: 6px; }
+#metaBody::-webkit-scrollbar-thumb, #helpList::-webkit-scrollbar-thumb, #candyList::-webkit-scrollbar-thumb { background: #ffd60a; }
+#metaBody::-webkit-scrollbar-track, #helpList::-webkit-scrollbar-track, #candyList::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.12); }
 .meta-row { display: flex; align-items: center; gap: 1cqw; padding: 0.7cqw 1cqw; background: rgba(30, 30, 46, 0.95); border: 0.2cqw solid rgba(255,255,255,0.25); font-size: max(1.25cqw, 12px); color: #ddd; text-align: left; }
 .meta-row img { width: 3.2cqw; height: 3.2cqw; flex: none; image-rendering: pixelated; }
 .meta-row .grow { flex: 1; min-width: 0; }
@@ -560,4 +610,18 @@ canvas {
   #choices .card { flex: none; }
   #levelup h1, .levelup-buttons { flex: none; }
   #helpBox .help-head { flex: none; }
+  /* 픽셀풍 창 5개: 창 전체가 --ui-zoom 배로 줄어도 화면 글자가 12px 밑으로 안 내려가게 (zoom 전 크기 = 12px ÷ --ui-zoom).
+     커진 글자가 들어가도록 여백을 줄이고, 무기 상자는 도움말 창처럼 화면 가득 */
+  #chestBox, #helpBox, #candyBox, #pauseBox, #newGameBox { --min-text: calc(12px / var(--ui-zoom)); }
+  #chestBox, #candyBox, #pauseBox, #newGameBox { padding: 12px 16px; gap: 8px; }
+  :is(#chestBox, #helpBox, #candyBox, #pauseBox, #newGameBox) :is(p, small, .gain, .pager, .combo, .tag, .help-tab, .card),
+  #candyList .card small, #candyHelp { font-size: var(--min-text); }
+  :is(#chestBox, #helpBox, #pauseBox, #newGameBox) :is(.ok-button, .reroll-button) { font-size: max(18px, var(--min-text)); }
+  #helpList p { zoom: calc(12 / 13 / var(--ui-zoom)); }   /* 이 안내 글은 글자 크기(13px)가 자바스크립트 style 속성에 있어 font-size 로 못 덮음. zoom 으로 화면 12px 에 맞춤 */
+  #candyBox { box-sizing: border-box; width: min(1160px, calc(var(--app-w) * 0.96 / var(--ui-zoom))); max-height: calc(var(--app-h) * 0.96 / var(--ui-zoom)); }
+  #candyList { max-height: none; min-height: 0; flex: 1 1 auto; }
+  #candyBox h1, #candyHelp { flex: none; }
+  #chestStage { height: 220px; }   /* 상자 창이 화면 높이 안에 들어가게 (구슬·빛기둥·상자 자리는 % 라서 같이 줄어듦) */
+  #chestInfo { min-width: 470px; min-height: 96px; }
+  #chestInfo .gain { width: 420px; }
 }

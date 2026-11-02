@@ -796,6 +796,39 @@ const EVOLUTIONS = {
 function evolvedDef(base, overrides) {
   return Object.assign({}, WEAPONS[base], { evolved: true, evoOf: base }, overrides);
 }
+// 숫자만 오르던 진화 무기 5개에 붙인 동작 (발사체 훅 onStrike·onTurn 은 js/07-update.js 가 부름)
+const WAND_BOUNCE_RANGE = 220;     // 성스러운 봉: 맞은 적에서 이 거리 안의 가장 가까운 적에게 한 번 튕김
+const BLADE_SPLIT_ANGLE = 0.5;     // 천 개의 칼날: 처치하면 진행 방향 양옆(라디안)으로 단검 2개
+const SHIELD_BLAST_RADIUS = 70;    // 수호자의 방패: 돌아서는 자리의 폭발 반지름
+const AXE_WAVE_INTERVAL = 3;       // 회오리 도끼: 충격파 간격 (초)
+const AXE_WAVE_RADIUS = 110;       // 회오리 도끼: 충격파 반지름
+const HELLFIRE_POOL_LIFE = 2;      // 지옥불: 처음 맞힌 자리의 불바다 시간 (초)
+function wandBounce(b, hit) {
+  if (b.bounced) return;
+  let best = null, bestD = WAND_BOUNCE_RANGE;
+  for (const e of enemies) { if (e === hit || e.dead) continue; const d = Math.hypot(e.x - hit.x, e.y - hit.y); if (d < bestD) { best = e; bestD = d; } }
+  if (!best) return;
+  const a = Math.atan2(best.y - hit.y, best.x - hit.x), sp = Math.hypot(b.vx, b.vy);
+  bullets.push({ ...b, x: hit.x, y: hit.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, bounced: true, dead: false, hitIds: new Set([hit.id]) });
+}
+function bladeSplit(b, hit) {
+  if (b.shard || !hit.dead) return;
+  const a = Math.atan2(b.vy, b.vx), sp = Math.hypot(b.vx, b.vy);
+  for (const s of [-1, 1]) bullets.push({ ...b, x: hit.x, y: hit.y, vx: Math.cos(a + s * BLADE_SPLIT_ANGLE) * sp, vy: Math.sin(a + s * BLADE_SPLIT_ANGLE) * sp, damage: b.damage * 0.5, shard: true, pierce: 0, life: 0.5, dead: false, hitIds: new Set([hit.id]) });
+}
+function shieldBlast(b) {
+  const r = SHIELD_BLAST_RADIUS * areaMul();
+  for (const e of enemies) if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < r + e.r) damageEnemy(e, b.damage);
+  effects.push({ x: b.x, y: b.y, r, life: 0.3, maxLife: 0.3, fx: "fx_shock" });
+}
+function hellfirePool(b, hit) {
+  if (b.pooled) return;
+  b.pooled = true;
+  const life = HELLFIRE_POOL_LIFE * durationMul();
+  zones.push({ kind: "fire", x: hit.x, y: hit.y, r: 40 * areaMul(), life, maxLife: life, tick: 0, interval: 0.25, damage: b.damage * 0.1, src: b.src });
+}
+// 기본 무기의 fire/update 로 만든 새 발사체에 훅을 붙임
+function tagNewBullets(before, hooks) { for (let i = before; i < bullets.length; i++) Object.assign(bullets[i], hooks); }
 Object.assign(WEAPONS, {
   sword_evo: evolvedDef("sword", { name: "피의 검", icon: "w_bloodsword", desc: "3연속 베기. 벨 때마다 체력 1 회복", damageMul: 2.0,
     fire(w) { this.slash(w, { x: player.facingX, y: player.facingY }); w.pending = [{ delay: 0.12, dir: { x: -player.facingX, y: -player.facingY } }, { delay: 0.24, dir: { x: 0, y: -1 } }]; },
@@ -805,13 +838,26 @@ Object.assign(WEAPONS, {
       if (hits > 0) player.hp = Math.min(player.maxHp, player.hp + 1);
       effects.push({ kind: "slash", x: player.x, y: player.y, angle: Math.atan2(dir.y, dir.x), r, life: 0.2, maxLife: 0.2 });
     } }),
-  wand_evo: evolvedDef("wand", { name: "성스러운 봉", desc: "쉬지 않고 마법탄을 쏨", interval: 0.3, damageMul: 2.4 }),
-  bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.16 }),
+  wand_evo: evolvedDef("wand", { name: "성스러운 봉", desc: "쉬지 않고 마법탄을 쏨", interval: 0.3, damageMul: 2.4,
+    update(w, dt) { const before = bullets.length; WEAPONS.wand.update.call(this, w, dt); tagNewBullets(before, { onStrike: wandBounce }); } }),
+  bullet_evo: evolvedDef("bullet", { name: "천 개의 칼날", desc: "단검이 폭포처럼 쏟아짐", interval: 0.16,
+    fire(w) { const before = bullets.length; WEAPONS.bullet.fire.call(this, w); tagNewBullets(before, { onStrike: bladeSplit }); } }),
   hammer_evo: evolvedDef("hammer", { name: "죽음의 나선", desc: "망치 8개가 사방으로 회전하며 날아감", interval: 1.3,
     fire(w) { for (let i = 0; i < 8; i++) { const a = (Math.PI * 2 * i) / 8 + stats.time; bullets.push({ kind: "hammer", sprite: "hammer", size: 17, spin: 10, margin: 200, x: player.x, y: player.y, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, r: 12, damage: weaponDamage(w) * 2 * 1.25 ** Math.floor(w.level / 2), pierce: 99, hitIds: new Set(), life: 2.5 }); } } }),
-  cross_evo: evolvedDef("cross", { name: "수호자의 방패", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8 }),
-  orb_evo: evolvedDef("orb", { name: "회오리 도끼", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 2.4 }),
-  firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.6, damageMul: 1.6 }),
+  cross_evo: evolvedDef("cross", { name: "수호자의 방패", desc: "더 많이, 더 빠르게 돌아오는 방패", interval: 1.4, damageMul: 1.8,
+    fire(w) { const before = bullets.length; WEAPONS.cross.fire.call(this, w); tagNewBullets(before, { onTurn: shieldBlast }); } }),
+  orb_evo: evolvedDef("orb", { name: "회오리 도끼", desc: "도끼 +2개가 더 빠르게 돎", extraCount: 2, rotateSpeed: 4.5, damageMul: 2.4,
+    update(w, dt) {
+      WEAPONS.orb.update.call(this, w, dt);
+      w.wave = (w.wave || 0) + dt;
+      if (w.wave < AXE_WAVE_INTERVAL) return;
+      w.wave = 0;
+      const r = AXE_WAVE_RADIUS * areaMul();
+      for (const e of enemies) if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 60); }
+      effects.push({ x: player.x, y: player.y, r, life: 0.3, maxLife: 0.3, fx: "fx_shock" });
+    } }),
+  firewand_evo: evolvedDef("firewand", { name: "지옥불", desc: "거대한 화염구를 연달아 쏨", interval: 1.6, damageMul: 1.6,
+    fire(w) { const before = bullets.length; WEAPONS.firewand.fire.call(this, w); tagNewBullets(before, { onStrike: hellfirePool }); } }),
   aura_evo: evolvedDef("aura", { name: "영혼 포식자", desc: "더 넓은 오라. 맞힌 적마다 체력 0.5 회복 (발동당 최대 2)", damageMul: 1.4,
     getRadius(w) { return WEAPONS.aura.getRadius(w) * 1.25; },
     fire(w) { const r = this.getRadius(w); let hits = 0; for (const e of enemies) { if (!e.dead && Math.hypot(e.x - player.x, e.y - player.y) < r + e.r) { damageEnemy(e, weaponDamage(w)); pushEnemy(e, player.x, player.y, 10); hits++; } } if (hits) player.hp = Math.min(player.maxHp, player.hp + Math.min(2, 0.5 * hits)); w.flash = 0.15; } }),

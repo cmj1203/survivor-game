@@ -75,7 +75,7 @@ function resetGame() {
   zones = [];
   hazards = [];
   enemyFires = [];
-  eliteTimer = ELITE_INTERVAL;
+  eliteTimer = ELITE_INTERVAL_MIN;   // 판을 시작할 때 startRun 이 무작위 값으로 다시 정함
   eventIndex = 0;
   eventQueue = [];
   boss = null;
@@ -157,6 +157,8 @@ window.addEventListener("keyup", (e) => {
   }
   keys[name] = false;
 });
+// 마우스·터치로 누른 버튼은 바로 포커스를 놓음: 그 뒤 Esc·H·W 키를 눌러도 키보드용 노란 테두리(style.css :focus-visible)가 켜지지 않게
+document.addEventListener("click", (e) => { if (e.detail > 0) /** @type {HTMLElement} */ (e.target).closest?.("button")?.blur(); });
 // 창을 벗어났다 돌아오면 "눌린 채로 남은 키"가 없게 초기화 (혼자 계속 걸어가는 것 방지)
 window.addEventListener("blur", () => {
   for (const k in keys) keys[k] = false;
@@ -172,7 +174,9 @@ const stage = document.getElementById("stage");
 const joyBase = document.getElementById("joyBase");
 const joyKnob = document.getElementById("joyKnob");
 const JOY_RADIUS = 36;      // 손잡이가 움직일 수 있는 최대 거리 (화면 px). 작을수록 조금만 끌어도 방향이 바뀜
-const JOY_DEADZONE = 4;     // 이보다 조금 움직이면 무시 (손가락 떨림)
+const JOY_DEADZONE = 6;     // 이보다 조금 움직이면 무시 (손가락 떨림)
+const JOY_FULL = 24;        // 이만큼 끌면 최고 속도. 데드존부터 여기까지는 끈 거리만큼 천천히 걸음
+const JOY_MIN_POWER = 0.35; // 데드존을 막 넘었을 때의 속도 (최고 속도 대비)
 let joystick = null;        // { id, ox, oy, dx, dy }  누르고 있지 않으면 null
 
 function placeJoy(el, x, y) { el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.display = "block"; }
@@ -186,7 +190,9 @@ function endJoystick() {
 function joystickDir() {
   if (!joystick) return null;
   const len = Math.hypot(joystick.dx, joystick.dy);
-  return len < JOY_DEADZONE ? null : { x: joystick.dx / len, y: joystick.dy / len };
+  if (len < JOY_DEADZONE) return null;
+  const t = Math.min(1, (len - JOY_DEADZONE) / (JOY_FULL - JOY_DEADZONE));
+  return { x: joystick.dx / len, y: joystick.dy / len, power: JOY_MIN_POWER + (1 - JOY_MIN_POWER) * t };   // power = 이동 속도 배율
 }
 
 // 손가락 위치(휴대폰 화면 기준)를 게임 화면(#stage) 안쪽 좌표로 바꿈

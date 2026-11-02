@@ -32,7 +32,7 @@ function gameLoop(now) {
   if (dt > 0.1) dt = 0.1;   // 탭 전환 등으로 시간이 크게 뛰면 최대 0.1초로 제한
 
   try {
-    // '1.5배속'(어려움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
+    // '1.5배속'(쉬움 클리어로 열림, 일시정지 창에서 켜기): 한 프레임에 update 를 나눠서 여러 번 (1.5배면 dt 한 번 + dt 절반 한 번).
     //   dt 를 통째로 키우면 빠른 탄이 적을 뚫고 지나갈 수 있어서 한 번에 dt 보다 크게는 안 돌림. 중간에 레벨업·상자 창이 뜨면 거기서 멈춤
     if (hitStop > 0) hitStop = Math.max(0, hitStop - dt);   // 히트스톱: 큰 타격 직후 아주 잠깐 게임을 멈춤 (그리기는 계속)
     else for (let left = gameSpeed(); left > 0 && state === "playing"; left -= 1) update(dt * Math.min(1, left));
@@ -76,12 +76,12 @@ function levelUp() {
 // 무기 종류 → 카드에 넣을 그림 주소
 function weaponIconUrl(type) {
   const def = WEAPONS[type];
-  return `assets/${def.icon}.png`;
+  return assetUrl(def.icon);
 }
 
 // 패시브 종류 → 카드에 넣을 그림 주소
 function passiveIconUrl(key) {
-  return `assets/${PASSIVES[key].icon}.png`;
+  return assetUrl(PASSIVES[key].icon);
 }
 
 // 카드·결과 줄에 그림 넣기 (그림이 없으면 빈칸으로 둠 → 글자 줄은 그대로 맞춰짐)
@@ -143,7 +143,7 @@ function buildUpgradePool(includeNewWeapons) {
   }
   // 사탕 상자 (원작 Candybox): 무기 슬롯이 남아 있으면 가끔 나오는 카드. 고르면 원하는 무기를 직접 선택
   if (includeNewWeapons && player.weapons.length < MAX_WEAPONS && candyChoices().length > 0) {
-    pool.push({ title: "무기 상자", desc: "원하는 무기를 직접 골라 장착합니다", iconUrl: "assets/chest.png", isNew: true, isCandy: true, apply: openCandyBox });
+    pool.push({ title: "무기 상자", desc: "원하는 무기를 직접 골라 장착합니다", iconUrl: assetUrl("chest"), isNew: true, isCandy: true, apply: openCandyBox });
   }
   for (const type in WEAPONS) {
     const def = WEAPONS[type];
@@ -182,8 +182,8 @@ const MAXED_CHEST_GOLD = [10, 30]; // 보물 상자 = 금화 10~30 중 아무 �
 function maxedChestGold() { return MAXED_CHEST_GOLD[0] + Math.floor(Math.random() * (MAXED_CHEST_GOLD[1] - MAXED_CHEST_GOLD[0] + 1)); }
 function maxedPicks(gold) {
   return [
-    { title: "체력 전부 회복", desc: "더 강화할 것이 없습니다", iconUrl: "assets/potion_green.png", apply: () => { player.hp = player.maxHp; } },
-    { title: `금화 +${gold}`, gold, desc: "판이 끝날 때 받는 금화에 더해집니다", iconUrl: "assets/coin.png",
+    { title: "체력 전부 회복", desc: "더 강화할 것이 없습니다", iconUrl: assetUrl("potion_green"), apply: () => { player.hp = player.maxHp; } },
+    { title: `금화 +${gold}`, gold, desc: "판이 끝날 때 받는 금화에 더해집니다", iconUrl: assetUrl("coin"),
       apply: () => {
         run.bonusGold = (run.bonusGold || 0) + gold;
         floatTexts.push({ x: player.x, y: player.y - 34, text: `금화 +${gold}`, color: "#ffd60a", life: 1.2, maxLife: 1.2 });
@@ -326,7 +326,7 @@ function gameOver() {
 
 // 게임오버·클리어 창의 기록 한 칸 (HUD 와 같은 아이콘 + 글)
 function endStat(icon, text) {
-  return `<span class="end-stat">${icon ? `<img src="assets/${icon}.png" alt="">` : ""}${text}</span>`;
+  return `<span class="end-stat">${icon ? `<img src="${assetUrl(icon)}" alt="">` : ""}${text}</span>`;
 }
 
 // 게임오버·클리어 창의 무기별 피해 표: 이번 판에 피해를 많이 준 무기부터 DMG_TABLE_ROWS 줄 (그림 · 이름 · 피해 · 비율)

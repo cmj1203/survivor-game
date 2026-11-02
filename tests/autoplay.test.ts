@@ -758,3 +758,155 @@ describe("레벨업 봉인·결과 창 피해 표", () => {
     expect(rows).toEqual([[names[0], "1,500", "75%"], [names[1], "500", "25%"]]);
   });
 });
+
+describe("조이스틱", () => {
+  test("데드존 안은 안 움직이고, 조금 끌면 천천히, 끝까지 끌면 최고 속도로 움직임", async () => {
+    // Given: 적이 없는 판에서 조이스틱을 왼쪽에서 오른쪽으로 끈 상태를 만든다.
+    await view.navigate(`${server.url.href}?joy=power`);
+    await page(RUN_START);
+    const result = await page(`
+      player.invincible = 1e9;
+      const step = (dx) => { enemies = []; joystick = { id: 1, ox: 0, oy: 0, dx, dy: 0 }; const x = player.x; update(1 / 30); return player.x - x; };
+      // When: 데드존 안, 조금, 끝까지 끈 채로 한 걸음씩 진행한다.
+      const still = step(JOY_DEADZONE - 1), slow = step(JOY_DEADZONE + 4), fast = step(JOY_RADIUS);
+      joystick = null;
+      return [still, slow > 0 && slow < fast * 0.6, Math.abs(fast - player.speed / 30) < 0.01];
+    `);
+    // Then: 끈 거리만큼 속도가 달라진다.
+    expect(result).toEqual([0, true, true]);
+  });
+});
+
+describe("정예·포위 이벤트", () => {
+  test("정예 3마리는 셋 다 잡아야 상자가 하나 나옴", async () => {
+    // Given: 정예 3마리 이벤트가 나온 판
+    await view.navigate(`${server.url.href}?event=trio`);
+    await page(RUN_START);
+    const result = await page(`
+      enemies = []; chests = [];
+      const trio = spawnEliteTrio();
+      // When: 한 마리씩 잡는다.
+      const counts = trio.map((e) => { damageEnemy(e, 1e9); return chests.length; });
+      return [trio.length, trio.every((e) => e.elite), counts, run.elites];
+    `);
+    // Then: 마지막 한 마리에서만 상자가 나오고 정예 처치는 한 번으로 센다.
+    expect(result).toEqual([3, true, [0, 0, 1], 1]);
+  });
+
+  test("정예는 실제 8분, 포위는 실제 12분에 시간표대로 나옴", async () => {
+    // Given: 이벤트 직전 시각의 판
+    await view.navigate(`${server.url.href}?event=schedule`);
+    await page(RUN_START);
+    const result = await page(`
+      player.invincible = 1e9;
+      const fire = (kind) => {
+        const index = EVENT_SCHEDULE.findIndex((ev) => ev.kind === kind);
+        const at = eventTime(EVENT_SCHEDULE[index]);
+        enemies = []; eventQueue = []; eventIndex = index; stats.time = at;
+        // When: 시간표 갱신을 한 번 돈다.
+        updateEvents(1 / 30);
+        return [Math.round(at), enemies.filter((e) => e.elite).length, enemies.filter((e) => !e.elite).length];
+      };
+      return [fire("elites"), fire("ring")];
+    `);
+    // Then: 각 시각에 정예 3마리, 포위 적 40마리가 나온다 (플레이어가 맵 가운데라 잘리는 자리 없음).
+    expect(result).toEqual([[480, 3, 0], [720, 0, 40]]);
+  });
+
+  test("다음 엘리트까지는 40~120초 사이 무작위", async () => {
+    await view.navigate(`${server.url.href}?event=interval`);
+    await page(RUN_START);
+    const result = await page(`
+      enemies = []; player.invincible = 1e9; eliteTimer = 0;
+      updateSpawning(1 / 30);
+      const fromLoop = eliteTimer, spawned = enemies.filter((e) => e.elite).length;
+      const draws = Array.from({ length: 500 }, () => nextEliteTime());
+      return [spawned, fromLoop >= 40 && fromLoop <= 120, Math.min(...draws) >= 40, Math.max(...draws) <= 120, new Set(draws).size > 400];
+    `);
+    expect(result).toEqual([1, true, true, true, true]);
+  });
+});
+
+describe("밸런스: 1.5배속·맨몸·성녀 회복", () => {
+  test("1.5배속은 쉬움을 클리어하면 상점에 열림", async () => {
+    await view.navigate(`${server.url.href}?balance=speed`);
+    await page(STORY_SETUP);
+    const result = await page(`
+      meta = defaultMeta(); const before = isSpeedUnlocked();
+      meta.stats.maxClearDiff = 0;
+      return [before, isSpeedUnlocked(), shopLocked("speed15")];
+    `);
+    expect(result).toEqual([false, true, false]);
+  });
+
+  test("맨몸은 보통 이상에서 강화 없이 클리어해야 셈", async () => {
+    const naked = async (diff: number) => {
+      await view.navigate(`${server.url.href}?balance=naked${diff}`);
+      await page(RUN_START);
+      return page(`run.naked = true; run.diff = ${diff}; const before = meta.stats.n_naked; finishRun(true); return meta.stats.n_naked - before;`);
+    };
+    expect([await naked(0), await naked(1)]).toEqual([0, 1]);
+  });
+
+  test("성녀 처치 회복은 게임 시계 1초에 최대 2", async () => {
+    await view.navigate(`${server.url.href}?balance=heal`);
+    await page(RUN_START);
+    const result = await page(`
+      player.hp = 1; stats.time = 10.2;
+      for (let i = 0; i < 5; i++) healOnKill(2);
+      const sameSecond = player.hp;
+      stats.time = 11.05; healOnKill(2);
+      return [sameSecond, player.hp];
+    `);
+    expect(result).toEqual([3, 5]);
+  });
+});
+
+describe("진화 동작", () => {
+  // 적 하나를 (x, y) 에 세움. 체력은 hp
+  const DUMMY = `const dummy = (x, y, hp) => { const e = makeEnemy(ENEMY_TYPES[0], x, y); e.hp = e.maxHp = hp; e.speed = 0; enemies.push(e); return e; };`;
+
+  test("성스러운 봉은 맞은 적 옆의 적에게 한 번 튕기고, 천 개의 칼날은 처치하면 둘로 갈라짐", async () => {
+    await view.navigate(`${server.url.href}?evo=bolts`);
+    await page(RUN_START);
+    const result = await page(`${DUMMY}
+      enemies = []; bullets = [];
+      const a = dummy(player.x + 100, player.y, 1e6), b = dummy(player.x + 100, player.y + 120, 1e6);
+      bullets.push({ kind: "magic", x: a.x, y: a.y, vx: 420, vy: 0, r: 6, damage: 1, onStrike: wandBounce });
+      updateBulletHits();
+      const bounce = bullets.filter((x) => x.bounced).length;
+      enemies = []; bullets = [];
+      const weak = dummy(player.x + 100, player.y, 1);
+      bullets.push({ kind: "bullet", x: weak.x, y: weak.y, vx: 900, vy: 0, r: 4, damage: 5, pierce: 1, hitIds: new Set(), onStrike: bladeSplit });
+      updateBulletHits();
+      const shards = bullets.filter((x) => x.shard).length;
+      return [bounce, !b.dead, shards];
+    `);
+    expect(result).toEqual([1, true, 2]);
+  });
+
+  test("수호자의 방패는 돌아설 때 폭발, 회오리 도끼는 3초마다 충격파, 지옥불은 처음 맞힌 자리에 불바다", async () => {
+    await view.navigate(`${server.url.href}?evo=area`);
+    await page(RUN_START);
+    const result = await page(`${DUMMY}
+      enemies = []; bullets = []; zones = [];
+      const near = dummy(player.x + 300, player.y, 1e6);
+      bullets.push({ kind: "cross", x: near.x - 20, y: near.y, vx: -1, vy: 0, ax: -900, ay: 0, startDirX: 1, startDirY: 0, r: 10, damage: 7, pierce: 99, hitIds: new Set(), onTurn: shieldBlast, margin: 500 });
+      updateBullets(1 / 30);
+      const blast = near.maxHp - near.hp;
+      enemies = [];
+      const ring = dummy(player.x + 60, player.y, 1e6);
+      const w = { type: "orb_evo", level: 8, timer: 0 };
+      WEAPONS.orb_evo.update(w, 2.9); const before = ring.hp - (ring.maxHp - ring.hp) * 0;
+      const hpAt29 = ring.hp; ring.cd.orb = 99;
+      WEAPONS.orb_evo.update(w, 0.2);
+      const waved = ring.hp < hpAt29;
+      enemies = []; zones = []; bullets = [];
+      const t = dummy(player.x + 100, player.y, 1e6);
+      bullets.push({ kind: "fireball", x: t.x, y: t.y, vx: 380, vy: 0, r: 10, damage: 30, pierce: 99, hitIds: new Set(), onStrike: hellfirePool });
+      updateBulletHits(); bullets[0].hitIds.clear(); updateBulletHits();
+      return [blast, waved, zones.filter((z) => z.kind === "fire").length];
+    `);
+    expect(result).toEqual([7, true, 1]);
+  });
+});

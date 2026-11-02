@@ -158,6 +158,27 @@ function spawnElite() {
   return e;
 }
 
+// 정예 3마리 이벤트: 지옥개 무리와 같은 packId 로 묶어서 셋 다 잡아야 상자가 하나 나옴 (지옥개여도 더 늘어나지 않음)
+function spawnEliteTrio() {
+  const trio = [];
+  for (let i = 0; i < ELITE_TRIO_COUNT; i++) trio.push(spawnElite());
+  const packId = `t${trio[0].id}`;
+  for (const e of trio) { e.packLead = false; e.packId = packId; }
+  return trio;
+}
+
+// 포위 이벤트: 바로 전 단계의 주력 적이 플레이어를 둥글게 둘러싼 자리에서 나와 쫓아옴. 맵 밖 자리는 건너뜀
+function spawnEnemyRing() {
+  const types = enemyTypes();
+  const type = types[(enemyStage() - 1 + types.length) % types.length];
+  for (let i = 0; i < ENEMY_RING_COUNT; i++) {
+    const a = (Math.PI * 2 * i) / ENEMY_RING_COUNT;
+    const x = player.x + Math.cos(a) * ENEMY_RING_RADIUS, y = player.y + Math.sin(a) * ENEMY_RING_RADIUS;
+    if (x < WALL_SIZE || x > WORLD_W - WALL_SIZE || y < WALL_SIZE || y > WORLD_H - WALL_SIZE) continue;
+    enemies.push(makeEnemy(type, x, y));
+  }
+}
+
 // 시간표의 한 칸이 실제로 시작되는 시각 (초): 게임 길이에 맞춰 줄이되, 첫 1분 안으로는 당겨지지 않게 함
 function eventTime(ev) { return Math.max(Math.min(ev.time, 60), ev.time * TIMELINE_SCALE); }
 
@@ -344,7 +365,7 @@ function openChest(chest, forcedCount) {
 // 상자 창 연출 (뱀서식): 큰 상자가 흔들리다 열리면 빛기둥이 솟고 금화·반짝이가 튀고, 보상 구슬이 상자에서 날아올라
 //   슬롯처럼 그림이 돌다가 하나씩 멈춤. 아래 칸에는 고른 구슬의 이름·설명 (구슬을 누르면 바뀜). 다 멈추면 '받기' 버튼이 켜짐
 //   연출 도중에 상자 무대를 누르면 바로 끝까지 넘어감. 꾸미기에는 Math.random 을 안 씀 (자동 시험기의 고정 난수 순서가 안 바뀌게)
-const CHEST_STAGE_W = 340, CHEST_STAGE_H = 260;   // 상자 무대 크기 (style.css 의 #chestStage 와 같게)
+const CHEST_STAGE_W = 340, CHEST_STAGE_H = 260;   // 상자 무대 크기 (style.css 의 #chestStage 와 같게. 휴대폰은 더 낮아서 실제 크기를 먼저 씀)
 const CHEST_MOUTH_Y = 78;                          // 상자 입구 높이 (무대 위에서부터 %). 구슬·금화가 여기서 나옴
 const CHEST_ORB_SPOTS = [                          // 보상 개수별 구슬 자리 (무대 안 % 좌표). 원작처럼 1개 = 가운데, 3개 = V자, 5개 = X자
   [],
@@ -368,7 +389,7 @@ function startChestRoll(icons, gains) {
   chestCoins.innerHTML = "";
   chestInfo.innerHTML = "";
   chestGold.style.visibility = "hidden";                      // 금화 칸 자리는 늘 잡아 둠 (나타날 때 창이 늘어나 제목이 움직이지 않게)
-  chestImg.src = "assets/chest.png";
+  chestImg.src = assetUrl("chest");
   chestStage.className = `n${n} shaking`;                     // n1·n3·n5: 빛기둥 색 (1개 흰빛, 3개 하늘색, 5개 무지개)
   chestOk.disabled = true;
   chestBox.style.display = "flex";
@@ -379,8 +400,8 @@ function startChestRoll(icons, gains) {
     orb.className = "chest-orb";
     orb.style.left = `${x}%`;
     orb.style.top = `${y}%`;
-    orb.style.setProperty("--fx", `${((50 - x) / 100) * CHEST_STAGE_W}px`);              // 상자 입구에서 날아오르게: 입구까지의 거리
-    orb.style.setProperty("--fy", `${((CHEST_MOUTH_Y - y) / 100) * CHEST_STAGE_H}px`);
+    orb.style.setProperty("--fx", `${((50 - x) / 100) * (chestStage.clientWidth || CHEST_STAGE_W)}px`);              // 상자 입구에서 날아오르게: 입구까지의 거리
+    orb.style.setProperty("--fy", `${((CHEST_MOUTH_Y - y) / 100) * (chestStage.clientHeight || CHEST_STAGE_H)}px`);
     orb.innerHTML = `<img alt="">`;
     orb.addEventListener("click", () => { if (orb.classList.contains("landed")) showChestInfo(i); });
     chestOrbs.appendChild(orb);
@@ -396,7 +417,7 @@ function startChestRoll(icons, gains) {
 function openChestFx() {
   if (!chestRoll || chestRoll.opened) return;
   chestRoll.opened = true;
-  chestImg.src = "assets/chest_open.png";
+  chestImg.src = assetUrl("chest_open");
   chestStage.className = chestStage.className.replace("shaking", "open");
   const coin = chestRoll.gold > 0;
   for (let i = 0; i < 18; i++) {
@@ -550,6 +571,16 @@ function showDamageNumber(e, dealt) {
   dmgTexts.set(e, t);
 }
 
+// 성녀의 처치 회복: 게임 시계 1초마다 HEAL_ON_KILL_PER_SEC 까지만 (적이 많을 때 사실상 무적이 되지 않게)
+const HEAL_ON_KILL_PER_SEC = 2;
+function healOnKill(amount) {
+  const sec = Math.floor(stats.time);
+  if (player.healSec !== sec) { player.healSec = sec; player.healLeft = HEAL_ON_KILL_PER_SEC; }
+  const h = Math.min(amount, player.healLeft);
+  player.healLeft -= h;
+  player.hp = Math.min(player.maxHp, player.hp + h);
+}
+
 // 적에게 피해 주기. 죽으면 처치 수 +1, 구슬 떨어뜨림 (모든 무기가 이 함수를 씀)
 function damageEnemy(e, dmg) {
   if (e.dead || e.vanished) return;   // 순간이동으로 사라진 죽음의 기사는 맞지 않음
@@ -578,7 +609,7 @@ function damageEnemy(e, dmg) {
     stats.kills += 1;
     playSfx("kill");
     if (run && e.killStat) run[e.killStat] += 1;   // 퀘스트용 (얼음 원소 → '껍질 까기')
-    if (charDef().healEvery && stats.kills % charDef().healEvery === 0) player.hp = Math.min(player.maxHp, player.hp + charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복
+    if (charDef().healEvery && stats.kills % charDef().healEvery === 0) healOnKill(charDef().heal);   // 성녀: 처치할 때마다 조금씩 회복 (1초에 최대 HEAL_ON_KILL_PER_SEC)
     if (e.elite || e.boss) kickScreen();                                  // 정예·보스를 잡으면 히트스톱 + 화면 흔들림
     if (e.boss) { gameClear(); return; }                                // 보스를 잡으면 클리어
     spawnGem(e.x, e.y, e.xp);
@@ -710,6 +741,7 @@ function updateWeapons(dt) {
 function fireWeapon(w, def) {
   const before = bullets.length;
   def.fire(w);
+  playWeaponSfx(w.type);   // 무기 종류별 발사음 (js/12-sound.js)
   const m = projSpeedMul();
   if (m === 1) return;
   for (let i = before; i < bullets.length; i++) {

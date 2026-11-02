@@ -16,7 +16,7 @@ const CHARACTERS = {
   knight:    { name: "견습 마법사", sprite: "hero_mage",      weapon: "wand",   hp: 1.15, speed: 1,    dmg: 1.1, rule: "체력 +15%, 공격력 +10%. 자동 조준 마법봉으로 안정적으로 시작" },
   hunter:    { name: "사냥꾼", sprite: "hero_hunter",    weapon: "bullet", hp: 0.85, speed: 1.2,  choices: 1, rule: "빠르고 레벨업 카드가 1장 더. 대신 체력 -15%, 단검으로 시작", unlock: "q_time10", price: 300 },
   berserker: { name: "광전사", sprite: "hero_berserker", weapon: "sword",  hp: 1.2,  speed: 0.95, berserk: true, rule: "체력이 절반 이하면 공격력 +60%. 체력 +20%, 장검으로 시작", unlock: "q_evo3", price: 400 },
-  saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복. 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1", price: 600 },
+  saint:     { name: "성녀",   sprite: "hero_saint",     weapon: "aura",   hp: 0.95, speed: 1,    dmg: 1.25, healEvery: 8, heal: 2, rule: "8마리 처치할 때마다 체력 2 회복(1초에 최대 2). 공격력 +25%, 대신 체력 -5%, 번개 오라로 시작", unlock: "q_diff1", price: 600 },
   // pick: true = 판을 시작할 때 무기 고르기 창이 떠서, 이미 연 무기 중 하나를 골라 시작함 (weapon 은 창이 뜨기 전 잠깐 쓰는 기본값)
   armorer:   { name: "무기상", sprite: "hero_armorer",   weapon: "wand",   hp: 1,    speed: 1,    pick: true, candyBonus: 0.15, rule: "시작 무기를 직접 고름", unlock: "q_armory", price: 800 },   // candyBonus: 레벨업 때 무기 상자 카드가 안 뽑혔으면 이 확률로 마지막 카드를 무기 상자로 바꿈
 };
@@ -56,15 +56,16 @@ const SHOP = [
   // 저주: 스스로 게임을 어렵게 만드는 대신 보상을 더 받음. 값이 없고(free), 올렸다 내렸다 할 수 있음. '맨몸' 퀘스트 조건에서는 빼 줌
   { key: "curse",   name: "저주",      icon: "passive_curse",   max: 3, base: 0, free: true,
     note: (lv) => (lv ? `적 생성 +${lv * 10}%, 체력 +${lv * 6}%, 속도 +${lv * 3}% · 대신 금화 +${Math.round(lv * SHOP_CURSE_GOLD * 100)}%, 경험치 +${lv * 8}%` : "꺼짐 · 올리면 적이 더 많고 세지는 대신 금화·경험치를 더 받음") },
-  // 1.5배속: '어려움'을 클리어하면 상점에 열리고, 사면 게임 화면 왼쪽 위(소리 단추 옆)에 켜고 끄는 단추가 생김
-  //   능력치 강화가 아니라서(utility) '맨몸' 퀘스트 셈에서 뺌. key 가 예전 무료 '2배속'(speed)과 달라서 예전 저장의 그것은 이어지지 않음
+  // 1.5배속: '쉬움'을 클리어하면 상점에 열리고, 사면 게임 화면 왼쪽 위(소리 단추 옆)에 켜고 끄는 단추가 생김
+  //   (해금 난이도는 SPEED_UNLOCK_DIFF) 능력치 강화가 아니라서(utility) '맨몸' 퀘스트 셈에서 뺌. key 가 예전 무료 '2배속'(speed)과 달라서 예전 저장의 그것은 이어지지 않음
   { key: "speed15", name: "1.5배속",   icon: "speed_off",       max: 1, base: 500, utility: true,
     note: (lv) => (lv ? "게임 화면 왼쪽 위 단추로 켜고 끔 · 게임 진행 속도 1.5배" : "게임 진행 속도 1.5배 · 사면 게임 화면 왼쪽 위에 단추가 생김") },
 ];
 // 1.5배속: 게임 전체(이동·공격·적·게임 시계)가 1.5배로 빨리 감 → 클리어까지 걸리는 실제 시간이 2/3.
 //   상점에서 산 뒤, 게임 화면 왼쪽 위 단추로 켜고 끔 (meta.fast 에 저장)
 const GAME_SPEED_FAST = 1.5;             // 배속을 켰을 때 한 프레임에 게임을 몇 배 진행할지
-const SPEED_UNLOCK_DIFF = 2;             // 이 난이도(2 = 어려움) 이상을 클리어하면 상점에 1.5배속이 열림
+const SPEED_UNLOCK_DIFF = 0;             // 이 난이도(0 = 쉬움) 이상을 클리어하면 상점에 1.5배속이 열림
+const NAKED_MIN_DIFF = 1;                // 퀘스트 '맨몸': 이 난이도(1 = 보통) 이상에서 강화 없이 클리어해야 셈 (새 저장의 첫 클리어로 공짜로 깨지지 않게)
 function isSpeedUnlocked() { return meta.stats.maxClearDiff >= SPEED_UNLOCK_DIFF; }
 function hasFast() { return upLevel("speed15") > 0; }   // 상점에서 1.5배속을 샀는지
 function gameSpeed() { return hasFast() && meta.fast ? GAME_SPEED_FAST : 1; }
@@ -122,7 +123,7 @@ const QUESTS = [
   { id: "q_evodex10",  name: "진화 도감",       desc: "서로 다른 진화 무기 15종 만들어 보기 (누적)", stat: "evodex",   goal: 15,    gold: 200 },
   { id: "q_fastboss",  name: "속전속결",        desc: "마지막 보스를 나타난 지 10초 안에 처치",      stat: "fastboss", goal: 1,     gold: 200 },
   { id: "q_lava15",    name: "용암 수영",       desc: "용암 굴(어려움)에서 18분 버티기",        stat: "difftime", goal: 1080,   gold: 200, d: 2 },
-  { id: "q_naked",     name: "맨몸",            desc: "상점 강화를 하나도 안 산 채로 클리어",        stat: "naked",    goal: 1,     gold: 250 },
+  { id: "q_naked",     name: "맨몸",            desc: "상점 강화를 하나도 안 산 채로 '보통' 이상 클리어",        stat: "naked",    goal: 1,     gold: 250 },
   { id: "q_runkill25k", name: "한 판 학살",     desc: "한 판에 35,000마리 처치",                     stat: "runkills", goal: 35000, gold: 250 },
   { id: "q_nohit10",   name: "그림자",          desc: "한 판에 12분 동안 한 번도 안 맞기",           stat: "nohit",    goal: 720,   gold: 300 },
   { id: "q_fewhit",    name: "무결점",          desc: "3번 이하로 맞고 클리어",                      stat: "fewhit",   goal: 1,     gold: 300 },
@@ -157,7 +158,7 @@ const SHOP_LOCKS = {};
 for (const q of QUESTS) if (q.shop) SHOP_LOCKS[q.shop] = q.id;
 // 이미 사 둔 사람은 그대로 쓸 수 있게, 한 단계라도 갖고 있으면 잠그지 않음
 function shopLocked(key) {
-  if (key === "speed15") return !isSpeedUnlocked() && upLevel(key) === 0;   // 1.5배속은 퀘스트가 아니라 '어려움' 클리어로 열림
+  if (key === "speed15") return !isSpeedUnlocked() && upLevel(key) === 0;   // 1.5배속은 퀘스트가 아니라 SPEED_UNLOCK_DIFF 난이도 클리어로 열림
   return !!SHOP_LOCKS[key] && !isQuestDone(SHOP_LOCKS[key]) && upLevel(key) === 0;
 }
 
@@ -260,7 +261,7 @@ function startRun() {
   player.weapons = [{ type: charDef().weapon, level: 1, timer: 0 }];
   recalcStats();
   player.hp = player.maxHp;
-  eliteTimer = ELITE_INTERVAL * diffDef().elite;
+  eliteTimer = nextEliteTime();
   clearRun();                          // 새 판을 시작하면 예전 '이어 하기'는 없앰
 }
 
@@ -295,7 +296,7 @@ function questValue(q, live, cleared) {
     case "runevos":   return Math.max(s.best_runevos, live ? run.evos : 0);
     case "runelites": return Math.max(s.best_runelites, live ? run.elites : 0);
     case "evodex":    return bitCount(s.mask_evo | (live ? run.evoMask : 0));
-    case "naked":     return s.n_naked + (live && cleared && run.naked ? 1 : 0);
+    case "naked":     return s.n_naked + (live && cleared && run.naked && run.diff >= NAKED_MIN_DIFF ? 1 : 0);
     case "fewhit":    return s.n_fewhit + (live && cleared && run.hits <= FEWHIT_MAX ? 1 : 0);
     case "fastboss":  return s.n_fastboss + (live && cleared && isFastBoss() ? 1 : 0);
     case "armory":    return QUESTS.filter((it) => it.weapon && isQuestDone(it.id)).length + Math.min(ARMORY_EVODEX, bitCount(s.mask_evo | (live ? run.evoMask : 0)));   // 연 무기 수 + 만들어 본 진화 무기 수
@@ -367,7 +368,7 @@ function finishRun(cleared) {
   s.deaths += run.deaths; s.revives += run.revives;
   for (const k in run.deathBy) if (`death_${k}` in s) s[`death_${k}`] += run.deathBy[k];   // 퀘스트에 쓰는 적만 저장
   if (cleared) {
-    if (run.naked) s.n_naked += 1;
+    if (run.naked && run.diff >= NAKED_MIN_DIFF) s.n_naked += 1;
     if (run.hits <= FEWHIT_MAX) s.n_fewhit += 1;
     if (isFastBoss()) s.n_fastboss += 1;
     if (run.diff === 3) s.mask_hell |= charBit();
@@ -454,7 +455,7 @@ function continueRun() {
   const ws = (sp.weapons || []).filter((w) => WEAPONS[w.type]).map((w) => ({ type: w.type, level: w.level, timer: 0 }));
   if (ws.length) player.weapons = ws;
   stats = { time: snap.stats.time, kills: snap.stats.kills };
-  eventIndex = snap.eventIndex | 0; spawnTimer = snap.spawnTimer || SPAWN_START; eliteTimer = snap.eliteTimer || ELITE_INTERVAL;
+  eventIndex = snap.eventIndex | 0; spawnTimer = snap.spawnTimer || SPAWN_START; eliteTimer = snap.eliteTimer || nextEliteTime();
   Object.assign(run, snap.run || {});
   const wd = snap.world;                // 예전 저장(world 없음)은 적 없이 시작
   if (wd) {
@@ -487,7 +488,7 @@ function pauseGame(msg) {
 // 1.5배속 단추 (게임 화면 왼쪽 위, 소리 단추 옆): 상점에서 산 사람에게만 보이고, 누를 때마다 켜고 끔. 켜져 있으면 주황 그림
 function refreshSpeedBtn(inGame) {
   speedBtn.style.display = inGame && hasFast() ? "block" : "none";
-  speedBtn.querySelector("img").src = meta.fast ? "assets/speed_on.png" : "assets/speed_off.png";
+  speedBtn.querySelector("img").src = assetUrl(meta.fast ? "speed_on" : "speed_off");
   speedBtn.title = meta.fast ? "1.5배속 끄기" : "1.5배속 켜기";
 }
 function toggleFast() {
@@ -537,7 +538,7 @@ const importFile = /** @type {HTMLInputElement} */ (document.getElementById("imp
 let panelKind = "shop";
 
 function refreshTitleMenu() {
-  document.getElementById("titleGold").innerHTML = `<img src="assets/coin.png" alt="금화">${meta.gold}`;
+  document.getElementById("titleGold").innerHTML = `<img src="${assetUrl("coin")}" alt="금화">${meta.gold}`;
   document.getElementById("titleSub").innerHTML = `${CHARACTERS[meta.char].name} · ${DIFFS[meta.diff].name}` +
     (storageOk ? "" : ` · <span class="title-warn">저장 안 됨</span>`);
   continueBtn.style.display = loadRun() ? "block" : "none";
@@ -568,7 +569,7 @@ function renderPanel() {
       if (shopLocked(s.key)) {   // 아직 안 열린 항목: 어떤 퀘스트를 끝내야 하는지만 보여 줌
         const q = QUESTS.find((it) => it.id === SHOP_LOCKS[s.key]);
         const why = q ? `퀘스트 '${q.name}' 달성 시 열림 · ${q.desc}` : `'${DIFFS[SPEED_UNLOCK_DIFF].name}' 클리어 시 열림`;   // 퀘스트가 없는 잠금 = 1.5배속
-        html += row("locked", `assets/${s.icon}.png`, `${s.name} (잠김)`, why, `<button class="meta-btn" disabled>잠김</button>`);
+        html += row("locked", assetUrl(s.icon), `${s.name} (잠김)`, why, `<button class="meta-btn" disabled>잠김</button>`);
         continue;
       }
       const pips = "●".repeat(lv) + "○".repeat(s.max - lv);
@@ -576,7 +577,7 @@ function renderPanel() {
         ? `<button class="meta-btn" data-act="lower" data-key="${s.key}" ${lv <= 0 ? "disabled" : ""}>− 내리기</button> <button class="meta-btn buy" data-act="buy" data-key="${s.key}" ${lv >= s.max ? "disabled" : ""}>+ 올리기</button>`
         : lv >= s.max ? `<button class="meta-btn" disabled>최대</button>`
         : `<button class="meta-btn buy" data-act="buy" data-key="${s.key}" ${meta.gold < cost ? "disabled" : ""}>${cost} 금화</button>`;
-      html += row("", `assets/${s.icon}.png`, `${s.name} <span class="pips">${pips}</span>`, s.note ? s.note(lv) : `지금 +${Math.round(s.per * lv * 100)}% · 단계마다 +${Math.round(s.per * 100)}%`, btn);
+      html += row("", assetUrl(s.icon), `${s.name} <span class="pips">${pips}</span>`, s.note ? s.note(lv) : `지금 +${Math.round(s.per * lv * 100)}% · 단계마다 +${Math.round(s.per * 100)}%`, btn);
     }
   } else if (panelKind === "quests") {
     metaTitle.textContent = "퀘스트";
@@ -590,7 +591,7 @@ function renderPanel() {
       if (list.length) html += `<p class="meta-head">${head}</p>`;
       for (const q of list) {
         const done = isQuestDone(q.id), v = progress(q);
-        const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? `assets/${CHARACTERS[q.char].sprite}.png` : q.shop ? `assets/${SHOP.find((it) => it.key === q.shop).icon}.png` : q.passive ? passiveIconUrl(q.passive) : "assets/coin.png";
+        const icon = q.weapon ? weaponIconUrl(q.weapon) : q.char ? assetUrl(CHARACTERS[q.char].sprite) : q.shop ? assetUrl(SHOP.find((it) => it.key === q.shop).icon) : q.passive ? passiveIconUrl(q.passive) : assetUrl("coin");
         const prog = TIME_STATS.includes(q.stat) ? `${formatTime(v)} / ${formatTime(q.goal)}` : q.stat === "diff" || q.goal === 1 ? "" : `${v} / ${q.goal}`;
         html += row(done ? "done" : "", icon, `${done ? "✔ " : ""}${q.name}`, `${q.desc} → ${rewardText(q)}${done ? "" : (prog ? ` · ${prog}` : "") + bar(v, q.goal)}`);
       }
@@ -605,7 +606,7 @@ function renderPanel() {
         : !owned ? `<button class="meta-btn buy" data-act="charbuy" data-key="${k}" ${meta.gold < c.price ? "disabled" : ""}>${c.price} 금화</button>`
         : `<button class="meta-btn ${sel ? "" : "buy"}" data-act="char" data-key="${k}" ${sel ? "disabled" : ""}>${sel ? "선택됨" : "고르기"}</button>`;
       const sub = open ? c.rule : `잠김: 퀘스트 '${QUESTS.find((q) => q.id === c.unlock).name}' (${QUESTS.find((q) => q.id === c.unlock).desc})`;
-      html += row(sel ? "sel" : open ? "" : "locked", `assets/${c.sprite}.png`, c.name, sub, right);
+      html += row(sel ? "sel" : open ? "" : "locked", assetUrl(c.sprite), c.name, sub, right);
     }
     html += `<p class="meta-head">난이도</p>`;
     DIFFS.forEach((d, i) => {

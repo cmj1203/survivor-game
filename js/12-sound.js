@@ -24,6 +24,20 @@ const SFX = {
   pause_in:  { gap: 0.1,  vol: 0.6 },
   pause_out: { gap: 0.1,  vol: 0.6 },
   quest:     { gap: 0.5,  vol: 0.8 },
+  // 무기 발사음: 자주 나므로 타격·처치보다 작게
+  w_slash:   { gap: 0.1,  vol: 0.25 },
+  w_shoot:   { gap: 0.1,  vol: 0.2 },
+  w_explode: { gap: 0.1,  vol: 0.3 },
+  w_zap:     { gap: 0.1,  vol: 0.25 },
+  w_magic:   { gap: 0.1,  vol: 0.25 },
+};
+// 무기(진화 전 이름) → 발사음. 진화한 무기는 playWeaponSfx 가 원본 이름으로 바꿔 찾음
+const WEAPON_SFX = {
+  sword: "w_slash", vento: "w_slash", victory: "w_slash", hammer: "w_slash",
+  bullet: "w_shoot", spear: "w_shoot", cross: "w_shoot", dusting: "w_shoot",
+  bomb: "w_explode", cherry: "w_explode", larobba: "w_explode", firewand: "w_explode", flames: "w_explode",
+  aura: "w_zap", lightning: "w_zap", staff: "w_zap",
+  wand: "w_magic", rune: "w_magic", clock: "w_magic", pentagram: "w_magic",
 };
 let soundOn = true;
 try { soundOn = localStorage.getItem(SOUND_KEY) !== "0"; } catch {}
@@ -37,7 +51,7 @@ let musicWant = null;        // 틀어야 할 곡 이름 (소리 장치가 켜�
 
 function loadSound(name) {
   if (!audioLoading[name]) {
-    audioLoading[name] = fetch(`assets/${name}.mp3`)
+    audioLoading[name] = fetch(assetUrl(name, "mp3"))
       .then((r) => r.arrayBuffer())
       .then((b) => audioCtx.decodeAudioData(b))
       .then((buf) => { audioBuffers[name] = buf; return buf; })
@@ -75,6 +89,13 @@ function playSfx(key) {
   const g = audioCtx.createGain(); g.gain.value = def.vol;
   src.connect(g).connect(sfxGain);
   src.start();
+}
+
+// 무기 발사음 (진화한 무기는 원본 무기의 소리를 씀)
+function playWeaponSfx(type) {
+  const def = WEAPONS[type];
+  const key = WEAPON_SFX[def && def.evoOf ? def.evoOf : type];
+  if (key) playSfx(key);
 }
 
 // 같은 효과음을 음 높이만 바꿔 냄 (semitones: 반음 단위, 12 = 한 옥타브 위). 간격 제한 없음 → 상자 구슬처럼 차례로 올라가는 음에 씀
@@ -130,7 +151,7 @@ function updateRunMusic() {
 // 소리 켜기/끄기 버튼 (왼쪽 위, 일시정지 버튼 옆. 시작 화면에서는 왼쪽 위 구석)
 const soundBtn = document.getElementById("soundBtn");
 function refreshSoundBtn() {
-  soundBtn.querySelector("img").src = soundOn ? "assets/sound_on.png" : "assets/sound_off.png";
+  soundBtn.querySelector("img").src = assetUrl(soundOn ? "sound_on" : "sound_off");
   soundBtn.title = soundOn ? "소리 끄기 (M)" : "소리 켜기 (M)";
 }
 function toggleSound() {

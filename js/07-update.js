@@ -43,6 +43,7 @@ function updatePlayer(dt) {
   if (keys.d || keys.arrowright) mx += 1;
   const joy = joystickDir();                  // 휴대폰: 조이스틱 방향 (키보드보다 우선)
   if (joy) { mx = joy.x; my = joy.y; }
+  const power = joy ? joy.power : 1;          // 조이스틱은 끈 거리만큼 빨라짐 (키보드는 늘 최고 속도)
 
   if (mx !== 0) player.facingLeft = mx < 0;   // 마지막으로 움직인 좌우 방향을 바라봄
   if (mx !== 0 || my !== 0) {
@@ -52,7 +53,7 @@ function updatePlayer(dt) {
     player.facingY = my / len;
     // 난이도 테마: 외눈 거인의 자국을 밟고 있으면 느려짐 (맞아서 느려지는 건 없음 — 모든 난이도가 쉬움과 같음)
     //   얼음 정령·서리 망령·예티에게 맞으면 잠깐 느려짐 (chillTimer)
-    const speed = player.speed * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1) * (player.chillTimer > 0 ? CHILL_SLOW_MUL : 1);
+    const speed = player.speed * power * (player.puddleTimer > 0 ? HAZARD_SLOW_MUL[enemyTier()] : 1) * (player.chillTimer > 0 ? CHILL_SLOW_MUL : 1);
     player.x += (mx / len) * speed * dt;
     player.y += (my / len) * speed * dt;
   }
@@ -119,11 +120,11 @@ function updateSpawning(dt) {
     }
   }
 
-  // --- 엘리트 등장 (1분마다). 보스가 나온 뒤에는 안 나옴 ---
+  // --- 엘리트 등장 (40~120초마다 무작위). 보스가 나온 뒤에는 안 나옴 ---
   eliteTimer -= dt;
   if (eliteTimer <= 0) {
     if (!boss) spawnElite();
-    eliteTimer = ELITE_INTERVAL * diffDef().elite;   // 난이도별 정예 간격
+    eliteTimer = nextEliteTime();
   }
 }
 
@@ -140,6 +141,8 @@ function updateEvents(dt) {
     if (q.timer > 0) continue;
     if (!boss) {
       if (q.ev.kind === "flower") spawnFlowerRing();
+      else if (q.ev.kind === "elites") spawnEliteTrio();
+      else if (q.ev.kind === "ring") spawnEnemyRing();
       else spawnSwarm(q.ev.type, (q.ev.delay || 0) < 3 ? q.angle + (Math.random() - 0.5) * 0.25 : Math.random() * Math.PI * 2, q.ev.count);
     }
     q.left -= 1;
@@ -633,7 +636,7 @@ function updateBullets(dt) {
       b.vx += b.ax * dt;
       b.vy += b.ay * dt;
       // 방향이 뒤집히는 순간, 돌아오는 길에 다시 때릴 수 있게 맞은 목록을 비움
-      if (!b.turned && b.vx * b.startDirX + b.vy * b.startDirY < 0) { b.turned = true; b.hitIds.clear(); }
+      if (!b.turned && b.vx * b.startDirX + b.vy * b.startDirY < 0) { b.turned = true; b.hitIds.clear(); if (b.onTurn) b.onTurn(b); }
     }
     b.x += b.vx * dt;
     b.y += b.vy * dt;
@@ -679,6 +682,7 @@ function updateBulletHits() {
       }
       if (b.onHit) { b.onHit(b); break; }        // 닿으면 터지는 것 (폭탄)
       damageEnemy(e, b.damage);
+      if (b.onStrike) b.onStrike(b, e);          // 진화 무기: 맞힌 뒤 튕김·갈라짐·불바다
       if (b.pierce > 0) {
         b.pierce -= 1;                           // 관통: 계속 날아감
       } else {

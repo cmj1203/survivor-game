@@ -349,7 +349,9 @@ const BANNER_TIME = 2.5;             // 안내 문구가 보이는 시간 (초)
 
 // --- 엘리트 몬스터: 일정 시간마다 나오는 크고 강한 몬스터. 잡으면 보물 상자를 반드시 떨어뜨림 ---
 //   그 시점의 주력 몬스터가 커진 모습으로 나오고, 금색 고리로 표시됨
-const ELITE_INTERVAL = 60;           // 몇 초마다 엘리트가 나오는지
+const ELITE_INTERVAL_MIN = 40;       // 다음 엘리트까지 걸리는 시간 (초): 이 사이에서 무작위
+const ELITE_INTERVAL_MAX = 120;
+function nextEliteTime() { return (ELITE_INTERVAL_MIN + Math.random() * (ELITE_INTERVAL_MAX - ELITE_INTERVAL_MIN)) * diffDef().elite; }
 const ELITE_SIZE = 1.8;              // 크기 배수
 const ELITE_HP = 12;                 // 체력 배수
 const ELITE_DAMAGE = 1.5;            // 피해 배수
@@ -368,6 +370,9 @@ const FLOWER_WAKE_TIME = 0.7;        // 막 피어날 때 번쩍이며 피해를
 // --- 몬스터 떼(박쥐·유령): 정해진 시각(아래 '이벤트 시간표')에 무리가 화면 한쪽에서 나타나 플레이어 쪽으로 곧장 가로질러 지나감 ---
 //   플레이어를 쫓아오지 않고 처음 정한 방향으로만 날아감 → 옆으로 비키면 피할 수 있고, 길목에서 쓸어 담으면 경험치 잔치
 //   일반 박쥐와 능력치는 같지만 훨씬 빠름. 화면을 지나가고 나면 저절로 사라짐
+const ELITE_TRIO_COUNT = 3;          // "elites" 이벤트의 정예 수
+const ENEMY_RING_COUNT = 40;         // "ring" 이벤트의 적 수
+const ENEMY_RING_RADIUS = 600;       // "ring" 이벤트가 둘러싸는 원의 반지름 (꽃 울타리와 같음)
 const SWARM_COUNT = 22;              // 처음 한 떼의 마릿수
 const SWARM_COUNT_PER_MINUTE = 1.5;  // 1분 지날 때마다 늘어나는 마릿수
 const SWARM_COUNT_MAX = 60;          // 한 떼의 최대 마릿수
@@ -379,7 +384,7 @@ const SWARM_LIFETIME = 14;           // 이 시간이 지나면 사라짐 (초).
 
 // --- 이벤트 시간표: 원작 첫 스테이지(Mad Forest)의 시간표를 본뜸 (30분 기준 → 실제로는 BOSS_TIME 에 맞춰 줄어듦) ---
 //   단, 게임이 짧아져도 처음 1분은 아무 이벤트도 없음 (eventTime 참고)
-//   time   : 시작 시각 (초)          kind  : "swarm" 몬스터 떼 / "flower" 꽃 울타리
+//   time   : 시작 시각 (초)          kind  : "swarm" 몬스터 떼 / "flower" 꽃 울타리 / "elites" 정예 3마리 / "ring" 지난 단계 적의 포위
 //   chance : 일어날 확률 (없으면 100%)   repeat: 몇 번 연달아 나오는지   delay : 그 사이 간격 (초)
 //   type   : 떼의 몬스터 종류          count : 한 떼의 마릿수 (없으면 SWARM_COUNT 규칙)
 //   delay 가 3초보다 짧으면 같은 방향으로 줄지어 나와 "강물"처럼 흐르고, 길면 매번 다른 방향에서 나옴
@@ -395,8 +400,10 @@ const EVENT_SCHEDULE = [
   { time: 10 * 60, kind: "flower" },                                                            // 10분: 꽃 울타리
   { time: 11 * 60, kind: "swarm", type: "bat", chance: 0.1, repeat: 2, delay: 5 },
   { time: 12 * 60, kind: "swarm", type: "bat", chance: 0.1, repeat: 2, delay: 5 },
+  { time: 12 * 60, kind: "elites" },                                                            // 12분(실제 8분): 정예 3마리 (상자는 셋 다 잡아야 하나)
   { time: 13 * 60, kind: "swarm", type: "ghost", chance: 0.7, repeat: 12, delay: 1.5, count: 10 },   // 13분: 유령 떼가 줄지어
   { time: 15 * 60, kind: "flower", chance: 0.8 },                                               // 15분: 꽃 울타리 (80%)
+  { time: 18 * 60, kind: "ring" },                                                              // 18분(실제 12분): 지난 단계의 적이 둥글게 포위
   { time: 20 * 60, kind: "swarm", type: "bat", chance: 0.7, repeat: 14, delay: 1.5, count: 12 },     // 20분: 대규모 박쥐 떼
   { time: 25 * 60, kind: "flower", repeat: 2, delay: 10 },                                      // 25분: 꽃 울타리 두 겹 (10초 간격. 한 겹이 약 38초 버티므로 원작의 6번 대신 2번)
   { time: 27 * 60, kind: "swarm", type: "ghost", repeat: 12, delay: 3, count: 12 },             // 27분: 유령 떼
