@@ -8,27 +8,27 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>서바이버 게임</title>
   <!-- 브라우저 탭 아이콘 (없으면 브라우저가 favicon.ico 를 찾다가 404 오류를 남김) -->
-  <link rel="icon" type="image/png" href="assets/hero_mage.png?v=20261102c" />
+  <link rel="icon" type="image/png" href="assets/hero_mage.png?v=20261102d" />
   <!-- 픽셀 글꼴: 제목 = Tiny5, 한글 = Galmuri11. 외부 서버 없이 assets/fonts 에서 받음 (style.css 의 @font-face). 미리 받기 시작해서 글자가 빨리 바뀜 -->
-  <link rel="preload" href="assets/fonts/Galmuri11.woff2?v=20261102c" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="assets/fonts/Tiny5-Regular.ttf?v=20261102c" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="assets/fonts/Galmuri11.woff2?v=20261102d" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/Tiny5-Regular.ttf?v=20261102d" as="font" type="font/ttf" crossorigin />
   <!-- ?v= : 올릴 때마다 바꾸는 버전 표시. 브라우저가 예전 코드·그림을 쓰지 않고 새로 받게 함 (js 의 그림·소리 주소는 js/01-setup.js 가 이 값을 따라 씀. 이 파일과 style.css 의 ?v= 는 모두 같이 바꿀 것) -->
-  <link rel="stylesheet" href="style.css?v=20261102c" />
+  <link rel="stylesheet" href="style.css?v=20261102d" />
 </head>
 <body>
   <!-- 게임이 그려지는 도화지 -->
   <div id="stage">
     <canvas id="game" width="1280" height="720"></canvas>
     <!-- ? 버튼: 무기 조합(진화)표와 무기 설명을 보여주는 도움말 (H 키로도 열림) -->
-    <button type="button" id="helpBtn" title="도움말 (H)"><img src="assets/help.png?v=20261102c" alt="?"></button>
+    <button type="button" id="helpBtn" title="도움말 (H)"><img src="assets/help.png?v=20261102d" alt="?"></button>
     <!-- 일시정지 버튼 (Esc·P 키로도 됨) -->
-    <button type="button" id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png?v=20261102c" alt="일시정지"></button>
+    <button type="button" id="pauseBtn" title="일시정지 (Esc)"><img src="assets/pause.png?v=20261102d" alt="일시정지"></button>
     <!-- 1.5배속 버튼 (상점에서 산 뒤 게임 화면에서만 보임) -->
-    <button type="button" id="speedBtn" title="1.5배속 켜기"><img src="assets/speed_off.png?v=20261102c" alt="1.5배속"></button>
+    <button type="button" id="speedBtn" title="1.5배속 켜기"><img src="assets/speed_off.png?v=20261102d" alt="1.5배속"></button>
     <!-- 설정 버튼 (맨 왼쪽 위, 시작 화면·게임 화면 공통) -->
-    <button type="button" id="settingsBtn" title="설정"><img src="assets/settings.png?v=20261102c" alt="설정"></button>
+    <button type="button" id="settingsBtn" title="설정"><img src="assets/settings.png?v=20261102d" alt="설정"></button>
     <!-- 지난 시간 · 처치 수 (게임 중에만 보임) -->
-    <div id="hudStats"><span><img src="assets/w_clock.png?v=20261102c" alt="시간"><span id="hudTime">00:00</span></span><span><img src="assets/item_wipe.png?v=20261102c" alt="처치"><span id="hudKills">0</span></span></div>
+    <div id="hudStats"><span><img src="assets/w_clock.png?v=20261102d" alt="시간"><span id="hudTime">00:00</span></span><span><img src="assets/item_wipe.png?v=20261102d" alt="처치"><span id="hudKills">0</span></span></div>
     <!-- 터치 조이스틱 (휴대폰에서 화면을 누르고 있는 동안만 보임) -->
     <div id="joyBase"></div><div id="joyKnob"></div>
     <!-- 스토리·매우 어려움 클리어 엔딩 공통 화면: 그림과 확정 자막을 한 컷씩 넘김 -->
@@ -45,13 +45,13 @@
 
       <div class="title-menu">
         <button type="button" id="continueBtn" class="pixel-btn primary">이어 하기</button>
-        <button type="button" id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png?v=20261102c" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
+        <button type="button" id="startBtn" class="pixel-btn primary"><span class="btn-main"><img src="assets/sword.png?v=20261102d" alt="">게임 시작</span><span class="title-sub" id="titleSub"></span></button>
         <div class="title-row">
-          <button type="button" class="pixel-btn small" data-panel="select"><img src="assets/hero_mage.png?v=20261102c" alt="">캐릭터·난이도</button>
-          <button type="button" class="pixel-btn small" data-panel="shop"><img src="assets/coin.png?v=20261102c" alt="">상점</button>
-          <button type="button" class="pixel-btn small" data-panel="quests"><img src="assets/chest.png?v=20261102c" alt=""><span>퀘스트</span></button>
-          <button type="button" class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png?v=20261102c" alt="">기록·저장</button>
-          <button type="button" id="introBtn" class="pixel-btn small"><img src="assets/help.png?v=20261102c" alt="">게임 설명</button>
+          <button type="button" class="pixel-btn small" data-panel="select"><img src="assets/hero_mage.png?v=20261102d" alt="">캐릭터·난이도</button>
+          <button type="button" class="pixel-btn small" data-panel="shop"><img src="assets/coin.png?v=20261102d" alt="">상점</button>
+          <button type="button" class="pixel-btn small" data-panel="quests"><img src="assets/chest.png?v=20261102d" alt=""><span>퀘스트</span></button>
+          <button type="button" class="pixel-btn small" data-panel="save"><img src="assets/potion_green.png?v=20261102d" alt="">기록·저장</button>
+          <button type="button" id="introBtn" class="pixel-btn small"><img src="assets/help.png?v=20261102d" alt="">게임 설명</button>
         </div>
         <div class="title-hint">- PRESS ENTER -</div>
       </div>
@@ -59,11 +59,11 @@
       <div class="title-intro">
         <h2>게임 설명</h2>
         <div class="intro-grid">
-          <div class="intro-item"><img src="assets/hero_mage.png?v=20261102c" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
-          <div class="intro-item"><img src="assets/passive_growth.png?v=20261102c" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 경험치 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
-          <div class="intro-item"><img src="assets/chest.png?v=20261102c" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
-          <div class="intro-item"><img src="assets/potion_green.png?v=20261102c" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
-          <div class="intro-item"><img src="assets/help.png?v=20261102c" alt=""><div><b>도움말</b>게임 중 <span class="kb-only"><kbd>H</kbd> 키나 </span>왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
+          <div class="intro-item"><img src="assets/hero_mage.png?v=20261102d" alt=""><div><b>이동</b><span class="kb-only"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 또는 방향키로 움직입니다.</span><span class="touch-only">화면 아무 곳에 손가락을 대고 가고 싶은 쪽으로 끌면 움직입니다.</span> 공격은 자동으로 나가니 피하는 데만 집중하세요</div></div>
+          <div class="intro-item"><img src="assets/passive_growth.png?v=20261102d" alt=""><div><b>레벨 업</b>몬스터가 떨어뜨린 경험치 구슬을 모아 레벨을 올리고, 카드 중 하나를 골라 무기·아이템을 강화합니다</div></div>
+          <div class="intro-item"><img src="assets/chest.png?v=20261102d" alt=""><div><b>보물 상자</b>1분마다 나오는 금색 고리의 엘리트를 잡으면 상자가 떨어집니다. 무기와 짝 아이템을 최대 레벨로 올린 채 열면 무기가 진화합니다</div></div>
+          <div class="intro-item"><img src="assets/potion_green.png?v=20261102d" alt=""><div><b>바닥 아이템</b>물약은 체력 회복, 자석은 경험치 전부 흡수, 해골은 화면 안 적 전멸, 눈꽃은 적 빙결</div></div>
+          <div class="intro-item"><img src="assets/help.png?v=20261102d" alt=""><div><b>도움말</b>게임 중 <span class="kb-only"><kbd>H</kbd> 키나 </span>왼쪽 위 <b style="display:inline">?</b> 버튼으로 무기 조합표와 설명을 볼 수 있습니다</div></div>
         </div>
         <button type="button" id="introClose" class="pixel-btn">돌아가기</button>
       </div>
@@ -153,10 +153,10 @@
   <!-- 보물 상자 창 (엘리트를 잡고 상자를 열면 나타남. 룰렛이 돈 뒤 강화 결과를 보여줌) -->
   <div id="chestBox" class="popup">
     <h1>보물 상자!</h1>
-    <div id="chestGold"><img src="assets/coin.png?v=20261102c" alt="금화"><span id="chestGoldNum">0</span></div>
+    <div id="chestGold"><img src="assets/coin.png?v=20261102d" alt="금화"><span id="chestGoldNum">0</span></div>
     <div id="chestStage">
       <div id="chestBeam"></div>
-      <div id="chestFx"><i class="glow"></i><i class="burst"></i><img id="chestImg" src="assets/chest.png?v=20261102c" alt=""></div>
+      <div id="chestFx"><i class="glow"></i><i class="burst"></i><img id="chestImg" src="assets/chest.png?v=20261102d" alt=""></div>
       <div id="chestCoins"></div>
       <div id="chestOrbs"></div>
     </div>
@@ -178,19 +178,19 @@
     </div>
   </div>
 
-  <script src="js/01-setup.js?v=20261102c"></script>
-  <script src="js/02-rules.js?v=20261102c"></script>
-  <script src="js/03-weapons.js?v=20261102c"></script>
-  <script src="js/04-passives-enemies.js?v=20261102c"></script>
-  <script src="js/05-state-input.js?v=20261102c"></script>
-  <script src="js/06-spawn-combat.js?v=20261102c"></script>
-  <script src="js/07-update.js?v=20261102c"></script>
-  <script src="js/08-draw.js?v=20261102c"></script>
-  <script src="js/09-loop-windows.js?v=20261102c"></script>
-  <script src="js/09-story.js?v=20261102c"></script>
-  <script src="js/10-title.js?v=20261102c"></script>
-  <script src="js/11-meta-save.js?v=20261102c"></script>
-  <script src="js/12-sound.js?v=20261102c"></script>
-  <script src="js/13-start.js?v=20261102c"></script>
+  <script src="js/01-setup.js?v=20261102d"></script>
+  <script src="js/02-rules.js?v=20261102d"></script>
+  <script src="js/03-weapons.js?v=20261102d"></script>
+  <script src="js/04-passives-enemies.js?v=20261102d"></script>
+  <script src="js/05-state-input.js?v=20261102d"></script>
+  <script src="js/06-spawn-combat.js?v=20261102d"></script>
+  <script src="js/07-update.js?v=20261102d"></script>
+  <script src="js/08-draw.js?v=20261102d"></script>
+  <script src="js/09-loop-windows.js?v=20261102d"></script>
+  <script src="js/09-story.js?v=20261102d"></script>
+  <script src="js/10-title.js?v=20261102d"></script>
+  <script src="js/11-meta-save.js?v=20261102d"></script>
+  <script src="js/12-sound.js?v=20261102d"></script>
+  <script src="js/13-start.js?v=20261102d"></script>
 </body>
 </html>
