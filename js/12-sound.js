@@ -107,7 +107,7 @@ function playSfx(key) {
 // 무기 발사음 (진화한 무기는 원본 무기의 소리를 씀)
 function playWeaponSfx(type) {
   const def = WEAPONS[type];
-  const key = WEAPON_SFX[def && def.evoOf ? def.evoOf : type];
+  const key = WEAPON_SFX[def?.evoOf || type];
   if (key) playSfx(key);
 }
 

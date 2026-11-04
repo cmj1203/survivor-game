@@ -12,7 +12,7 @@ describe("레벨업 카드 후보", () => {
     expect(t).toContain("새 무기: 단검");
     expect(t).toContain("새 아이템: 힘");
     expect(t).toContain("무기 상자");
-    expect(t).not.toContain("새 무기: 창");          // 퀘스트로 여는 무기
+    expect(t).not.toContain("새 무기: 관통 창");          // 퀘스트로 여는 무기
     expect(t).not.toContain("새 아이템: 해골");      // 퀘스트로 여는 아이템
     expect(t.some((x) => x.includes("성스러운 봉"))).toBe(false);   // 진화 무기는 카드로 안 나옴
   });

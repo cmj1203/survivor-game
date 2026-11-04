@@ -1,0 +1,29 @@
+# PR·푸시 때 타입 검사(tsc), 코드 검사(biome), 단위 시험(tests/unit)을 돌린다
+#   자동 플레이 시험(tests/autoplay.test.ts)은 판마다 수십 초가 걸리고 기준 기록이 맥에서 만든 값이라 여기서는 돌리지 않는다
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      # @types/bun 이 없으면 tsc 가 "TS2688: Cannot find type definition file for 'bun'" 으로 멈춤
+      - name: 패키지 설치
+        run: bun install --frozen-lockfile
+      - name: 타입 검사 (tsc)
+        run: bunx tsc -p tsconfig.json
+      - name: 코드 검사 (biome)
+        run: bunx biome lint --error-on-warnings js style.css tests
+      - name: 단위 시험 (tests/unit)
+        run: bun test tests/unit
