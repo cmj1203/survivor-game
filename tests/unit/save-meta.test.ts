@@ -70,20 +70,20 @@ describe("판 끝 정산", () => {
     const html = g.run<string>("finishRun(true)");
     expect(g.json("[meta.stats.clears, meta.stats.clear_knight, meta.stats.maxClearDiff, meta.stats.time_d1, isDiffUnlocked(2), isDiffUnlocked(3)]"))
       .toEqual([1, 1, 1, 1200, true, false]);
-    expect(html).toContain("새 난이도 '매우 어려움' 열림");
+    expect(html).toContain("새 난이도 '어려움' 열림");   // 1 = 보통 → 2 = 어려움
     expect(g.json("meta.quests")).toEqual(expect.arrayContaining(["q_clear", "q_diff1"]));   // 사신 퇴치·더 어둡게
     expect(g.run("isWeaponLocked('victory')")).toBe(false);
   });
 
-  test("'매우 어려움'을 처음 클리어하면 상점에 1.5배속이 열림", () => {
-    const g = startedGame(metaStore({ diff: 2, stats: { runs: 3, maxClearDiff: 1 } }));
+  test("'쉬움'을 처음 클리어하면 상점에 1.5배속이 열림", () => {
+    const g = startedGame(metaStore({ diff: 0, stats: { runs: 3 } }));   // 클리어 기록 없음 (maxClearDiff -1)
     expect(g.run("shopLocked('speed15')")).toBe(true);
     const html = g.run<string>("finishRun(true)");
-    expect(html).toContain("1.5배속");
+    expect(html).toContain("상점에 '1.5배속' 열림");
     expect(g.run("shopLocked('speed15')")).toBe(false);
   });
 
-  test("한 판 기록 퀘스트: 맞은 횟수·상점 강화 여부·지옥 캐릭터 비트", () => {
+  test("한 판 기록 퀘스트: 맞은 횟수·상점 강화 여부·매우 어려움 캐릭터 비트", () => {
     const g = startedGame(metaStore({ diff: 3, upgrades: { curse: 1 }, stats: { runs: 3, maxClearDiff: 2 } }));
     g.run("run.hits = 3; finishRun(true)");
     // 저주는 '맨몸' 셈에서 빠짐 → 맨몸 클리어. 3번 맞음 → 무결점. 견습 마법사 = 비트 1

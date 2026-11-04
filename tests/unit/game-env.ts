@@ -4,7 +4,7 @@
 //   → node:vm 의 한 영역(context)에 가짜 document·localStorage 등을 넣고 01~12 파일을 index.html 과 같은 순서로 실행함
 //     (13-start.js 는 시작 화면 애니메이션만 돌리므로 뺌). 같은 영역에서 실행한 스크립트끼리는 const·let·function 을 같이 씀
 //   소리: AudioContext 를 주지 않으므로 소리 장치가 켜지지 않고 playSfx 는 아무것도 안 함
-//   난수: Math.random 은 늘 setRandom 으로 정한 고정 값 (처음 0.5). 시간: requestAnimationFrame·setTimeout 은 실행하지 않음
+//   난수: Math.random 은 늘 setRandom 으로 정한 고정 값 (처음 0.5). 시간: requestAnimationFrame·setTimeout 은 실행하지 않고 performance.now() 는 늘 0
 //   네트워크: fetch 를 부르면 바로 에러
 import { readdirSync, readFileSync } from "node:fs";
 import vm from "node:vm";
@@ -108,11 +108,14 @@ export function loadGame(storage: Record<string, string> = {}) {
     innerWidth: 1280,
     innerHeight: 720,
     Image: class { onload: (() => void) | null = null; src = ""; complete = false; naturalWidth = 0; width = 16; height = 16; },
+    performance: { now: () => 0 },   // 화면 흔들림·엔딩 입력 잠금 시각. 시간은 흐르지 않음
     requestAnimationFrame: () => 0,
     cancelAnimationFrame: () => {},
     setTimeout: () => 0,
     clearTimeout: () => {},
     fetch: () => { throw new Error("시험 중에는 네트워크를 쓰지 않음"); },
+    ResizeObserver: class { observe() {} unobserve() {} disconnect() {} },   // 엔딩 자막 줄 나눔 (js/09-loop-windows.js). 크기가 안 바뀌므로 부르지 않음
+    getComputedStyle: () => ({ lineHeight: "20", paddingTop: "0", paddingBottom: "0" }),   // 엔딩 자막 줄 나눔
     confirm: () => true,
     alert: () => {},
     URL,
@@ -138,7 +141,7 @@ export function loadGame(storage: Record<string, string> = {}) {
   };
 }
 
-// 새 판을 시작한 게임 (보통 난이도·견습 마법사). 상점 강화 없음
+// 새 판을 시작한 게임 (쉬움 난이도·견습 마법사). 상점 강화 없음
 export function startedGame(storage: Record<string, string> = {}) {
   const g = loadGame(storage);
   g.run("resetGame()");

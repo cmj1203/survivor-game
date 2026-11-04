@@ -11,7 +11,7 @@ function addEnemy(g: Game, typeExpr: string, extra = "") {
 }
 
 describe("적 능력치", () => {
-  test("시작 시각(보통): 체력·피해는 전체 난이도 1.5배, 속도는 그대로", () => {
+  test("시작 시각(쉬움): 체력·피해는 전체 난이도 1.5배, 속도는 그대로", () => {
     const g = startedGame();
     expect(g.json("(({ hp, maxHp, damage, speed, xp, r }) => ({ hp, maxHp, damage, speed, xp, r }))(makeEnemy(ENEMY_TYPES[4], 0, 0))"))
       .toEqual({ hp: 12, maxHp: 12, damage: 27, speed: 40, xp: 4, r: 20 });
@@ -34,8 +34,8 @@ describe("적 능력치", () => {
   test("난이도 배수와 상점 저주가 적에게 곱해짐", () => {
     const g = startedGame({ "dungeon-survivor-meta": JSON.stringify({ version: 1, diff: 3, upgrades: { curse: 2 }, stats: { maxClearDiff: 2 } }) });
     const e = g.json<{ hp: number; damage: number; speed: number; shape: string }>("makeEnemy(ENEMY_TYPES[4], 0, 0)");
-    expect(e.hp).toBe(22);                // 8 × 1.5 × 1.6 × 1.12 = 21.504 → 22
-    expect(e.damage).toBe(35);            // 18 × 1.5 × 1.3
+    expect(e.hp).toBe(24);                // 8 × 1.5 × 1.8 × 1.12 = 24.192 → 24 (매우 어려움 체력 1.8)
+    expect(e.damage).toBe(38);            // 18 × 1.5 × 1.4 = 37.8 → 38 (매우 어려움 피해 1.4)
     expect(e.speed).toBeCloseTo(40 * 1.06 * 1.12, 9);
     expect(e.shape).toBe("cyclops_dark"); // 테마 색 그림
   });
@@ -47,7 +47,7 @@ describe("적 능력치", () => {
   });
 
   test("난이도 특성: 게 껍질·거미 분열 수가 단계마다 다름", () => {
-    expect(startedGame().json("[makeEnemy(ENEMY_TYPES[1], 0, 0).shell, makeEnemy(ENEMY_TYPES[2], 0, 0).splitInto]")).toEqual([null, 2]);   // 보통: 껍질 없음
+    expect(startedGame().json("[makeEnemy(ENEMY_TYPES[1], 0, 0).shell, makeEnemy(ENEMY_TYPES[2], 0, 0).splitInto]")).toEqual([null, 2]);   // 쉬움: 껍질 없음
     expect(gameOnDiff(3).json("[makeEnemy(ENEMY_TYPES[1], 0, 0).shell, makeEnemy(ENEMY_TYPES[2], 0, 0).splitInto]")).toEqual([2, 4]);
   });
 
