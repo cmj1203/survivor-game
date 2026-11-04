@@ -88,6 +88,27 @@ describe("등장 순서", () => {
   });
 });
 
+describe("스테이지 같은 자리 적 (stageEnemyType)", () => {
+  test("기본 적 이름은 지금 테마의 같은 자리 적으로 바뀜", () => {
+    expect(startedGame().run("stageEnemyType('crab').key")).toBe("crab");          // 던전(쉬움)은 그대로
+    expect(gameOnDiff(1).run("stageEnemyType('bat').key")).toBe("icewisp");      // 0번 자리
+    expect(gameOnDiff(2).run("stageEnemyType('ghost').key")).toBe("flameskull"); // 3번 자리
+    expect(gameOnDiff(3).run("stageEnemyType('cyclops').key")).toBe("mummy");    // 4번 자리
+  });
+
+  test("없는 이름은 지금 테마의 첫 적", () => {
+    expect(startedGame().run("stageEnemyType('없는적').key")).toBe(startedGame().run<string>("ENEMY_TYPES[0].key"));
+    expect(gameOnDiff(1).run("stageEnemyType('없는적').key")).toBe("icewisp");
+    expect(gameOnDiff(3).run("stageEnemyType(undefined).key")).toBe("crow");
+  });
+
+  test("다른 테마의 적 이름은 바꾸지 않고 그 적을 그대로 돌려줌", () => {
+    expect(gameOnDiff(3).run("stageEnemyType('polarbear').key")).toBe("polarbear");   // 어둠에서 얼음 동굴 적
+    expect(startedGame().run("stageEnemyType('imp').key")).toBe("imp");               // 던전에서 용암 굴 적
+    expect(gameOnDiff(1).run("stageEnemyType('icewisp').key")).toBe("icewisp");      // 같은 테마의 자기 이름
+  });
+});
+
 describe("적이 맞을 때", () => {
   test("체력이 남으면 살아 있고, 0 이하가 되면 죽어서 처치 수 +1, 그 자리에 구슬", () => {
     const g = startedGame();

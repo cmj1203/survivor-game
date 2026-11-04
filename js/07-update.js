@@ -197,7 +197,7 @@ function updateEnemies(dt, frozen) {
     } else if (e.behavior === "pack") {
       updatePackEnemy(e, dirX, dirY, len, dt);
     } else if (e.behavior === "runner") {
-      updateRunnerEnemy(e, dirX, dirY, len, dt);
+      updateRunnerEnemy(e, dirX, dirY, dt);
     } else if (e.behavior === "swarm") {
       // 박쥐 떼: 플레이어를 쫓지 않고 처음 정해진 방향으로 곧장 날아감
       e.x += e.vx * dt;
@@ -506,8 +506,13 @@ function updateSlideEnemy(e, dirX, dirY, dt) {
 
 // 들이박는 적 (악몽마): aim(준비) → run(일직선 돌진, RUSH_DIST 만큼) → rest(숨 고르기) → aim ...
 //   e.runX/runY = 돌진 방향 (그림도 이쪽을 바라봄)   e.rushT = 지금 동작에서 지난 시간   e.rushLeft = 남은 돌진 거리
-function updateRunnerEnemy(e, dirX, dirY, len, dt) {
-  if (!e.rush) e.rush = "rest", e.rushT = RUSH_REST_TIME * Math.random(), e.runX = dirX, e.runY = dirY;   // 처음엔 박자를 적마다 다르게
+function updateRunnerEnemy(e, dirX, dirY, dt) {
+  if (!e.rush) {   // 처음엔 박자를 적마다 다르게
+    e.rush = "rest";
+    e.rushT = RUSH_REST_TIME * Math.random();
+    e.runX = dirX;
+    e.runY = dirY;
+  }
   e.rushT += dt;
   if (e.rush === "rest") {
     if (e.rushT >= RUSH_REST_TIME) { e.rush = "aim"; e.rushT = 0; e.runX = dirX; e.runY = dirY; }   // 이 순간 캐릭터 쪽으로 방향을 정함

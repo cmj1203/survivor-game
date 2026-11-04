@@ -344,8 +344,10 @@ function dmgTableHtml() {
   if (rows.length === 0) return "";
   rows.sort((a, b) => b.sum - a.sum);
   const total = rows.reduce((sum, r) => sum + r.sum, 0);
-  return `<div class="dmg-head"><i></i><span>무기</span><b>진화 전</b><b>진화 후</b><b>총합</b><small>비율</small></div>` + rows.slice(0, DMG_TABLE_ROWS).map((r) =>
+  const head = `<div class="dmg-head"><i></i><span>무기</span><b>진화 전</b><b>진화 후</b><b>총합</b><small>비율</small></div>`;
+  const body = rows.slice(0, DMG_TABLE_ROWS).map((r) =>
     `<div class="dmg-row"><img src="${weaponIconUrl(r.shown)}" alt=""><span>${WEAPONS[r.shown].name}</span><b>${num(r.before)}</b><b>${r.after >= 1 ? num(r.after) : "-"}</b><b class="dmg-total">${num(r.sum)}</b><small>${Math.round((r.sum / total) * 100)}%</small></div>`).join("");
+  return head + body;
 }
 
 // 초 → "12분 34초"
